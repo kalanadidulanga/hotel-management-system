@@ -25,7 +25,7 @@ function filterItemsByRole(items: SidebarItem[], role: Role): SidebarItem[] {
 export default function AppSidebarMenu({ userRole, collapsed = false }: AppSidebarMenuProps) {
   const pathname = usePathname();
   const items = filterItemsByRole(sidebarConfig, userRole);
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [expandedItems, setExpandedItems] = useState<string[]>(["Restaurant"]);
 
   const toggleExpanded = (label: string) => {
     setExpandedItems(prev =>
@@ -55,7 +55,7 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
             href={item.route || "#"}
             className={cn(
               "flex items-center justify-center w-12 h-12 mx-2 my-1 rounded-lg transition-all duration-200 hover:bg-gray-700 relative",
-              isActive ? "bg-green-600 text-white" : "text-gray-300"
+              isActive ? "bg-green-600 text-white" : "text-gray-400 hover:text-white"
             )}
           >
             <item.icon className="w-5 h-5" />
@@ -74,12 +74,12 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
     }
 
     return (
-      <div key={item.label} className={cn("", level > 0 && "ml-4")}>
+      <div key={item.label} className={cn("", level > 0 && "")}>
         <div
           className={cn(
-            "flex items-center px-3 py-2 mx-2 my-1 rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-700 group",
-            isActive ? "bg-green-600 text-white" : "text-gray-300",
-            level > 0 && "py-1.5 text-sm"
+            "flex items-center px-3 py-2.5 mx-2 my-0.5 rounded-lg cursor-pointer transition-all duration-200 group",
+            isActive ? "bg-green-600 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white",
+            level > 0 && "py-2 text-sm ml-4"
           )}
           onClick={() => {
             if (hasChildren) {
@@ -97,9 +97,9 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
             }}
           >
             <item.icon className={cn("flex-shrink-0", level === 0 ? "w-5 h-5" : "w-4 h-4")} />
-            <span className="flex-1 text-left">{item.label}</span>
+            <span className="flex-1 text-left font-medium">{item.label}</span>
             {item.addon && (
-              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
                 Addon
               </span>
             )}
@@ -107,9 +107,9 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
           {hasChildren && (
             <div className="ml-2">
               {isExpanded ? (
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-4 h-4 text-gray-400" />
               ) : (
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 text-gray-400" />
               )}
             </div>
           )}
@@ -129,7 +129,7 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
       collapsed ? "w-16" : "w-64"
     )}>
       {/* Header with logo */}
-      <div className="flex items-center justify-center py-6 border-b border-gray-700">
+      <div className="flex items-center justify-center py-4 px-4 border-b border-gray-800">
         <Link href="/" className="flex items-center gap-2">
           <Image src="/logo.svg" alt="xainHotel Logo" width={32} height={32} />
           {!collapsed && (
@@ -142,17 +142,17 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
       </div>
 
       {/* User info */}
-      <div className="flex items-center px-4 py-4 border-b border-gray-700">
-        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+      <div className="flex items-center px-4 py-3 border-b border-gray-800">
+        <div className="w-2.5 h-2.5 bg-green-400 rounded-full flex-shrink-0"></div>
         {!collapsed && (
           <div className="ml-3">
-            <div className="text-sm font-medium text-white">Super Admin</div>
+            <div className="text-sm font-semibold text-white">Super Admin</div>
           </div>
         )}
       </div>
 
       {/* Menu items */}
-      <div className="flex-1 overflow-y-auto py-4">
+      <div className="flex-1 overflow-y-auto py-2">
         {items.map(item => renderMenuItem(item))}
       </div>
     </div>

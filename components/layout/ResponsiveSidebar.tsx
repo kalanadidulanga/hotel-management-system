@@ -42,7 +42,7 @@ export default function ResponsiveSidebar({ userRole, children }: ResponsiveSide
       {/* Mobile Menu Button */}
       <button
         onClick={toggleMobileMenu}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-gray-900 text-white rounded-lg shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-gray-900 text-white rounded-lg shadow-lg hover:bg-gray-800 transition-colors"
       >
         {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
@@ -50,7 +50,7 @@ export default function ResponsiveSidebar({ userRole, children }: ResponsiveSide
       {/* Desktop Toggle Button */}
       <button
         onClick={toggleDesktopSidebar}
-        className="hidden lg:block fixed top-4 left-4 z-50 p-2 bg-gray-900 text-white rounded-lg shadow-lg transition-all duration-300"
+        className="hidden lg:block fixed top-4 z-50 p-2 bg-gray-900 text-white rounded-lg shadow-lg hover:bg-gray-800 transition-all duration-300"
         style={{
           left: isDesktopCollapsed ? '20px' : '260px'
         }}
@@ -61,7 +61,7 @@ export default function ResponsiveSidebar({ userRole, children }: ResponsiveSide
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
           onClick={toggleMobileMenu}
         />
       )}
@@ -75,7 +75,7 @@ export default function ResponsiveSidebar({ userRole, children }: ResponsiveSide
             isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           ) : (
             // Desktop styles
-            isDesktopCollapsed ? "translate-x-0" : "translate-x-0"
+            "translate-x-0"
           )
         )}
       >
