@@ -62,7 +62,6 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
           {/* Tooltip for collapsed state */}
           <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
             {item.label}
-            {item.addon && " (Addon)"}
           </div>
         </div>
       );
