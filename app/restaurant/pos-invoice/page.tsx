@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Home } from "lucide-react";
 import Image from "next/image";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 18;
 
 export default function POSInvoicePage() {
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -69,43 +69,42 @@ export default function POSInvoicePage() {
         <main className="flex-1 flex flex-col md:flex-row gap-4 p-4 overflow-hidden items-start">
           {/* Product Grid - fixed card size, responsive grid, pagination fixed at bottom, always 3 rows */}
           <section className="flex-1 flex flex-col h-full relative">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 grid-rows-3 gap-3 w-full flex-1 min-h-[660px] h-full">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 grid-rows-3 gap-2 w-full flex-1 min-h-[540px] h-full pb-6">
               {paginatedProducts.map((product) => (
                 <Card
                   key={product.id}
-                  className="flex flex-col items-center bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-2 w-full max-w-[160px] min-w-[140px] h-[200px] mx-auto"
+                  className="flex flex-col items-center bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-1 w-full max-w-[140px] min-w-[120px] h-[160px] mx-auto"
                 >
-                  <div className="relative w-full h-[110px] rounded-lg overflow-hidden mb-2 bg-gray-100">
+                  <div className="relative w-full h-[80px] rounded-lg overflow-hidden mb-1 bg-gray-100">
                     <Image
                       src={product.image}
                       alt={product.name}
                       fill
-                      sizes="(max-width: 640px) 100vw, 140px"
+                      sizes="(max-width: 640px) 100vw, 120px"
                       className="object-cover"
                       unoptimized
                     />
                   </div>
-                  <div className="text-center text-xs font-medium line-clamp-2 w-full px-1 flex-1 flex items-center justify-center">{product.name}</div>
+                  <div className="text-center text-[11px] font-medium line-clamp-2 w-full px-1 flex-1 flex items-center justify-center">{product.name}</div>
                 </Card>
               ))}
             </div>
-            {/* Pagination fixed at the bottom of the grid section */}
-            <div className="w-full flex justify-center py-2 absolute left-0 right-0 bottom-0 z-10">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious onClick={() => setPage((p) => Math.max(1, p - 1))} isActive={page > 1} />
-                  </PaginationItem>
-                  {[...Array(pageCount)].map((_, i) => (
-                    <PaginationItem key={i}>
-                      <PaginationLink isActive={page === i + 1} onClick={() => setPage(i + 1)}>{i + 1}</PaginationLink>
+            <div className="w-full flex justify-center py-0.5 absolute left-0 right-0 bottom-0 z-10 text-xs">
+               <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                     <PaginationPrevious className="px-1 py-0.5 text-xs min-w-0" onClick={() => setPage((p) => Math.max(1, p - 1))} isActive={page > 1} />
                     </PaginationItem>
-                  ))}
-                  <PaginationItem>
-                    <PaginationNext onClick={() => setPage((p) => Math.min(pageCount, p + 1))} isActive={page < pageCount} />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+                    {[...Array(pageCount)].map((_, i) => (
+                      <PaginationItem key={i}>
+                       <PaginationLink className="px-1 py-0.5 text-xs min-w-0" isActive={page === i + 1} onClick={() => setPage(i + 1)}>{i + 1}</PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                     <PaginationNext className="px-1 py-0.5 text-xs min-w-0" onClick={() => setPage((p) => Math.min(pageCount, p + 1))} isActive={page < pageCount} />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
             </div>
           </section>
 
