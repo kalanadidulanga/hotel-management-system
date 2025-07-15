@@ -15,7 +15,7 @@ import {
   SidebarMenuSubButton,
 } from "../ui/sidebar";
 
-interface SidebarMenuProps {
+interface AppSidebarMenuProps {
   userRole: Role;
 }
 
@@ -28,7 +28,7 @@ function filterItemsByRole(items: SidebarItem[], role: Role): SidebarItem[] {
     }));
 }
 
-export default function SidebarMenu({ userRole }: SidebarMenuProps) {
+export default function AppSidebarMenu({ userRole }: AppSidebarMenuProps) {
   const pathname = usePathname();
   const items = filterItemsByRole(sidebarConfig, userRole);
 
