@@ -35,10 +35,8 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
   };
 
   const isItemActive = (item: SidebarItem): boolean => {
+    // Only mark as active if it's an exact route match, not for parent items
     if (item.route && pathname === item.route) return true;
-    if (item.children) {
-      return item.children.some(child => isItemActive(child));
-    }
     return false;
   };
 
@@ -53,9 +51,14 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
           <Link
             href={item.route || "#"}
             className={cn(
-              "flex items-center justify-center w-12 h-12 mx-2 rounded-lg transition-all duration-200 hover:bg-gray-700 relative",
-              isActive ? "bg-green-500 text-white" : "text-gray-400 hover:text-white"
+              "flex items-center justify-center w-12 h-12 mx-2 transition-all duration-200 hover:bg-gray-700 relative",
+              isActive ? "text-white" : "text-gray-400 hover:text-white"
             )}
+            style={isActive ? {
+              backgroundColor: "#37a000",
+              boxShadow: "0 0 10px 1px rgba(55, 160, 0, .7)",
+              borderRadius: "2px"
+            } : {}}
           >
             <item.icon className="w-5 h-5" />
           </Link>
@@ -71,11 +74,16 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
       <div key={item.label} className="mb-2">
         <div
           className={cn(
-            "flex items-center px-4 py-2 mx-2 rounded-lg cursor-pointer transition-all duration-200 group relative",
-            isActive ? "bg-green-500 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white",
-            level > 0 && "py-1.5 ml-0 text-sm bg-transparent hover:bg-gray-800",
-            level > 1 && "py-1 ml-4 text-xs"
+            "flex items-center px-4 py-2 mx-2 cursor-pointer transition-all duration-200 group relative",
+            isActive ? "text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white",
+            level > 0 && "py-1.5 ml-4 text-sm bg-transparent hover:bg-gray-800",
+            level > 1 && "py-1 ml-8 text-xs"
           )}
+          style={isActive ? {
+            backgroundColor: "#37a000",
+            boxShadow: "0 0 10px 1px rgba(55, 160, 0, .7)",
+            borderRadius: "2px"
+          } : {}}
           onClick={() => {
             if (hasChildren) {
               toggleExpanded(item.label);
@@ -112,7 +120,7 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
           </div>
         </div>
         {hasChildren && isExpanded && !collapsed && (
-          <div className={cn(level === 0 ? "ml-6" : "ml-8")}>
+          <div className={cn("mt-1", level === 0 ? "ml-2" : level === 1 ? "ml-4" : "ml-6")}>
             {item.children?.map(child => renderMenuItem(child, level + 1))}
           </div>
         )}
@@ -121,10 +129,13 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
   };
 
   return (
-    <div className={cn(
-      "h-full bg-gray-900 text-white flex flex-col transition-all duration-300",
-      collapsed ? "w-16" : "w-64"
-    )}>
+    <div 
+      className={cn(
+        "h-full text-white flex flex-col transition-all duration-300",
+        collapsed ? "w-16" : "w-64"
+      )}
+      style={{ backgroundColor: "#1c1f22" }}
+    >
       {/* Header with logo */}
       <div className="flex items-center justify-center py-5 px-4">
         <Link href="/" className="flex items-center gap-2">
