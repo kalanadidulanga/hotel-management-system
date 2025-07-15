@@ -1,3 +1,10 @@
+# Hotel Management System
+
+A comprehensive hotel management system built with Next.js, featuring role-based access control and modular addon functionality.
+
+## 🏗️ Project Structure
+
+```
 hotel-management-system/
 │
 ├── public/                           # Static assets (images, SVGs, etc.)
@@ -102,4 +109,24 @@ hotel-management-system/
 ├── next.config.ts                    # Next.js config
 ├── tsconfig.json                     # TypeScript config
 ├── package.json
-├── README.md
+├── README.md                        # Project description
+```
+
+## ✨ Features
+
+- **Role-based Access Control** - Different permissions for admin, manager, and staff roles
+- **Modular Addon System** - Restaurant, housekeeping, pool booking, and more
+- **Modern Tech Stack** - Built with Next.js 14, TypeScript, and Tailwind CSS
+- **Responsive Design** - Works seamlessly across desktop and mobile devices
+
+## 🚀 Getting Started
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up environment variables in `.env.local`
+4. Run the development server: `npm run dev`
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## 📝 License
+
+This project is licensed under the MIT License.

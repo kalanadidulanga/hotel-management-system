@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
 import AppSidebarMenu from "./SidebarMenu";
+import Header from "./header";
 import { Role } from "../sidebar/sidebar.config";
 import { cn } from "../../lib/utils";
 
@@ -39,43 +39,18 @@ export default function ResponsiveSidebar({ userRole, children }: ResponsiveSide
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-gray-100">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={toggleMobileMenu}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-gray-900 text-white rounded-lg shadow-lg hover:bg-gray-800 transition-colors"
-      >
-        {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-      </button>
-
-      {/* Desktop Toggle Button */}
-      <button
-        onClick={toggleDesktopSidebar}
-        className="hidden lg:block fixed top-4 z-50 p-2 bg-gray-900 text-white rounded-lg shadow-lg hover:bg-gray-800 transition-all duration-300"
-        style={{
-          left: isDesktopCollapsed ? '72px' : '276px'
-        }}
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-
-      {/* Mobile Overlay */}
-      {isMobileMenuOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={toggleMobileMenu}
-        />
-      )}
-
-      {/* Sidebar */}
+      {/* Sidebar - always on the left */}
       <div
         className={cn(
-          "fixed lg:relative top-0 left-0 h-full z-40 transform transition-transform duration-300 ease-in-out",
+          "transition-all duration-300 ease-in-out bg-gray-900",
           // Mobile styles
           isMobile ? (
-            isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+            `fixed top-0 left-0 h-full z-40 ${
+              isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+            }`
           ) : (
             // Desktop styles
-            "translate-x-0"
+            `relative h-full ${isDesktopCollapsed ? "w-16" : "w-64"}`
           )
         )}
       >
@@ -85,20 +60,26 @@ export default function ResponsiveSidebar({ userRole, children }: ResponsiveSide
         />
       </div>
 
-      {/* Main Content */}
-      <main 
-        className={cn(
-          "flex-1 min-w-0 overflow-y-auto transition-all duration-300",
-          isMobile ? "w-full" : (isDesktopCollapsed ? "ml-16" : "ml-64")
-        )}
-      >
-        <div className={cn(
-          "p-4 md:p-8 transition-all duration-300",
-          isMobile ? "pt-16" : (isDesktopCollapsed ? "pt-16 lg:pt-8" : "pt-8")
-        )}>
-          {children}
-        </div>
-      </main>
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={toggleMobileMenu}
+        />
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Header */}
+        <Header onToggleSidebar={isMobile ? toggleMobileMenu : toggleDesktopSidebar} />
+        
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto bg-white">
+          <div className="p-4 md:p-8">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

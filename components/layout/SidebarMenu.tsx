@@ -54,7 +54,7 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
             href={item.route || "#"}
             className={cn(
               "flex items-center justify-center w-12 h-12 mx-2 rounded-lg transition-all duration-200 hover:bg-gray-700 relative",
-              isActive ? "bg-green-600 text-white" : "text-gray-400 hover:text-white"
+              isActive ? "bg-green-500 text-white" : "text-gray-400 hover:text-white"
             )}
           >
             <item.icon className="w-5 h-5" />
@@ -72,7 +72,7 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
         <div
           className={cn(
             "flex items-center px-4 py-2 mx-2 rounded-lg cursor-pointer transition-all duration-200 group relative",
-            isActive ? "bg-green-600 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white",
+            isActive ? "bg-green-500 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white",
             level > 0 && "py-1.5 ml-0 text-sm bg-transparent hover:bg-gray-800",
             level > 1 && "py-1 ml-4 text-xs"
           )}
@@ -103,9 +103,9 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
             {hasChildren && !collapsed && (
               <div>
                 {isExpanded ? (
-                  <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-gray-100" />
                 ) : (
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                  <ChevronRight className="w-3.5 h-3.5 text-gray-100" />
                 )}
               </div>
             )}
@@ -143,7 +143,7 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
       </div>
 
       {/* User info */}
-      <div className="flex items-center px-4 py-2 mb-2">
+      <div className="flex items-center px-4 py-4 mb-2">
         <div className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0"></div>
         {!collapsed && (
           <div className="ml-2">
