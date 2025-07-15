@@ -77,7 +77,7 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
             "flex items-center px-4 py-2 mx-2 cursor-pointer transition-all duration-200 group relative",
             isActive ? "text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white",
             level > 0 && "py-1.5 ml-4 text-sm bg-transparent hover:bg-gray-800",
-            level > 1 && "py-1 ml-8 text-xs"
+            level > 1 && "py-1 ml-4 text-xs"
           )}
           style={isActive ? {
             backgroundColor: "#37a000",
