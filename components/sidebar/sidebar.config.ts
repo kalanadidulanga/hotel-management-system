@@ -31,15 +31,15 @@ export const sidebarConfig: SidebarItem[] = [
     addon: true,
     roles: ["superadmin", "manager"],
     children: [
-      { label: "POS Invoice", route: "/restuarent/pos-invoice", roles: ["superadmin", "manager"] },
-      { label: "Order List", route: "/restuarent/order-list", roles: ["superadmin", "manager"] },
+      { label: "POS Invoice", icon: FileText, route: "/restuarent/pos-invoice", roles: ["superadmin", "manager"] },
+      { label: "Order List", icon: FileText, route: "/restuarent/order-list", roles: ["superadmin", "manager"] },
       {
         label: "Manage Table",
         icon: FileText,
         roles: ["superadmin", "manager"],
         children: [
-          { label: "Table List", route: "/restuarent/manage-table/table-list", roles: ["superadmin", "manager"] },
-          { label: "Table Setting", route: "/restuarent/manage-table/table-setting", roles: ["superadmin", "manager"] },
+          { label: "Table List", icon: FileText, route: "/restuarent/manage-table/table-list", roles: ["superadmin", "manager"] },
+          { label: "Table Setting", icon: FileText, route: "/restuarent/manage-table/table-setting", roles: ["superadmin", "manager"] },
         ],
       },
       // Add more sub-items as needed
