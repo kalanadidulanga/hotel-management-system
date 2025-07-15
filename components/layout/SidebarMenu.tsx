@@ -159,7 +159,10 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
       </div>
 
       {/* Menu items */}
-      <div className="flex-1 overflow-y-auto pb-4">
+      <div className={cn(
+        "flex-1 pb-4",
+        collapsed ? "overflow-hidden" : "overflow-y-auto"
+      )}>
         {items.map(item => renderMenuItem(item))}
       </div>
     </div>

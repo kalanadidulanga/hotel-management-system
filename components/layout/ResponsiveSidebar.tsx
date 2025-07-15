@@ -52,7 +52,7 @@ export default function ResponsiveSidebar({ userRole, children }: ResponsiveSide
         onClick={toggleDesktopSidebar}
         className="hidden lg:block fixed top-4 z-50 p-2 bg-gray-900 text-white rounded-lg shadow-lg hover:bg-gray-800 transition-all duration-300"
         style={{
-          left: isDesktopCollapsed ? '20px' : '260px'
+          left: isDesktopCollapsed ? '72px' : '276px'
         }}
       >
         <Menu className="w-5 h-5" />
@@ -92,7 +92,10 @@ export default function ResponsiveSidebar({ userRole, children }: ResponsiveSide
           isMobile ? "w-full" : (isDesktopCollapsed ? "ml-16" : "ml-64")
         )}
       >
-        <div className="p-4 md:p-8 pt-16 lg:pt-8">
+        <div className={cn(
+          "p-4 md:p-8 transition-all duration-300",
+          isMobile ? "pt-16" : (isDesktopCollapsed ? "pt-16 lg:pt-8" : "pt-8")
+        )}>
           {children}
         </div>
       </main>
