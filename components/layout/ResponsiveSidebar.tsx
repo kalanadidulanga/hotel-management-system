@@ -38,11 +38,11 @@ export default function ResponsiveSidebar({ userRole, children }: ResponsiveSide
   };
 
   return (
-    <div className="flex h-screen w-full bg-gray-100">
+    <div className="flex h-screen w-full bg-background">
       {/* Sidebar - always on the left */}
       <div
         className={cn(
-          "transition-all duration-300 ease-in-out bg-gray-900",
+          "transition-all duration-300 ease-in-out bg-sidebar border-r border-sidebar-border",
           // Mobile styles
           isMobile ? (
             `fixed top-0 left-0 h-full z-40 ${
@@ -74,7 +74,7 @@ export default function ResponsiveSidebar({ userRole, children }: ResponsiveSide
         <Header onToggleSidebar={isMobile ? toggleMobileMenu : toggleDesktopSidebar} />
         
         {/* Main Content */}
-        <main className="flex-1 bg-white overflow-hidden">
+        <main className="flex-1 bg-background overflow-hidden">
           <div className="p-4 md:p-8 h-full overflow-y-auto">
             {children}
           </div>

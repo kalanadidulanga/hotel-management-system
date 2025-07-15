@@ -51,19 +51,37 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
           <Link
             href={item.route || "#"}
             className={cn(
-              "flex items-center justify-center w-12 h-12 mx-2 transition-all duration-200 hover:bg-gray-700 relative",
-              isActive ? "text-white" : "text-gray-400 hover:text-white"
+              "flex items-center justify-center w-12 h-12 mx-2 transition-all duration-200 relative",
+              isActive ? "" : "text-sidebar-foreground hover:text-sidebar-primary"
             )}
-            style={isActive ? {
-              backgroundColor: "#37a000",
-              boxShadow: "0 0 10px 1px rgba(55, 160, 0, .7)",
-              borderRadius: "2px"
-            } : {}}
+            style={{
+              borderRadius: 'var(--radius-lg)',
+              backgroundColor: isActive ? 'var(--sidebar-primary)' : 'transparent',
+              color: isActive ? 'var(--sidebar-primary-foreground)' : undefined,
+            }}
+            onMouseEnter={(e) => {
+              if (!isActive) {
+                e.currentTarget.style.backgroundColor = 'var(--sidebar-accent)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isActive) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }
+            }}
           >
             <item.icon className="w-5 h-5" />
           </Link>
           {/* Tooltip for collapsed state */}
-          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+          <div 
+            className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 border"
+            style={{
+              backgroundColor: 'var(--card)',
+              color: 'var(--card-foreground)',
+              borderColor: 'var(--border)',
+              borderRadius: 'var(--radius-lg)'
+            }}
+          >
             {item.label}
           </div>
         </div>
@@ -75,15 +93,26 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
         <div
           className={cn(
             "flex items-center px-4 py-2 mx-2 cursor-pointer transition-all duration-200 group relative",
-            isActive ? "text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white",
-            level > 0 && "py-1.5 ml-4 text-sm bg-transparent hover:bg-gray-800",
+            level > 0 && "py-1.5 ml-4 text-sm bg-transparent",
             level > 1 && "py-1 ml-4 text-xs"
           )}
-          style={isActive ? {
-            backgroundColor: "#37a000",
-            boxShadow: "0 0 10px 1px rgba(55, 160, 0, .7)",
-            borderRadius: "2px"
-          } : {}}
+          style={{
+            borderRadius: 'var(--radius-lg)',
+            backgroundColor: isActive ? 'var(--sidebar-primary)' : 'transparent',
+            color: isActive ? 'var(--sidebar-primary-foreground)' : 'var(--sidebar-foreground)',
+          }}
+          onMouseEnter={(e) => {
+            if (!isActive) {
+              e.currentTarget.style.backgroundColor = level > 0 ? 'var(--sidebar-accent)' : 'var(--sidebar-accent)';
+              e.currentTarget.style.color = 'var(--sidebar-accent-foreground)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isActive) {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--sidebar-foreground)';
+            }
+          }}
           onClick={() => {
             if (hasChildren) {
               toggleExpanded(item.label);
@@ -111,9 +140,9 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
             {hasChildren && !collapsed && (
               <div>
                 {isExpanded ? (
-                  <ChevronDown className="w-3.5 h-3.5 text-gray-100" />
+                  <ChevronDown className="w-3.5 h-3.5" style={{ color: 'var(--sidebar-foreground)' }} />
                 ) : (
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-100" />
+                  <ChevronRight className="w-3.5 h-3.5" style={{ color: 'var(--sidebar-foreground)' }} />
                 )}
               </div>
             )}
@@ -131,34 +160,47 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
   return (
     <div 
       className={cn(
-        "h-full text-white flex flex-col transition-all duration-300",
+        "h-full flex flex-col transition-all duration-300 border-r",
         collapsed ? "w-16" : "w-64"
       )}
-      style={{ backgroundColor: "#1c1f22" }}
+      style={{
+        backgroundColor: 'var(--sidebar)',
+        color: 'var(--sidebar-foreground)',
+        borderColor: 'var(--sidebar-border)'
+      }}
     >
       {/* Header with logo */}
-      <div className="flex items-center justify-center py-5 px-4">
+      <div className="flex items-center justify-center py-5 px-4 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center">
-            <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-              <span className="text-white text-xs font-bold">X</span>
+          <div 
+            className="w-7 h-7 rounded-full flex items-center justify-center border"
+            style={{
+              backgroundColor: 'var(--background)',
+              borderColor: 'var(--border)'
+            }}
+          >
+            <div 
+              className="w-5 h-5 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: 'var(--primary)' }}
+            >
+              <span className="text-xs font-bold" style={{ color: 'var(--primary-foreground)' }}>X</span>
             </div>
           </div>
           {!collapsed && (
             <span className="text-xl font-bold">
-              <span className="text-white">xain</span>
-              <span className="text-green-400">Hotel</span>
+              <span style={{ color: 'var(--sidebar-foreground)' }}>xain</span>
+              <span style={{ color: 'var(--primary)' }}>Hotel</span>
             </span>
           )}
         </Link>
       </div>
 
       {/* User info */}
-      <div className="flex items-center px-4 py-4 mb-2">
-        <div className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0"></div>
+      <div className="flex items-center px-4 py-4 mb-2 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
+        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--chart-2)' }}></div>
         {!collapsed && (
           <div className="ml-2">
-            <div className="text-sm font-semibold text-white">Super Admin</div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--sidebar-foreground)' }}>Super Admin</div>
           </div>
         )}
       </div>
