@@ -1,0 +1,113 @@
+export const categories = [
+  "All",
+  "Naan",
+  "Pasta",
+  "Swarma",
+  "Chowmein & Noodles",
+  "Burger",
+  "Water",
+  "Juice",
+  "Kabab",
+  "Biryani",
+  "Soup",
+  "Soft Drink",
+];
+
+export const products = [
+  {
+    id: 1,
+    name: "Garlic Naan (Small)",
+    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
+    category: "Naan",
+  },
+  {
+    id: 2,
+    name: "Tawa Naan (Small)",
+    image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80",
+    category: "Naan",
+  },
+  {
+    id: 3,
+    name: "Vegan Pasta Sauce (Small)",
+    image: "https://images.unsplash.com/photo-1523987355523-c7b5b0723c6f?auto=format&fit=crop&w=400&q=80",
+    category: "Pasta",
+  },
+  {
+    id: 4,
+    name: "Vegetable sharma (Half)",
+    image: "https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=400&q=80",
+    category: "Swarma",
+  },
+  {
+    id: 5,
+    name: "Chicken shawrma (Half)",
+    image: "https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80",
+    category: "Swarma",
+  },
+  {
+    id: 6,
+    name: "Chicken Chowmein (Small)",
+    image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80",
+    category: "Chowmein & Noodles",
+  },
+  {
+    id: 7,
+    name: "Vegetable Beef soup with Noodles (Large)",
+    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
+    category: "Soup",
+  },
+  {
+    id: 8,
+    name: "Crispy Cheeseburgers (Small)",
+    image: "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80",
+    category: "Burger",
+  },
+  {
+    id: 9,
+    name: "Juicy Beef Burgers (Juicy Burger)",
+    image: "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=400&q=80",
+    category: "Burger",
+  },
+  {
+    id: 10,
+    name: "Mineral Water (Mineral Water)",
+    image: "https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80",
+    category: "Water",
+  },
+  {
+    id: 11,
+    name: "Sparkling water (Sparkling Water)",
+    image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80",
+    category: "Water",
+  },
+  {
+    id: 12,
+    name: "Orange juice (Half Glass)",
+    image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80",
+    category: "Juice",
+  },
+  {
+    id: 13,
+    name: "Special Summer (Full Package)",
+    image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80",
+    category: "Juice",
+  },
+  {
+    id: 14,
+    name: "Strawberry Juice (Half Glass)",
+    image: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80",
+    category: "Juice",
+  },
+  {
+    id: 15,
+    name: "Chicken Angara Kabab (Chicken)",
+    image: "https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80",
+    category: "Kabab",
+  },
+  {
+    id: 16,
+    name: "Mutton Seekh Kebab (Mutton)",
+    image: "https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=400&q=80",
+    category: "Kabab",
+  },
+];
