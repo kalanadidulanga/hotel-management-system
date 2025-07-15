@@ -10,8 +10,10 @@ interface HeaderProps {
 
 export default function Header({ onToggleSidebar }: HeaderProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -104,7 +106,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           {/* Time Display - Right corner */}
           <div className="px-4 py-2 border border-border h-10 flex items-center justify-center bg-card rounded-[var(--radius-lg)]">
             <span className="text-sm font-mono text-card-foreground font-bold tracking-wider" style={{ fontFamily: 'var(--font-mono)' }}>
-              {formatTime(currentTime)}
+              {isMounted ? formatTime(currentTime) : '--:--:--'}
             </span>
           </div>
         </div>
