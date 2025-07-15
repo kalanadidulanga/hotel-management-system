@@ -49,7 +49,7 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
 
     if (collapsed && level === 0) {
       return (
-        <div key={item.label} className="relative group mb-2">
+        <div key={item.label} className="relative group mb-3">
           <Link
             href={item.route || "#"}
             className={cn(
@@ -69,7 +69,7 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
     }
 
     return (
-      <div key={item.label} className="mb-1">
+      <div key={item.label} className="mb-2">
         <div
           className={cn(
             "flex items-center px-4 py-2 mx-2 rounded-lg cursor-pointer transition-all duration-200 group relative",
@@ -101,11 +101,6 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
             )}>{item.label}</span>
           </Link>
           <div className="flex items-center gap-2">
-            {item.addon && !collapsed && (
-              <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-semibold">
-                Addon
-              </span>
-            )}
             {hasChildren && !collapsed && (
               <div>
                 {isExpanded ? (
