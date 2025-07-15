@@ -48,13 +48,15 @@ export function AdminNavbar({ onToggleSidebar, className }: AdminNavbarProps) {
         <nav className={`bg-white border-b border-gray-200 px-4 py-3 ${className}`}>
             <div className="flex items-center justify-between">
                 {/* Left: Hamburger Menu */}
-                <div className="flex items-center">
+                <div>
+
+                <div className="flex items-center md:hidden">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={onToggleSidebar}
                         className="p-2 hover:bg-gray-100"
-                    >
+                        >
                         <div className="flex flex-col space-y-1">
                             <div className="w-5 h-0.5 bg-green-600 rounded"></div>
                             <div className="w-5 h-0.5 bg-green-600 rounded"></div>
@@ -62,6 +64,7 @@ export function AdminNavbar({ onToggleSidebar, className }: AdminNavbarProps) {
                         </div>
                     </Button>
                 </div>
+                        </div>
 
                 {/* Center: Main Navigation Buttons */}
                 <div className="flex items-center gap-3">

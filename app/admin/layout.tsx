@@ -3,10 +3,9 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Menu } from "lucide-react"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { AdminSidebar } from "@/components/admin-sidebar"
 import { AdminNavbar } from "@/components/admin-navbar"
-
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -14,14 +13,9 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
-  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false)
 
   const toggleMobileSidebar = () => {
     setIsMobileSidebarOpen(!isMobileSidebarOpen)
-  }
-
-  const toggleDesktopSidebar = () => {
-    setIsDesktopSidebarCollapsed(!isDesktopSidebarCollapsed)
   }
 
   return (
@@ -34,6 +28,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Mobile Sidebar */}
       <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
         <SheetContent side="left" className="p-0 w-64">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Navigation Menu</SheetTitle>
+          </SheetHeader>
           <AdminSidebar />
         </SheetContent>
       </Sheet>
