@@ -1,4 +1,6 @@
-import { LucideIcon, Home, Calendar, Utensils, Wrench, FileText, Truck, MessageCircle } from "lucide-react";
+import { LucideIcon, Home, Waves, Utensils, Wrench, Calendar, Truck, MessageCircle, 
+  FileText, List, Zap, Users, UtensilsCrossed, Settings, Plus, Bed, CreditCard,
+  User, Cog, Car, Facebook, RotateCcw, HelpCircle } from "lucide-react";
 
 export type Role = "superadmin" | "manager" | "cashier";
 
@@ -13,36 +15,39 @@ export type SidebarItem = {
 
 export const sidebarConfig: SidebarItem[] = [
   {
-    label: "Dashboard",
-    icon: Home,
-    route: "/dashboard",
-    roles: ["superadmin", "manager", "cashier"],
-  },
-  {
     label: "Pool Booking",
-    icon: Calendar,
+    icon: Waves,
     route: "/pool-booking",
     addon: true,
     roles: ["superadmin"],
   },
   {
-    label: "Restaurent",
+    label: "Restaurant",
     icon: Utensils,
     addon: true,
     roles: ["superadmin", "manager"],
     children: [
-      { label: "POS Invoice", icon: FileText, route: "/restuarent/pos-invoice", roles: ["superadmin", "manager"] },
-      { label: "Order List", icon: FileText, route: "/restuarent/order-list", roles: ["superadmin", "manager"] },
+      { label: "POS Invoice", icon: FileText, route: "/restaurant/pos-invoice", roles: ["superadmin", "manager"] },
+      { label: "Order List", icon: List, route: "/restaurant/order-list", roles: ["superadmin", "manager"] },
+      { label: "Pending Order", icon: Zap, route: "/restaurant/pending-order", roles: ["superadmin", "manager"] },
+      { label: "Complete Order", icon: FileText, route: "/restaurant/complete-order", roles: ["superadmin", "manager"] },
+      { label: "Cancel Order", icon: FileText, route: "/restaurant/cancel-order", roles: ["superadmin", "manager"] },
+      { label: "Counter Dashboard", icon: Home, route: "/restaurant/counter-dashboard", roles: ["superadmin", "manager"] },
+      { label: "POS Setting", icon: Settings, route: "/restaurant/pos-setting", roles: ["superadmin", "manager"] },
+      { label: "Sound Setting", icon: Settings, route: "/restaurant/sound-setting", roles: ["superadmin", "manager"] },
       {
         label: "Manage Table",
-        icon: FileText,
+        icon: UtensilsCrossed,
         roles: ["superadmin", "manager"],
         children: [
-          { label: "Table List", icon: FileText, route: "/restuarent/manage-table/table-list", roles: ["superadmin", "manager"] },
-          { label: "Table Setting", icon: FileText, route: "/restuarent/manage-table/table-setting", roles: ["superadmin", "manager"] },
+          { label: "Table List", icon: List, route: "/restaurant/manage-table/table-list", roles: ["superadmin", "manager"] },
+          { label: "Table Setting", icon: Settings, route: "/restaurant/manage-table/table-setting", roles: ["superadmin", "manager"] },
         ],
       },
-      // Add more sub-items as needed
+      { label: "Customer Type", icon: Users, route: "/restaurant/customer-type", roles: ["superadmin", "manager"] },
+      { label: "Manage Category", icon: List, route: "/restaurant/manage-category", roles: ["superadmin", "manager"] },
+      { label: "Manage Food", icon: UtensilsCrossed, route: "/restaurant/manage-food", roles: ["superadmin", "manager"] },
+      { label: "Manage Add-ons", icon: Plus, route: "/restaurant/manage-addons", roles: ["superadmin", "manager"] },
     ],
   },
   {
@@ -54,7 +59,7 @@ export const sidebarConfig: SidebarItem[] = [
   },
   {
     label: "Duty Roster",
-    icon: FileText,
+    icon: Calendar,
     route: "/duty-roster",
     addon: true,
     roles: ["superadmin", "manager"],
@@ -73,5 +78,70 @@ export const sidebarConfig: SidebarItem[] = [
     addon: true,
     roles: ["superadmin"],
   },
-  // Add more items as needed
+  {
+    label: "Room Reservation",
+    icon: Bed,
+    route: "/room-reservation",
+    roles: ["superadmin", "manager"],
+  },
+  {
+    label: "Room Facilities",
+    icon: Bed,
+    route: "/room-facilities",
+    roles: ["superadmin", "manager"],
+  },
+  {
+    label: "Hall Room",
+    icon: Home,
+    route: "/hall-room",
+    roles: ["superadmin", "manager"],
+  },
+  {
+    label: "Payment Setting",
+    icon: CreditCard,
+    route: "/payment-setting",
+    roles: ["superadmin"],
+  },
+  {
+    label: "Profile",
+    icon: User,
+    route: "/profile",
+    roles: ["superadmin", "manager", "cashier"],
+  },
+  {
+    label: "Settings",
+    icon: Cog,
+    route: "/settings",
+    roles: ["superadmin"],
+  },
+  {
+    label: "Customer",
+    icon: Users,
+    route: "/customer",
+    roles: ["superadmin", "manager"],
+  },
+  {
+    label: "Car",
+    icon: Car,
+    route: "/car",
+    roles: ["superadmin"],
+  },
+  {
+    label: "Facebook",
+    icon: Facebook,
+    route: "/facebook",
+    roles: ["superadmin"],
+  },
+  {
+    label: "Sync",
+    icon: RotateCcw,
+    route: "/sync",
+    roles: ["superadmin"],
+  },
+  {
+    label: "Help",
+    icon: HelpCircle,
+    route: "/help",
+    roles: ["superadmin", "manager", "cashier"],
+  },
 ]; 
