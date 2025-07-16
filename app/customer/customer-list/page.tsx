@@ -566,7 +566,7 @@ export default function CustomerListPage() {
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => window.location.href = `/customers/options/${customer.id}`}
+                                                            onClick={() => window.location.href = `/customer/options/${customer.id}`}
                                                             className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
                                                         >
                                                             <Settings className="w-4 h-4 text-blue-600" />
@@ -574,7 +574,7 @@ export default function CustomerListPage() {
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => window.location.href = `/customers/view/${customer.id}`}
+                                                            onClick={() => window.location.href = `/customer/customer_info/${customer.id}`}
                                                             className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
                                                         >
                                                             <Eye className="w-4 h-4 text-blue-600" />
