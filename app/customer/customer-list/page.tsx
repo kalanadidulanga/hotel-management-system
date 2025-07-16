@@ -197,13 +197,13 @@ export default function CustomerListPage() {
         <div className="flex flex-col h-full bg-white relative">
             {/* Header Section */}
             <div className="flex-shrink-0 bg-white/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border/50">
-                <div className="px-4 py-3 space-y-3">
+                <div className="px-4 py-4 space-y-4">
                     {/* Breadcrumb */}
                     <Breadcrumb>
                         <BreadcrumbList>
                             <BreadcrumbItem>
-                                <BreadcrumbLink href="/dashboard" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    <Home className="w-3.5 h-3.5" /> Dashboard
+                                <BreadcrumbLink href="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                    <Home className="w-4 h-4" /> Dashboard
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
                             <BreadcrumbSeparator />
@@ -216,13 +216,13 @@ export default function CustomerListPage() {
                     </Breadcrumb>
 
                     {/* Title & Add Button */}
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                            <Users className="w-5 h-5 text-primary" />
-                            <h1 className="text-lg font-semibold text-foreground">Customer Management</h1>
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <Users className="w-6 h-6 text-primary" />
+                            <h1 className="text-xl font-semibold text-foreground">Customer Management</h1>
                         </div>
-                        <Button className="h-8 px-4 rounded-full shadow-md flex items-center gap-2">
-                            <Plus className="w-3.5 h-3.5" />
+                        <Button className="h-10 px-6 rounded-full shadow-md flex items-center gap-2">
+                            <Plus className="w-4 h-4" />
                             Add New Customer
                         </Button>
                     </div>
@@ -231,14 +231,14 @@ export default function CustomerListPage() {
 
             {/* Controls Section */}
             <div className="flex-shrink-0 bg-white shadow-lg border-b border-border/50">
-                <div className="px-4 py-3 space-y-3">
+                <div className="px-4 py-4 space-y-4">
                     {/* Top Controls */}
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-4">
                         {/* Entries Selection */}
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-muted-foreground">Show</span>
+                            <span className="text-sm font-medium text-muted-foreground">Show</span>
                             <Select value={String(entries)} onValueChange={v => { setEntries(Number(v)); setPage(1); }}>
-                                <SelectTrigger className="w-16 h-8 text-xs rounded-lg border-border/50 shadow-sm">
+                                <SelectTrigger className="w-20 h-9 text-sm rounded-lg border-border/50 shadow-sm">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -247,54 +247,54 @@ export default function CustomerListPage() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <span className="text-xs font-medium text-muted-foreground">entries</span>
+                            <span className="text-sm font-medium text-muted-foreground">entries</span>
                         </div>
 
                         {/* Export Buttons */}
-                        <div className="flex gap-1.5">
+                        <div className="flex gap-2">
                             <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleExport("Copy")}
-                                className="h-8 px-3 rounded-full text-xs shadow-sm"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                             >
-                                <Copy className="w-3 h-3 mr-1" />
+                                <Copy className="w-4 h-4 mr-2" />
                                 Copy
                             </Button>
                             <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleExport("CSV")}
-                                className="h-8 px-3 rounded-full text-xs shadow-sm"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                             >
-                                <FileText className="w-3 h-3 mr-1" />
+                                <FileText className="w-4 h-4 mr-2" />
                                 CSV
                             </Button>
                             <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleExport("PDF")}
-                                className="h-8 px-3 rounded-full text-xs shadow-sm"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                             >
-                                <FileText className="w-3 h-3 mr-1" />
+                                <FileText className="w-4 h-4 mr-2" />
                                 PDF
                             </Button>
                             <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleExport("Print")}
-                                className="h-8 px-3 rounded-full text-xs shadow-sm"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                             >
-                                <Printer className="w-3 h-3 mr-1" />
+                                <Printer className="w-4 h-4 mr-2" />
                                 Print
                             </Button>
                         </div>
 
                         {/* Search Bar */}
                         <div className="flex items-center gap-2 ml-auto">
-                            <span className="text-xs font-medium text-muted-foreground">Search:</span>
+                            <span className="text-sm font-medium text-muted-foreground">Search:</span>
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type="text"
                                     placeholder="Search customers..."
@@ -303,7 +303,7 @@ export default function CustomerListPage() {
                                         setSearchQuery(e.target.value);
                                         setPage(1);
                                     }}
-                                    className="pl-9 h-8 w-48 text-xs rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                                    className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
                                 />
                             </div>
                         </div>
@@ -320,9 +320,9 @@ export default function CustomerListPage() {
                                     columns.map(c => c.key);
                                 setVisibleCols(next);
                             }}
-                            className="h-8 px-3 rounded-lg text-xs shadow-sm"
+                            className="h-9 px-4 rounded-lg text-sm shadow-sm"
                         >
-                            <Eye className="w-3 h-3 mr-1" />
+                            <Eye className="w-4 h-4 mr-2" />
                             Column visibility
                         </Button>
                     </div>
@@ -339,7 +339,7 @@ export default function CustomerListPage() {
                                     {columns.filter(col => visibleCols.includes(col.key)).map(col => (
                                         <TableHead
                                             key={col.key}
-                                            className="text-xs font-medium text-muted-foreground cursor-pointer select-none hover:bg-accent transition-colors duration-200 border-b border-border/50 whitespace-nowrap h-10"
+                                            className="text-sm font-medium text-muted-foreground cursor-pointer select-none hover:bg-accent transition-colors duration-200 border-b border-border/50 whitespace-nowrap h-12"
                                             onClick={() => {
                                                 if (col.key !== "action") {
                                                     setSort(s => ({
@@ -349,16 +349,16 @@ export default function CustomerListPage() {
                                                 }
                                             }}
                                         >
-                                            <div className="flex items-center gap-1">
+                                            <div className="flex items-center gap-2">
                                                 {col.label}
                                                 {col.key !== "action" && col.key !== "status" && (
                                                     <div className="flex flex-col">
                                                         {sort.key === col.key ? (
                                                             sort.dir === "asc" ?
-                                                                <ChevronUp className="w-3 h-3 text-foreground" /> :
-                                                                <ChevronDown className="w-3 h-3 text-foreground" />
+                                                                <ChevronUp className="w-4 h-4 text-foreground" /> :
+                                                                <ChevronDown className="w-4 h-4 text-foreground" />
                                                         ) : (
-                                                            <ChevronUp className="w-3 h-3 text-muted-foreground/50" />
+                                                            <ChevronUp className="w-4 h-4 text-muted-foreground/50" />
                                                         )}
                                                     </div>
                                                 )}
@@ -370,10 +370,10 @@ export default function CustomerListPage() {
                             <TableBody>
                                 {paginatedCustomers.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={visibleCols.length} className="text-center py-8">
-                                            <div className="flex flex-col items-center gap-2">
-                                                <Settings className="w-8 h-8 text-muted-foreground" />
-                                                <p className="text-sm text-muted-foreground">No customers found</p>
+                                        <TableCell colSpan={visibleCols.length} className="text-center py-12">
+                                            <div className="flex flex-col items-center gap-3">
+                                                <Settings className="w-12 h-12 text-muted-foreground" />
+                                                <p className="text-base text-muted-foreground">No customers found</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -381,32 +381,32 @@ export default function CustomerListPage() {
                                     paginatedCustomers.map((customer, idx) => (
                                         <TableRow key={customer.id} className="hover:bg-accent/50 transition-colors duration-200 border-b border-border/50">
                                             {visibleCols.includes("sl") && (
-                                                <TableCell className="text-xs text-foreground font-medium py-2">
+                                                <TableCell className="text-sm text-foreground font-medium py-3">
                                                     {(page - 1) * entries + idx + 1}
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("firstName") && (
-                                                <TableCell className="text-xs text-foreground font-medium py-2">
+                                                <TableCell className="text-sm text-foreground font-medium py-3">
                                                     {customer.firstName}
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("lastName") && (
-                                                <TableCell className="text-xs text-foreground py-2">
+                                                <TableCell className="text-sm text-foreground py-3">
                                                     {customer.lastName}
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("email") && (
-                                                <TableCell className="text-xs text-foreground py-2">
+                                                <TableCell className="text-sm text-foreground py-3">
                                                     {customer.email}
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("phone") && (
-                                                <TableCell className="text-xs text-foreground py-2">
+                                                <TableCell className="text-sm text-foreground py-3">
                                                     {customer.phone}
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("balance") && (
-                                                <TableCell className="text-xs py-2">
+                                                <TableCell className="text-sm py-3">
                                                     <div className="flex items-center gap-1">
                                                         <span className={`font-medium ${customer.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                                             {customer.balance >= 0 ? '+' : '-'}{formatCurrency(customer.balance)}
@@ -415,52 +415,52 @@ export default function CustomerListPage() {
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("status") && (
-                                                <TableCell className="py-2">
+                                                <TableCell className="py-3">
                                                     {getStatusBadge(customer.status)}
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("action") && (
-                                                <TableCell className="py-2">
-                                                    <div className="flex items-center gap-1">
+                                                <TableCell className="py-3">
+                                                    <div className="flex items-center gap-2">
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
                                                             onClick={() => window.location.href = `/customers/edit/${customer.id}`}
-                                                            className="h-7 w-7 p-0 rounded-full border-green-200 hover:bg-green-50 hover:border-green-300 shadow-sm"
+                                                            className="h-8 w-8 p-0 rounded-full border-green-200 hover:bg-green-50 hover:border-green-300 shadow-sm"
                                                         >
-                                                            <Edit className="w-3 h-3 text-green-600" />
+                                                            <Edit className="w-4 h-4 text-green-600" />
                                                         </Button>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
                                                             onClick={() => window.location.href = `/customers/payment/${customer.id}`}
-                                                            className="h-7 w-7 p-0 rounded-full border-teal-200 hover:bg-teal-50 hover:border-teal-300 shadow-sm"
+                                                            className="h-8 w-8 p-0 rounded-full border-teal-200 hover:bg-teal-50 hover:border-teal-300 shadow-sm"
                                                         >
-                                                            <DollarSign className="w-3 h-3 text-teal-600" />
+                                                            <DollarSign className="w-4 h-4 text-teal-600" />
                                                         </Button>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
                                                             onClick={() => window.location.href = `/customers/options/${customer.id}`}
-                                                            className="h-7 w-7 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                                                            className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
                                                         >
-                                                            <Settings className="w-3 h-3 text-blue-600" />
+                                                            <Settings className="w-4 h-4 text-blue-600" />
                                                         </Button>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
                                                             onClick={() => window.location.href = `/customers/view/${customer.id}`}
-                                                            className="h-7 w-7 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                                                            className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
                                                         >
-                                                            <Eye className="w-3 h-3 text-blue-600" />
+                                                            <Eye className="w-4 h-4 text-blue-600" />
                                                         </Button>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
                                                             onClick={() => handleDelete(customer.id)}
-                                                            className="h-7 w-7 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
+                                                            className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
                                                         >
-                                                            <Trash2 className="w-3 h-3 text-red-600" />
+                                                            <Trash2 className="w-4 h-4 text-red-600" />
                                                         </Button>
                                                     </div>
                                                 </TableCell>
@@ -476,9 +476,9 @@ export default function CustomerListPage() {
 
             {/* Pagination */}
             <div className="flex-shrink-0 bg-white/80 backdrop-blur-sm border-t border-border/50 z-10">
-                <div className="px-4 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="text-xs text-muted-foreground">
+                <div className="px-4 py-4">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="text-sm text-muted-foreground">
                             Showing {(page - 1) * entries + 1} to {Math.min(page * entries, sortedCustomers.length)} of {sortedCustomers.length} entries
                         </div>
 
@@ -488,7 +488,7 @@ export default function CustomerListPage() {
                                     <PaginationItem>
                                         <PaginationPrevious
                                             onClick={() => setPage(Math.max(1, page - 1))}
-                                            className={`${page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-8 px-3 text-xs`}
+                                            className={`${page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-9 px-4 text-sm`}
                                         />
                                     </PaginationItem>
                                     {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -507,7 +507,7 @@ export default function CustomerListPage() {
                                                 <PaginationLink
                                                     onClick={() => setPage(pageNum)}
                                                     isActive={page === pageNum}
-                                                    className={`cursor-pointer rounded-full hover:bg-accent h-8 px-3 text-xs ${page === pageNum ? "shadow-md" : "shadow-sm"}`}
+                                                    className={`cursor-pointer rounded-full hover:bg-accent h-9 px-4 text-sm ${page === pageNum ? "shadow-md" : "shadow-sm"}`}
                                                 >
                                                     {pageNum}
                                                 </PaginationLink>
@@ -517,7 +517,7 @@ export default function CustomerListPage() {
                                     <PaginationItem>
                                         <PaginationNext
                                             onClick={() => setPage(Math.min(totalPages, page + 1))}
-                                            className={`${page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-8 px-3 text-xs`}
+                                            className={`${page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-9 px-4 text-sm`}
                                         />
                                     </PaginationItem>
                                 </PaginationContent>
