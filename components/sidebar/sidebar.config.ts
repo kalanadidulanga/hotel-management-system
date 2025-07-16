@@ -254,9 +254,36 @@ export const sidebarConfig: SidebarItem[] = [
   {
     label: "Room Reservation",
     icon: Bed,
-    route: "/room-reservation",
+    addon: true,
     roles: ["superadmin", "manager"],
+    children: [
+      {
+        label: "Booking List",
+        icon: FileText,
+        route: "/room-reservation/booking-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Check In",
+        icon: List,
+        route: "/room-reservation/checkin-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Check Out",
+        icon: List,
+        route: "/room-reservation/checkout-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Room Status",
+        icon: List,
+        route: "/room-reservation/room-status",
+        roles: ["superadmin", "manager"],
+      },
+    ],
   },
+
   {
     label: "Room Facilities",
     icon: Bed,
