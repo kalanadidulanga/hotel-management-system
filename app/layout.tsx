@@ -17,7 +17,10 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <body className="h-screen bg-background antialiased overflow-hidden">
+      <body
+        className="h-screen antialiased overflow-hidden"
+        style={{ backgroundColor: 'var(--background)' }}
+      >
         <ResponsiveSidebar userRole={userRole}>
           {children}
         </ResponsiveSidebar>
