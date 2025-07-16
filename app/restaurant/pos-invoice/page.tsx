@@ -85,7 +85,7 @@ export default function POSInvoicePage() {
                     setSearchQuery(e.target.value);
                     setPage(1);
                   }}
-                  className="pl-9 h-9 rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                  className="pl-9 h-9 rounded-lg border-border/80 focus:ring-1 focus:ring-ring focus:border-transparent shadow-lg"
                 />
               </div>
               
@@ -202,7 +202,7 @@ export default function POSInvoicePage() {
 
         {/* Right Panel - Order Form */}
         <div className="lg:col-span-1 flex flex-col space-y-2 min-h-0 max-h-full overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200/60">
+          <div className="bg-white rounded-xl shadow-lg border bg-gray-200/60">
             <div className="p-5">
               <h2 className="text-base font-medium text-foreground mb-4">Order Details</h2>
               
