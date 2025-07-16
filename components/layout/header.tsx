@@ -9,11 +9,11 @@ interface HeaderProps {
 }
 
 export default function Header({ onToggleSidebar }: HeaderProps) {
-  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setCurrentTime(new Date()); // initial render time on client only
-
+    setIsMounted(true);
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -33,7 +33,7 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
   return (
     <header className="bg-background text-foreground border-b border-border">
       <div className="flex items-center justify-between px-4 py-2">
-        {/* Left section */}
+        {/* Left section - Menu Toggle only */}
         <div className="flex items-center">
           <button
             onClick={onToggleSidebar}
@@ -44,32 +44,46 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
           </button>
         </div>
 
-        {/* Center section */}
+        {/* Center section - Empty for spacing */}
         <div className="flex-1"></div>
 
-        {/* Right section */}
+        {/* Right section - All Action Items and Time */}
         <div className="flex items-center gap-2">
-          <Link href="/website" className="px-4 py-2 bg-chart-2 hover:bg-chart-2/90 text-white flex items-center gap-2 text-sm font-medium rounded-[var(--radius-lg)]">
+          {/* Action Buttons */}
+          <Link
+            href="/website"
+            className="px-4 py-2 bg-chart-2 hover:bg-chart-2/90 text-white transition-colors duration-200 flex items-center gap-2 text-sm font-medium rounded-[var(--radius-lg)]"
+          >
             <Globe className="w-4 h-4" />
             <span>Website</span>
           </Link>
 
-          <Link href="/customer-invoice" className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-2 text-sm font-medium rounded-[var(--radius-lg)]">
+          <Link
+            href="/customer-invoice"
+            className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground transition-colors duration-200 flex items-center gap-2 text-sm font-medium rounded-[var(--radius-lg)]"
+          >
             <FileText className="w-4 h-4" />
             <span>Customer Invoice</span>
           </Link>
 
-          <Link href="/booking-report" className="px-4 py-2 bg-muted-foreground hover:bg-muted-foreground/90 text-white flex items-center gap-2 text-sm font-medium rounded-[var(--radius-lg)]">
+          <Link
+            href="/booking-report"
+            className="px-4 py-2 bg-muted-foreground hover:bg-muted-foreground/90 text-white transition-colors duration-200 flex items-center gap-2 text-sm font-medium rounded-[var(--radius-lg)]"
+          >
             <Calendar className="w-4 h-4" />
             <span>Booking Report</span>
           </Link>
 
-          <Link href="/day-close" className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground flex items-center gap-2 text-sm font-medium rounded-[var(--radius-lg)]">
+          <Link
+            href="/day-close"
+            className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground transition-colors duration-200 flex items-center gap-2 text-sm font-medium rounded-[var(--radius-lg)]"
+          >
             <X className="w-4 h-4" />
             <span>Day Close</span>
           </Link>
 
-          <button className="px-3 py-2 hover:bg-muted border border-border h-10 flex items-center justify-center rounded-[var(--radius-lg)]">
+          {/* Additional Action Icons */}
+          <button className="px-3 py-2 hover:bg-muted transition-colors duration-200 border border-border h-10 flex items-center justify-center rounded-[var(--radius-lg)]">
             <div className="w-4 h-4 grid grid-cols-2 gap-0.5">
               <div className="w-1.5 h-1.5 bg-muted-foreground"></div>
               <div className="w-1.5 h-1.5 bg-muted-foreground"></div>
@@ -77,26 +91,22 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
               <div className="w-1.5 h-1.5 bg-muted-foreground"></div>
             </div>
           </button>
-
-          <button className="px-3 py-2 hover:bg-muted border border-border h-10 flex items-center justify-center rounded-[var(--radius-lg)]">
+          
+          <button className="px-3 py-2 hover:bg-muted transition-colors duration-200 border border-border h-10 flex items-center justify-center rounded-[var(--radius-lg)]">
             <div className="w-3 h-3 border-2 border-muted-foreground transform rotate-45"></div>
           </button>
-
-          <button className="px-3 py-2 hover:bg-muted border border-border h-10 flex items-center justify-center rounded-[var(--radius-lg)]">
+          
+          <button className="px-3 py-2 hover:bg-muted transition-colors duration-200 border border-border h-10 flex items-center justify-center rounded-[var(--radius-lg)]">
             <div className="w-4 h-4 rounded-full border-2 border-muted-foreground relative">
               <div className="absolute top-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-muted-foreground rounded-full"></div>
               <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-2.5 h-1.5 bg-muted-foreground rounded-t-full"></div>
             </div>
           </button>
 
-          {/* Time Display */}
+          {/* Time Display - Right corner */}
           <div className="px-4 py-2 border border-border h-10 flex items-center justify-center bg-card rounded-[var(--radius-lg)]">
-            <span
-              className="text-sm font-mono text-card-foreground font-bold tracking-wider"
-              style={{ fontFamily: 'var(--font-mono)' }}
-              suppressHydrationWarning
-            >
-              {currentTime ? formatTime(currentTime) : '--:--:--'}
+            <span className="text-sm font-mono text-card-foreground font-bold tracking-wider" style={{ fontFamily: 'var(--font-mono)' }}>
+              {isMounted ? formatTime(currentTime) : '--:--:--'}
             </span>
           </div>
         </div>

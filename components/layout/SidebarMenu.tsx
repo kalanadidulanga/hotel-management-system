@@ -170,7 +170,7 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
       }}
     >
       {/* Header with logo */}
-      <div className="flex items-center justify-center py-5 px-4 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
+      <div className="flex items-center justify-center py-5 px-4" style={{ borderColor: 'var(--sidebar-border)' }}>
         <Link href="/" className="flex items-center gap-2">
           <div 
             className="w-7 h-7 rounded-full flex items-center justify-center border"
@@ -196,7 +196,7 @@ export default function AppSidebarMenu({ userRole, collapsed = false }: AppSideb
       </div>
 
       {/* User info */}
-      <div className="flex items-center px-4 py-4 mb-2 border-b" style={{ borderColor: 'var(--sidebar-border)' }}>
+      <div className="flex items-center px-4 py-4 mb-2" style={{ borderColor: 'var(--sidebar-border)' }}>
         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--chart-2)' }}></div>
         {!collapsed && (
           <div className="ml-2">
