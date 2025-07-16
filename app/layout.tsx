@@ -16,8 +16,11 @@ export default function RootLayout({
   const userRole = "superadmin";
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="h-screen bg-background antialiased overflow-hidden" suppressHydrationWarning>
+    <html lang="en">
+      <body
+        className="h-screen antialiased overflow-hidden"
+        style={{ backgroundColor: 'var(--background)' }}
+      >
         <ResponsiveSidebar userRole={userRole}>
           {children}
         </ResponsiveSidebar>

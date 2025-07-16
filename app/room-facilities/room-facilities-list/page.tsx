@@ -135,23 +135,23 @@ export default function RoomFacilitiesPage() {
     // Get facility icon
     const getFacilityIcon = (name: string) => {
         const lowerName = name.toLowerCase()
-        if (lowerName.includes('air') || lowerName.includes('ac')) return <Wind className="h-4 w-4 text-blue-500" />
-        if (lowerName.includes('wifi')) return <Wifi className="h-4 w-4 text-green-500" />
-        if (lowerName.includes('tv') || lowerName.includes('television')) return <Tv className="h-4 w-4 text-purple-500" />
-        if (lowerName.includes('parking') || lowerName.includes('car')) return <Car className="h-4 w-4 text-gray-500" />
-        return <Settings className="h-4 w-4 text-gray-500" />
+        if (lowerName.includes('air') || lowerName.includes('ac')) return <Wind className="h-4 w-4 text-primary" />
+        if (lowerName.includes('wifi')) return <Wifi className="h-4 w-4 text-chart-2" />
+        if (lowerName.includes('tv') || lowerName.includes('television')) return <Tv className="h-4 w-4 text-chart-4" />
+        if (lowerName.includes('parking') || lowerName.includes('car')) return <Car className="h-4 w-4 text-muted-foreground" />
+        return <Settings className="h-4 w-4 text-muted-foreground" />
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 bg-background">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Room Facilities List</h1>
-                    <p className="text-gray-600 mt-1">Manage room facilities and amenities</p>
+                    <h1 className="text-3xl font-bold text-foreground">Room Facilities List</h1>
+                    <p className="text-muted-foreground mt-1">Manage room facilities and amenities</p>
                 </div>
                 <Button
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
                     onClick={() => setIsAddModalOpen(true)}
                 >
                     <Plus className="h-4 w-4 mr-2" />
@@ -160,14 +160,14 @@ export default function RoomFacilitiesPage() {
             </div>
 
             {/* Controls Card */}
-            <Card className="border-0 shadow-sm">
+            <Card className="border-border">
                 <CardContent className="pt-6">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                         {/* Left: Entries */}
                         <div className="flex items-center gap-3">
-                            <label htmlFor="entries" className="text-sm font-medium text-gray-700">Show</label>
+                            <label htmlFor="entries" className="text-sm font-medium text-foreground">Show</label>
                             <Select value={String(entries)} onValueChange={v => { setEntries(Number(v)); setPage(1) }}>
-                                <SelectTrigger id="entries" className="w-24 border-0 bg-gray-50">
+                                <SelectTrigger id="entries" className="w-24 border-border bg-muted">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -176,44 +176,44 @@ export default function RoomFacilitiesPage() {
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <span className="text-sm text-gray-600">entries</span>
+                            <span className="text-sm text-muted-foreground">entries</span>
                         </div>
 
                         {/* Center: Export Buttons */}
                         <div className="flex flex-wrap gap-2">
-                            <Button size="sm" variant="outline" className="text-green-700 border-0 bg-green-50 hover:bg-green-100" onClick={() => handleExport("Copy")}>
+                            <Button size="sm" variant="outline" className="text-secondary-foreground border-border bg-secondary hover:bg-secondary/90" onClick={() => handleExport("Copy")}>
                                 <Copy className="h-4 w-4 mr-1" /> Copy
                             </Button>
-                            <Button size="sm" variant="outline" className="text-green-700 border-0 bg-green-50 hover:bg-green-100" onClick={() => handleExport("CSV")}>
+                            <Button size="sm" variant="outline" className="text-secondary-foreground border-border bg-secondary hover:bg-secondary/90" onClick={() => handleExport("CSV")}>
                                 <FileText className="h-4 w-4 mr-1" /> CSV
                             </Button>
-                            <Button size="sm" variant="outline" className="text-green-700 border-0 bg-green-50 hover:bg-green-100" onClick={() => handleExport("PDF")}>
+                            <Button size="sm" variant="outline" className="text-secondary-foreground border-border bg-secondary hover:bg-secondary/90" onClick={() => handleExport("PDF")}>
                                 <FileText className="h-4 w-4 mr-1" /> PDF
                             </Button>
-                            <Button size="sm" variant="outline" className="text-green-700 border-0 bg-green-50 hover:bg-green-100" onClick={() => handleExport("Print")}>
+                            <Button size="sm" variant="outline" className="text-secondary-foreground border-border bg-secondary hover:bg-secondary/90" onClick={() => handleExport("Print")}>
                                 <Printer className="h-4 w-4 mr-1" /> Print
                             </Button>
                         </div>
 
                         {/* Right: Search */}
                         <div className="flex items-center gap-3">
-                            <label htmlFor="search" className="text-sm font-medium text-gray-700">Search:</label>
+                            <label htmlFor="search" className="text-sm font-medium text-foreground">Search:</label>
                             <Input
                                 id="search"
                                 value={search}
                                 onChange={e => { setSearch(e.target.value); setPage(1) }}
-                                className="w-64 border-0 bg-gray-50"
+                                className="w-64 border-border bg-muted"
                                 placeholder="Search facilities..."
                             />
                         </div>
                     </div>
 
                     {/* Column Visibility */}
-                    <div className="mt-4 pt-4">
+                    <div className="mt-4 pt-4 border-t border-border">
                         <Button
                             size="sm"
                             variant="outline"
-                            className="text-blue-700 border-0 bg-blue-50 hover:bg-blue-100"
+                            className="text-accent-foreground border-border bg-accent hover:bg-accent/80"
                             onClick={() => {
                                 const next = visibleCols.length === columns.length ? ["sl", "facilityName"] : columns.map(c => c.key)
                                 setVisibleCols(next)
@@ -226,16 +226,16 @@ export default function RoomFacilitiesPage() {
             </Card>
 
             {/* Facilities Table */}
-            <Card className="border-0 shadow-sm">
+            <Card className="border-border">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
-                                <TableRow className="bg-gray-50/50 border-0">
+                                <TableRow className="bg-muted/50 border-border">
                                     {columns.filter(col => visibleCols.includes(col.key)).map(col => (
                                         <TableHead
                                             key={col.key}
-                                            className="font-semibold text-gray-900 cursor-pointer select-none hover:bg-gray-100/50 transition-colors border-0"
+                                            className="font-semibold text-foreground cursor-pointer select-none hover:bg-accent/50 transition-colors border-border"
                                             onClick={() => setSort(s => ({
                                                 key: col.key,
                                                 dir: s.key === col.key ? (s.dir === "asc" ? "desc" : "asc") : "asc"
@@ -247,10 +247,10 @@ export default function RoomFacilitiesPage() {
                                                     <div className="flex flex-col">
                                                         {sort.key === col.key ? (
                                                             sort.dir === "asc" ?
-                                                                <ChevronUp className="h-4 w-4 text-blue-600" /> :
-                                                                <ChevronDown className="h-4 w-4 text-blue-600" />
+                                                                <ChevronUp className="h-4 w-4 text-primary" /> :
+                                                                <ChevronDown className="h-4 w-4 text-primary" />
                                                         ) : (
-                                                            <ChevronUp className="h-4 w-4 text-gray-400" />
+                                                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
                                                         )}
                                                     </div>
                                                 )}
@@ -261,41 +261,41 @@ export default function RoomFacilitiesPage() {
                             </TableHeader>
                             <TableBody>
                                 {paginated.length === 0 ? (
-                                    <TableRow className="border-0">
-                                        <TableCell colSpan={visibleCols.length} className="text-center py-12 border-0">
+                                    <TableRow className="border-border">
+                                        <TableCell colSpan={visibleCols.length} className="text-center py-12 border-border">
                                             <div className="flex flex-col items-center gap-2">
-                                                <div className="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center">
-                                                    <Settings className="h-6 w-6 text-gray-400" />
+                                                <div className="h-12 w-12 bg-muted rounded-full flex items-center justify-center">
+                                                    <Settings className="h-6 w-6 text-muted-foreground" />
                                                 </div>
-                                                <p className="text-gray-500 font-medium">No facilities found</p>
-                                                <p className="text-gray-400 text-sm">Try adjusting your search or add new facilities</p>
+                                                <p className="text-muted-foreground font-medium">No facilities found</p>
+                                                <p className="text-muted-foreground text-sm">Try adjusting your search or add new facilities</p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
                                 ) : paginated.map((facility, idx) => (
-                                    <TableRow key={facility.id} className="hover:bg-gray-50/50 transition-colors border-0">
+                                    <TableRow key={facility.id} className="hover:bg-muted/50 transition-colors border-border">
                                         {visibleCols.includes("sl") && (
-                                            <TableCell className="font-medium text-gray-900 border-0">
+                                            <TableCell className="font-medium text-foreground border-border">
                                                 {(page - 1) * entries + idx + 1}
                                             </TableCell>
                                         )}
                                         {visibleCols.includes("facilityName") && (
-                                            <TableCell className="border-0">
+                                            <TableCell className="border-border">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center">
+                                                    <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
                                                         {getFacilityIcon(facility.name)}
                                                     </div>
-                                                    <span className="font-medium text-gray-900">{facility.name}</span>
+                                                    <span className="font-medium text-foreground">{facility.name}</span>
                                                 </div>
                                             </TableCell>
                                         )}
                                         {visibleCols.includes("action") && (
-                                            <TableCell className="border-0">
+                                            <TableCell className="border-border">
                                                 <div className="flex items-center gap-2">
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                                                        className="text-primary hover:bg-primary/10 hover:text-primary"
                                                         onClick={() => handleEdit(facility)}
                                                     >
                                                         <Pencil className="h-4 w-4" />
@@ -303,7 +303,7 @@ export default function RoomFacilitiesPage() {
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                                                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                                                         onClick={() => handleDelete(facility.id)}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
@@ -320,10 +320,10 @@ export default function RoomFacilitiesPage() {
             </Card>
 
             {/* Pagination */}
-            <Card className="border-0 shadow-sm">
+            <Card className="border-border">
                 <CardContent className="py-4">
                     <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-muted-foreground">
                             Showing <span className="font-medium">{(page - 1) * entries + 1}</span> to{' '}
                             <span className="font-medium">{Math.min(page * entries, sorted.length)}</span> of{' '}
                             <span className="font-medium">{sorted.length}</span> entries
@@ -334,23 +334,23 @@ export default function RoomFacilitiesPage() {
                                 variant="outline"
                                 disabled={page === 1}
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                                className="border-0 bg-gray-50 hover:bg-gray-100"
+                                className="border-border bg-muted hover:bg-accent"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                                 Previous
                             </Button>
                             <div className="flex items-center gap-1">
-                                <span className="text-sm text-gray-600">Page</span>
-                                <span className="font-medium">{page}</span>
-                                <span className="text-sm text-gray-600">of</span>
-                                <span className="font-medium">{totalPages || 1}</span>
+                                <span className="text-sm text-muted-foreground">Page</span>
+                                <span className="font-medium text-foreground">{page}</span>
+                                <span className="text-sm text-muted-foreground">of</span>
+                                <span className="font-medium text-foreground">{totalPages || 1}</span>
                             </div>
                             <Button
                                 size="sm"
                                 variant="outline"
                                 disabled={page === totalPages || totalPages === 0}
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                className="border-0 bg-gray-50 hover:bg-gray-100"
+                                className="border-border bg-muted hover:bg-accent"
                             >
                                 Next
                                 <ChevronRight className="h-4 w-4" />
@@ -362,22 +362,22 @@ export default function RoomFacilitiesPage() {
 
             {/* Add Facility Modal */}
             <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                <DialogContent className="sm:max-w-[425px] border-0">
+                <DialogContent className="sm:max-w-[425px] bg-card border-border">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Plus className="h-5 w-5 text-blue-600" />
+                        <DialogTitle className="flex items-center gap-2 text-foreground">
+                            <Plus className="h-5 w-5 text-primary" />
                             Add New Facility Type
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="facilityName">Facility Name</Label>
+                            <Label htmlFor="facilityName" className="text-foreground">Facility Name</Label>
                             <Input
                                 id="facilityName"
                                 value={newFacilityName}
                                 onChange={(e) => setNewFacilityName(e.target.value)}
                                 placeholder="Enter facility name..."
-                                className="border-0 bg-gray-50"
+                                className="border-border bg-muted"
                             />
                         </div>
                         <div className="flex justify-end gap-3 pt-4">
@@ -387,13 +387,13 @@ export default function RoomFacilitiesPage() {
                                     setIsAddModalOpen(false)
                                     setNewFacilityName("")
                                 }}
-                                className="border-0 bg-gray-50 hover:bg-gray-100"
+                                className="border-border bg-muted hover:bg-accent"
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={handleAddFacility}
-                                className="bg-blue-600 hover:bg-blue-700"
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground"
                                 disabled={!newFacilityName.trim()}
                             >
                                 Add Facility
@@ -405,35 +405,35 @@ export default function RoomFacilitiesPage() {
 
             {/* Edit Facility Modal */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-                <DialogContent className="sm:max-w-[425px] border-0">
+                <DialogContent className="sm:max-w-[425px] bg-card border-border">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Pencil className="h-5 w-5 text-blue-600" />
+                        <DialogTitle className="flex items-center gap-2 text-foreground">
+                            <Pencil className="h-5 w-5 text-primary" />
                             Edit Facility
                         </DialogTitle>
                     </DialogHeader>
                     {editingFacility && (
                         <div className="space-y-4 py-4">
                             <div className="space-y-2">
-                                <Label htmlFor="editFacilityName">Facility Name</Label>
+                                <Label htmlFor="editFacilityName" className="text-foreground">Facility Name</Label>
                                 <Input
                                     id="editFacilityName"
                                     value={editingFacility.name}
                                     onChange={(e) => setEditingFacility({ ...editingFacility, name: e.target.value })}
-                                    className="border-0 bg-gray-50"
+                                    className="border-border bg-muted"
                                 />
                             </div>
                             <div className="flex justify-end gap-3 pt-4">
                                 <Button
                                     variant="outline"
                                     onClick={() => setIsEditModalOpen(false)}
-                                    className="border-0 bg-gray-50 hover:bg-gray-100"
+                                    className="border-border bg-muted hover:bg-accent"
                                 >
                                     Cancel
                                 </Button>
                                 <Button
                                     onClick={handleSaveEdit}
-                                    className="bg-blue-600 hover:bg-blue-700"
+                                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
                                 >
                                     Save Changes
                                 </Button>

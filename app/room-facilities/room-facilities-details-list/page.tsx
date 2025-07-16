@@ -211,8 +211,8 @@ export default function RoomFacilitiesDetailsListPage() {
     }
 
     return (
-        <div className="min-h-screen bg-muted">
-            <div className="bg-card shadow-sm border-b">
+        <div className="min-h-screen bg-background">
+            <div className="bg-card shadow-sm border-b border-border">
                 <div className="px-4 py-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
@@ -232,14 +232,14 @@ export default function RoomFacilitiesDetailsListPage() {
 
             <div className="p-4">
                 {/* Controls */}
-                <div className="bg-card border rounded-sm mb-4">
+                <div className="bg-card border border-border rounded-sm mb-4">
                     <div className="p-4">
                         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                             {/* Entries */}
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-foreground">Show</span>
                                 <Select value={String(entries)} onValueChange={v => { setEntries(Number(v)); setPage(1) }}>
-                                    <SelectTrigger className="w-20 border">
+                                    <SelectTrigger className="w-20 border-border">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -256,7 +256,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 <Button
                                     size="sm"
                                     onClick={() => handleExport("Copy")}
-                                    className="bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors duration-200 text-sm"
+                                    className="bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-colors duration-200 text-sm"
                                 >
                                     <Copy className="w-4 h-4 mr-1" />
                                     Copy
@@ -264,7 +264,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 <Button
                                     size="sm"
                                     onClick={() => handleExport("CSV")}
-                                    className="bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors duration-200 text-sm"
+                                    className="bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-colors duration-200 text-sm"
                                 >
                                     <FileText className="w-4 h-4 mr-1" />
                                     CSV
@@ -272,7 +272,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 <Button
                                     size="sm"
                                     onClick={() => handleExport("PDF")}
-                                    className="bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors duration-200 text-sm"
+                                    className="bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-colors duration-200 text-sm"
                                 >
                                     <FileText className="w-4 h-4 mr-1" />
                                     PDF
@@ -280,7 +280,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 <Button
                                     size="sm"
                                     onClick={() => handleExport("Print")}
-                                    className="bg-secondary hover:bg-secondary/80 text-secondary-foreground transition-colors duration-200 text-sm"
+                                    className="bg-secondary hover:bg-secondary/90 text-secondary-foreground transition-colors duration-200 text-sm"
                                 >
                                     <Printer className="w-4 h-4 mr-1" />
                                     Print
@@ -293,14 +293,14 @@ export default function RoomFacilitiesDetailsListPage() {
                                 <Input
                                     value={search}
                                     onChange={e => { setSearch(e.target.value); setPage(1) }}
-                                    className="w-48 border"
+                                    className="w-48 border-border"
                                     placeholder="Search facilities..."
                                 />
                             </div>
                         </div>
 
                         {/* Column Visibility */}
-                        <div className="mt-4 pt-4 border-t">
+                        <div className="mt-4 pt-4 border-t border-border">
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -310,7 +310,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                         columns.map(c => c.key)
                                     setVisibleCols(next)
                                 }}
-                                className="border hover:bg-accent transition-colors duration-200"
+                                className="border-border hover:bg-accent transition-colors duration-200"
                             >
                                 <Eye className="w-4 h-4 mr-1" />
                                 Column visibility
@@ -320,15 +320,15 @@ export default function RoomFacilitiesDetailsListPage() {
                 </div>
 
                 {/* Table */}
-                <div className="bg-card border rounded-sm">
+                <div className="bg-card border border-border rounded-sm">
                     <div className="overflow-auto max-h-[70vh]">
                         <Table>
                             <TableHeader className="sticky top-0 bg-card z-10">
-                                <TableRow className="border-b">
+                                <TableRow className="border-b border-border">
                                     {columns.filter(col => visibleCols.includes(col.key)).map(col => (
                                         <TableHead
                                             key={col.key}
-                                            className="text-foreground font-medium cursor-pointer select-none hover:bg-accent transition-colors duration-200 border-b"
+                                            className="text-foreground font-medium cursor-pointer select-none hover:bg-accent transition-colors duration-200 border-b border-border"
                                             onClick={() => {
                                                 if (col.key !== "image" && col.key !== "action") {
                                                     setSort(s => ({
@@ -359,7 +359,7 @@ export default function RoomFacilitiesDetailsListPage() {
                             <TableBody>
                                 {paginated.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={visibleCols.length} className="text-center py-8 border-b">
+                                        <TableCell colSpan={visibleCols.length} className="text-center py-8 border-b border-border">
                                             <div className="flex flex-col items-center gap-2">
                                                 <Settings className="w-8 h-8 text-muted-foreground" />
                                                 <p className="text-muted-foreground">No facility details found</p>
@@ -367,14 +367,14 @@ export default function RoomFacilitiesDetailsListPage() {
                                         </TableCell>
                                     </TableRow>
                                 ) : paginated.map((facility, idx) => (
-                                    <TableRow key={facility.id} className="hover:bg-accent transition-colors duration-200 border-b">
+                                    <TableRow key={facility.id} className="hover:bg-accent transition-colors duration-200 border-b border-border">
                                         {visibleCols.includes("sl") && (
-                                            <TableCell className="text-foreground border-b">
+                                            <TableCell className="text-foreground border-b border-border">
                                                 {(page - 1) * entries + idx + 1}
                                             </TableCell>
                                         )}
                                         {visibleCols.includes("facilityType") && (
-                                            <TableCell className="text-foreground border-b">
+                                            <TableCell className="text-foreground border-b border-border">
                                                 <div className="flex items-center gap-2">
                                                     <Settings className="w-4 h-4 text-muted-foreground" />
                                                     {facility.facilityType}
@@ -382,7 +382,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                             </TableCell>
                                         )}
                                         {visibleCols.includes("facilityName") && (
-                                            <TableCell className="border-b">
+                                            <TableCell className="border-b border-border">
                                                 <div className="text-foreground font-medium">{facility.facilityName}</div>
                                                 {facility.description && (
                                                     <div className="text-sm text-muted-foreground mt-1">{facility.description}</div>
@@ -390,8 +390,8 @@ export default function RoomFacilitiesDetailsListPage() {
                                             </TableCell>
                                         )}
                                         {visibleCols.includes("image") && (
-                                            <TableCell className="border-b">
-                                                <div className="w-12 h-12 border rounded overflow-hidden">
+                                            <TableCell className="border-b border-border">
+                                                <div className="w-12 h-12 border border-border rounded overflow-hidden">
                                                     <img
                                                         src={facility.image}
                                                         alt={facility.facilityName}
@@ -405,19 +405,19 @@ export default function RoomFacilitiesDetailsListPage() {
                                             </TableCell>
                                         )}
                                         {visibleCols.includes("action") && (
-                                            <TableCell className="border-b">
+                                            <TableCell className="border-b border-border">
                                                 <div className="flex items-center gap-1">
                                                     <button
                                                         onClick={() => handleEdit(facility)}
-                                                        className="p-2 hover:bg-accent transition-colors duration-200 border rounded"
+                                                        className="p-2 hover:bg-accent transition-colors duration-200 border border-border rounded"
                                                     >
                                                         <Pencil className="w-4 h-4 text-muted-foreground" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(facility.id)}
-                                                        className="p-2 hover:bg-accent transition-colors duration-200 border rounded"
+                                                        className="p-2 hover:bg-destructive/10 transition-colors duration-200 border border-border rounded"
                                                     >
-                                                        <Trash2 className="w-4 h-4 text-muted-foreground" />
+                                                        <Trash2 className="w-4 h-4 text-destructive" />
                                                     </button>
                                                 </div>
                                             </TableCell>
@@ -430,7 +430,7 @@ export default function RoomFacilitiesDetailsListPage() {
                 </div>
 
                 {/* Pagination */}
-                <div className="bg-card border rounded-sm mt-4">
+                <div className="bg-card border border-border rounded-sm mt-4">
                     <div className="p-4">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="text-sm text-muted-foreground">
@@ -442,7 +442,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                     variant="outline"
                                     disabled={page === 1}
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
-                                    className="border hover:bg-accent transition-colors duration-200"
+                                    className="border-border hover:bg-accent transition-colors duration-200"
                                 >
                                     <ChevronLeft className="w-4 h-4" />
                                     Previous
@@ -455,7 +455,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                     variant="outline"
                                     disabled={page === totalPages || totalPages === 0}
                                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                    className="border hover:bg-accent transition-colors duration-200"
+                                    className="border-border hover:bg-accent transition-colors duration-200"
                                 >
                                     Next
                                     <ChevronRight className="w-4 h-4" />
@@ -468,7 +468,7 @@ export default function RoomFacilitiesDetailsListPage() {
 
             {/* Add Modal */}
             <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-                <DialogContent className="sm:max-w-[500px] border">
+                <DialogContent className="sm:max-w-[500px] bg-card border-border">
                     <DialogHeader>
                         <DialogTitle className="text-foreground">Add New Facility Details</DialogTitle>
                     </DialogHeader>
@@ -477,7 +477,7 @@ export default function RoomFacilitiesDetailsListPage() {
                             <div>
                                 <Label className="text-foreground">Facility Type</Label>
                                 <Select value={newFacility.facilityType} onValueChange={(value) => setNewFacility({ ...newFacility, facilityType: value })}>
-                                    <SelectTrigger className="border">
+                                    <SelectTrigger className="border-border">
                                         <SelectValue placeholder="Select facility type" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -493,7 +493,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                     value={newFacility.facilityName}
                                     onChange={(e) => setNewFacility({ ...newFacility, facilityName: e.target.value })}
                                     placeholder="Enter facility name..."
-                                    className="border"
+                                    className="border-border"
                                 />
                             </div>
                         </div>
@@ -504,7 +504,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 value={newFacility.description}
                                 onChange={(e) => setNewFacility({ ...newFacility, description: e.target.value })}
                                 placeholder="Enter facility description..."
-                                className="border"
+                                className="border-border"
                                 rows={3}
                             />
                         </div>
@@ -512,7 +512,7 @@ export default function RoomFacilitiesDetailsListPage() {
                         <div>
                             <Label className="text-foreground">Facility Image</Label>
                             <div className="flex items-center gap-4">
-                                <div className="w-20 h-20 border rounded overflow-hidden flex items-center justify-center bg-muted">
+                                <div className="w-20 h-20 border border-border rounded overflow-hidden flex items-center justify-center bg-muted">
                                     {newFacility.image ? (
                                         <img
                                             src={newFacility.image}
@@ -528,7 +528,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                         type="file"
                                         accept="image/*"
                                         onChange={(e) => handleImageUpload(e)}
-                                        className="border"
+                                        className="border-border"
                                     />
                                     <p className="text-sm text-muted-foreground mt-1">Upload an image for this facility</p>
                                 </div>
@@ -542,7 +542,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                     setIsAddModalOpen(false)
                                     setNewFacility({ facilityType: "", facilityName: "", image: "", description: "" })
                                 }}
-                                className="border hover:bg-accent transition-colors duration-200"
+                                className="border-border hover:bg-accent transition-colors duration-200"
                             >
                                 Cancel
                             </Button>
@@ -560,7 +560,7 @@ export default function RoomFacilitiesDetailsListPage() {
 
             {/* Edit Modal */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-                <DialogContent className="sm:max-w-[500px] border">
+                <DialogContent className="sm:max-w-[500px] bg-card border-border">
                     <DialogHeader>
                         <DialogTitle className="text-foreground">Edit Facility Details</DialogTitle>
                     </DialogHeader>
@@ -570,7 +570,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 <div>
                                     <Label className="text-foreground">Facility Type</Label>
                                     <Select value={editingFacility.facilityType} onValueChange={(value) => setEditingFacility({ ...editingFacility, facilityType: value })}>
-                                        <SelectTrigger className="border">
+                                        <SelectTrigger className="border-border">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -585,7 +585,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                     <Input
                                         value={editingFacility.facilityName}
                                         onChange={(e) => setEditingFacility({ ...editingFacility, facilityName: e.target.value })}
-                                        className="border"
+                                        className="border-border"
                                     />
                                 </div>
                             </div>
@@ -595,7 +595,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 <Textarea
                                     value={editingFacility.description}
                                     onChange={(e) => setEditingFacility({ ...editingFacility, description: e.target.value })}
-                                    className="border"
+                                    className="border-border"
                                     rows={3}
                                 />
                             </div>
@@ -603,7 +603,7 @@ export default function RoomFacilitiesDetailsListPage() {
                             <div>
                                 <Label className="text-foreground">Facility Image</Label>
                                 <div className="flex items-center gap-4">
-                                    <div className="w-20 h-20 border rounded overflow-hidden flex items-center justify-center bg-muted">
+                                    <div className="w-20 h-20 border border-border rounded overflow-hidden flex items-center justify-center bg-muted">
                                         {editingFacility.image ? (
                                             <img
                                                 src={editingFacility.image}
@@ -619,7 +619,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                             type="file"
                                             accept="image/*"
                                             onChange={(e) => handleImageUpload(e, true)}
-                                            className="border"
+                                            className="border-border"
                                         />
                                         <p className="text-sm text-muted-foreground mt-1">Upload a new image or keep current one</p>
                                     </div>
@@ -630,7 +630,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 <Button
                                     variant="outline"
                                     onClick={() => setIsEditModalOpen(false)}
-                                    className="border hover:bg-accent transition-colors duration-200"
+                                    className="border-border hover:bg-accent transition-colors duration-200"
                                 >
                                     Cancel
                                 </Button>
