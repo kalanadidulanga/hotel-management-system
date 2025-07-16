@@ -4,9 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
     Home,
     Plus,
@@ -22,7 +27,10 @@ import {
     CreditCard,
     ChevronUp,
     ChevronDown,
-    Users
+    Users,
+    Check,
+    Receipt,
+    MessageSquare
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import Link from "next/link";
@@ -36,6 +44,14 @@ interface Customer {
     balance: number;
     status: "Active" | "Inactive" | "Blocked";
     createdAt: string;
+}
+
+interface Booking {
+    id: string;
+    bookingNumber: string;
+    customerName: string;
+    amount: number;
+    status: "Pending" | "Paid" | "Refunded";
 }
 
 const mockCustomers: Customer[] = [
@@ -98,8 +114,7 @@ const mockCustomers: Customer[] = [
         balance: 75.00,
         status: "Active",
         createdAt: "2024-01-20"
-    }
-    ,
+    },
     {
         id: 7,
         firstName: "Olivia",
@@ -139,8 +154,7 @@ const mockCustomers: Customer[] = [
         balance: 120.00,
         status: "Active",
         createdAt: "2024-01-24"
-    }
-    ,
+    },
     {
         id: 11,
         firstName: "Ava",
@@ -163,6 +177,14 @@ const mockCustomers: Customer[] = [
     }
 ];
 
+const mockBookings: Booking[] = [
+    { id: "1", bookingNumber: "00000001", customerName: "Kisembo Ishikawa", amount: 250.00, status: "Paid" },
+    { id: "2", bookingNumber: "00000002", customerName: "Efe Chia", amount: 180.00, status: "Pending" },
+    { id: "3", bookingNumber: "00000003", customerName: "John Smith", amount: 320.00, status: "Paid" },
+    { id: "4", bookingNumber: "00000004", customerName: "Maria Rodriguez", amount: 450.00, status: "Refunded" },
+    { id: "5", bookingNumber: "00000005", customerName: "Ahmed Hassan", amount: 200.00, status: "Pending" },
+];
+
 const pageSizes = [10, 25, 50, 100];
 
 const columns = [
@@ -183,6 +205,42 @@ export default function CustomerListPage() {
     const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "sl", dir: "asc" });
     const [visibleCols, setVisibleCols] = useState(columns.map(c => c.key));
     const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+
+    // Payment modal states
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [selectedCustomerForPayment, setSelectedCustomerForPayment] = useState<Customer | null>(null);
+    const [paymentType, setPaymentType] = useState("refund");
+    const [selectedBooking, setSelectedBooking] = useState<string>("");
+    const [searchBooking, setSearchBooking] = useState("");
+    const [bookingOpen, setBookingOpen] = useState(false);
+    const [remarks, setRemarks] = useState("");
+
+    // Filter bookings based on search
+    const filteredBookings = mockBookings.filter(booking =>
+        booking.bookingNumber.toLowerCase().includes(searchBooking.toLowerCase()) ||
+        booking.customerName.toLowerCase().includes(searchBooking.toLowerCase())
+    );
+
+    // Handle payment modal open
+    const handlePaymentClick = (customer: Customer) => {
+        setSelectedCustomerForPayment(customer);
+        setShowPaymentModal(true);
+    };
+
+    // Handle payment form submission
+    const handlePaymentSubmit = () => {
+        if (!selectedBooking || !paymentType) return;
+
+        const booking = mockBookings.find(b => b.id === selectedBooking);
+        alert(`Payment ${paymentType} processed for booking ${booking?.bookingNumber}${remarks ? ` with remarks: ${remarks}` : ''}`);
+
+        // Reset form
+        setSelectedBooking("");
+        setPaymentType("refund");
+        setRemarks("");
+        setShowPaymentModal(false);
+        setSelectedCustomerForPayment(null);
+    };
 
     // Filtering
     const filteredCustomers = useMemo(() => {
@@ -285,10 +343,10 @@ export default function CustomerListPage() {
                             <h1 className="text-xl font-semibold text-foreground">Customer Management</h1>
                         </div>
                         <Link href={"/customer/customer-list/create"}>
-                        <Button className="h-10 px-6 rounded-full shadow-md flex items-center gap-2">
-                            <Plus className="w-4 h-4" />
-                            Add New Customer
-                        </Button>
+                            <Button className="h-10 px-6 rounded-full shadow-md flex items-center gap-2">
+                                <Plus className="w-4 h-4" />
+                                Add New Customer
+                            </Button>
                         </Link>
                     </div>
                 </div>
@@ -487,18 +545,20 @@ export default function CustomerListPage() {
                                             {visibleCols.includes("action") && (
                                                 <TableCell className="py-3">
                                                     <div className="flex items-center gap-2">
+                                                        <Link href={`/customer/customer-list/update/${customer.id}`}>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => window.location.href = `/customers/edit/${customer.id}`}
+                                                            
                                                             className="h-8 w-8 p-0 rounded-full border-green-200 hover:bg-green-50 hover:border-green-300 shadow-sm"
                                                         >
                                                             <Edit className="w-4 h-4 text-green-600" />
                                                         </Button>
+                                                        </Link>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => window.location.href = `/customers/payment/${customer.id}`}
+                                                            onClick={() => handlePaymentClick(customer)}
                                                             className="h-8 w-8 p-0 rounded-full border-teal-200 hover:bg-teal-50 hover:border-teal-300 shadow-sm"
                                                         >
                                                             <DollarSign className="w-4 h-4 text-teal-600" />
@@ -591,6 +651,167 @@ export default function CustomerListPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Payment Modal */}
+            <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Receipt className="w-5 h-5" />
+                            Payment Form
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        {/* Customer Info */}
+                        {selectedCustomerForPayment && (
+                            <div className="p-3 bg-blue-50 rounded-lg">
+                                <p className="text-sm font-medium text-blue-900">
+                                    Customer: {selectedCustomerForPayment.firstName} {selectedCustomerForPayment.lastName}
+                                </p>
+                                <p className="text-sm text-blue-700">
+                                    Email: {selectedCustomerForPayment.email}
+                                </p>
+                                <p className="text-sm text-blue-700">
+                                    Balance: ${selectedCustomerForPayment.balance.toFixed(2)}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Payment Type */}
+                        <div className="space-y-2">
+                            <Label htmlFor="paymentType" className="text-sm font-medium">
+                                Payment Type
+                            </Label>
+                            <Select value={paymentType} onValueChange={setPaymentType}>
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Select payment type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="refund">Refund</SelectItem>
+                                    <SelectItem value="payment">Payment</SelectItem>
+                                    <SelectItem value="partial">Partial Payment</SelectItem>
+                                    <SelectItem value="adjustment">Adjustment</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Booking Number */}
+                        <div className="space-y-2">
+                            <Label htmlFor="bookingNumber" className="text-sm font-medium">
+                                Booking Number
+                            </Label>
+                            <Popover open={bookingOpen} onOpenChange={setBookingOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={bookingOpen}
+                                        className="w-full justify-between"
+                                    >
+                                        {selectedBooking
+                                            ? (() => {
+                                                const booking = mockBookings.find(b => b.id === selectedBooking);
+                                                return booking ? `${booking.bookingNumber} - ${booking.customerName}` : "Select Booking Number";
+                                            })()
+                                            : "Select Booking Number"}
+                                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0">
+                                    <Command>
+                                        <CommandInput
+                                            placeholder="Search booking number..."
+                                            value={searchBooking}
+                                            onValueChange={setSearchBooking}
+                                        />
+                                        <CommandEmpty>No booking found.</CommandEmpty>
+                                        <CommandList>
+                                            <CommandGroup>
+                                                {filteredBookings.map((booking) => (
+                                                    <CommandItem
+                                                        key={booking.id}
+                                                        value={`${booking.bookingNumber} ${booking.customerName}`}
+                                                        onSelect={() => {
+                                                            setSelectedBooking(booking.id);
+                                                            setBookingOpen(false);
+                                                            setSearchBooking("");
+                                                        }}
+                                                    >
+                                                        <Check
+                                                            className={`mr-2 h-4 w-4 ${selectedBooking === booking.id ? "opacity-100" : "opacity-0"
+                                                                }`}
+                                                        />
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium">{booking.bookingNumber}</span>
+                                                            <span className="text-sm text-muted-foreground">{booking.customerName}</span>
+                                                        </div>
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        {/* Remarks */}
+                        <div className="space-y-2">
+                            <Label htmlFor="remarks" className="text-sm font-medium flex items-center gap-2">
+                                <MessageSquare className="w-4 h-4" />
+                                Remarks
+                            </Label>
+                            <Textarea
+                                id="remarks"
+                                placeholder="Enter any additional remarks or notes..."
+                                value={remarks}
+                                onChange={(e) => setRemarks(e.target.value)}
+                                className="min-h-[80px] rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent resize-none"
+                            />
+                        </div>
+
+                        {/* Selected Booking Details */}
+                        {selectedBooking && (
+                            <div className="p-3 bg-gray-50 rounded-lg">
+                                {(() => {
+                                    const booking = mockBookings.find(b => b.id === selectedBooking);
+                                    return booking ? (
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium">Booking: {booking.bookingNumber}</p>
+                                            <p className="text-sm text-muted-foreground">Customer: {booking.customerName}</p>
+                                            <p className="text-sm text-muted-foreground">Amount: ${booking.amount.toFixed(2)}</p>
+                                            <p className="text-sm text-muted-foreground">Status: {booking.status}</p>
+                                        </div>
+                                    ) : null;
+                                })()}
+                            </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex justify-end gap-2 pt-4">
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setShowPaymentModal(false);
+                                    setSelectedCustomerForPayment(null);
+                                    setSelectedBooking("");
+                                    setPaymentType("refund");
+                                    setRemarks("");
+                                }}
+                                className="px-4"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handlePaymentSubmit}
+                                disabled={!selectedBooking || !paymentType}
+                                className="px-4"
+                            >
+                                Process Payment
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

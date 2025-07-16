@@ -43,7 +43,7 @@ export const sidebarConfig: SidebarItem[] = [
       {
         label: "Wake Up Call List",
         icon: List,
-        route: "/customer/wake-up-call-list",
+        route: "/customer/wakeup-call",
         roles: ["superadmin", "manager"],
       },
     ],
