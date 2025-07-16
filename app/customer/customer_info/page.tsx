@@ -160,16 +160,7 @@ export default function CustomerDetailsPage() {
                       Member since: {new Date(customerData.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Total Bookings</p>
-                      <p className="text-xl font-bold text-foreground">15</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Total Spent</p>
-                      <p className="text-xl font-bold text-foreground">$2,450</p>
-                    </div>
-                  </div>
+                 
                 </div>
               </div>
 

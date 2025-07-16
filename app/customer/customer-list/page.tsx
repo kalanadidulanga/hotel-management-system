@@ -25,6 +25,7 @@ import {
     Users
 } from "lucide-react";
 import { useState, useMemo } from "react";
+import Link from "next/link";
 
 interface Customer {
     id: number;
@@ -97,6 +98,68 @@ const mockCustomers: Customer[] = [
         balance: 75.00,
         status: "Active",
         createdAt: "2024-01-20"
+    }
+    ,
+    {
+        id: 7,
+        firstName: "Olivia",
+        lastName: "Martinez",
+        email: "olivia.martinez@example.com",
+        phone: "+1777888999",
+        balance: 200.00,
+        status: "Active",
+        createdAt: "2024-01-21"
+    },
+    {
+        id: 8,
+        firstName: "William",
+        lastName: "Lee",
+        email: "william.lee@example.com",
+        phone: "+1666777888",
+        balance: -10.00,
+        status: "Inactive",
+        createdAt: "2024-01-22"
+    },
+    {
+        id: 9,
+        firstName: "Sophia",
+        lastName: "Garcia",
+        email: "sophia.garcia@example.com",
+        phone: "+1555666777",
+        balance: 0.00,
+        status: "Blocked",
+        createdAt: "2024-01-23"
+    },
+    {
+        id: 10,
+        firstName: "James",
+        lastName: "Anderson",
+        email: "james.anderson@example.com",
+        phone: "+1444555666",
+        balance: 120.00,
+        status: "Active",
+        createdAt: "2024-01-24"
+    }
+    ,
+    {
+        id: 11,
+        firstName: "Ava",
+        lastName: "Clark",
+        email: "ava.clark@example.com",
+        phone: "+1888999000",
+        balance: 50.00,
+        status: "Active",
+        createdAt: "2024-01-25"
+    },
+    {
+        id: 12,
+        firstName: "Benjamin",
+        lastName: "Walker",
+        email: "benjamin.walker@example.com",
+        phone: "+1777666555",
+        balance: -100.00,
+        status: "Blocked",
+        createdAt: "2024-01-26"
     }
 ];
 
@@ -221,10 +284,12 @@ export default function CustomerListPage() {
                             <Users className="w-6 h-6 text-primary" />
                             <h1 className="text-xl font-semibold text-foreground">Customer Management</h1>
                         </div>
+                        <Link href={"/customer/customer-list/create"}>
                         <Button className="h-10 px-6 rounded-full shadow-md flex items-center gap-2">
                             <Plus className="w-4 h-4" />
                             Add New Customer
                         </Button>
+                        </Link>
                     </div>
                 </div>
             </div>
