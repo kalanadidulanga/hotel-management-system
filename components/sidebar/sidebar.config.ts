@@ -23,26 +23,102 @@ export const sidebarConfig: SidebarItem[] = [
     roles: ["superadmin"],
   },
   {
+    label: "Customer",
+    icon: Users,
+    addon: true,
+    roles: ["superadmin", "manager"],
+    children: [
+      {
+        label: "Customer List",
+        icon: FileText,
+        route: "/customer/customer-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Guest List",
+        icon: List,
+        route: "/customer/guest-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Wake Up Call List",
+        icon: List,
+        route: "/customer/wake-up-call-list",
+        roles: ["superadmin", "manager"],
+      },
+    ],
+  },
+  {
     label: "Restaurant",
     icon: Utensils,
     addon: true,
     roles: ["superadmin", "manager"],
     children: [
-      { label: "POS Invoice", icon: FileText, route: "/restaurant/pos-invoice", roles: ["superadmin", "manager"] },
-      { label: "Order List", icon: List, route: "/restaurant/order-list", roles: ["superadmin", "manager"] },
-      { label: "Pending Order", icon: Clock, route: "/restaurant/pending-order", roles: ["superadmin", "manager"] },
-      { label: "Complete Order", icon: CheckCircle, route: "/restaurant/complete-order", roles: ["superadmin", "manager"] },
-      { label: "Cancel Order", icon: XCircle, route: "/restaurant/cancel-order", roles: ["superadmin", "manager"] },
-      { label: "Counter Dashboard", icon: Monitor, route: "/restaurant/counter-dashboard", roles: ["superadmin", "manager"] },
-      { label: "POS Setting", icon: Settings, route: "/restaurant/pos-setting", roles: ["superadmin", "manager"] },
-      { label: "Sound Setting", icon: Volume2, route: "/restaurant/sound-setting", roles: ["superadmin", "manager"] },
+      {
+        label: "POS Invoice",
+        icon: FileText,
+        route: "/restaurant/pos-invoice",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Order List",
+        icon: List,
+        route: "/restaurant/order-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Pending Order",
+        icon: Clock,
+        route: "/restaurant/pending-order",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Complete Order",
+        icon: CheckCircle,
+        route: "/restaurant/complete-order",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Cancel Order",
+        icon: XCircle,
+        route: "/restaurant/cancel-order",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Counter Dashboard",
+        icon: Monitor,
+        route: "/restaurant/counter-dashboard",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "POS Setting",
+        icon: Settings,
+        route: "/restaurant/pos-setting",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Sound Setting",
+        icon: Volume2,
+        route: "/restaurant/sound-setting",
+        roles: ["superadmin", "manager"],
+      },
       {
         label: "Manage Table",
         icon: Table,
         roles: ["superadmin", "manager"],
         children: [
-          { label: "Table List", icon: List, route: "/restaurant/manage-table/table-list", roles: ["superadmin", "manager"] },
-          { label: "Table Setting", icon: Settings, route: "/restaurant/manage-table/table-setting", roles: ["superadmin", "manager"] },
+          {
+            label: "Table List",
+            icon: List,
+            route: "/restaurant/manage-table/table-list",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Table Setting",
+            icon: Settings,
+            route: "/restaurant/manage-table/table-setting",
+            roles: ["superadmin", "manager"],
+          },
         ],
       },
       {
@@ -50,8 +126,18 @@ export const sidebarConfig: SidebarItem[] = [
         icon: Users,
         roles: ["superadmin", "manager"],
         children: [
-          { label: "Customer Type List", icon: List, route: "/restaurant/customer-type/list", roles: ["superadmin", "manager"] },
-          { label: "Card Terminal List", icon: CreditCard, route: "/restaurant/customer-type/card-terminal", roles: ["superadmin", "manager"] },
+          {
+            label: "Customer Type List",
+            icon: List,
+            route: "/restaurant/customer-type/list",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Card Terminal List",
+            icon: CreditCard,
+            route: "/restaurant/customer-type/card-terminal",
+            roles: ["superadmin", "manager"],
+          },
         ],
       },
       {
@@ -59,8 +145,18 @@ export const sidebarConfig: SidebarItem[] = [
         icon: Layers3,
         roles: ["superadmin", "manager"],
         children: [
-          { label: "Add Category", icon: Plus, route: "/restaurant/manage-category/add", roles: ["superadmin", "manager"] },
-          { label: "Category List", icon: List, route: "/restaurant/manage-category/list", roles: ["superadmin", "manager"] },
+          {
+            label: "Add Category",
+            icon: Plus,
+            route: "/restaurant/manage-category/add",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Category List",
+            icon: List,
+            route: "/restaurant/manage-category/list",
+            roles: ["superadmin", "manager"],
+          },
         ],
       },
       {
@@ -68,11 +164,36 @@ export const sidebarConfig: SidebarItem[] = [
         icon: Coffee,
         roles: ["superadmin", "manager"],
         children: [
-          { label: "Add Food", icon: Plus, route: "/restaurant/manage-food/add", roles: ["superadmin", "manager"] },
-          { label: "Food List", icon: List, route: "/restaurant/manage-food/list", roles: ["superadmin", "manager"] },
-          { label: "Food Variant", icon: UtensilsCrossed, route: "/restaurant/manage-food/variant", roles: ["superadmin", "manager"] },
-          { label: "Food Availability", icon: CheckCircle, route: "/restaurant/manage-food/availability", roles: ["superadmin", "manager"] },
-          { label: "Menu Type", icon: FileText, route: "/restaurant/manage-food/menu-type", roles: ["superadmin", "manager"] },
+          {
+            label: "Add Food",
+            icon: Plus,
+            route: "/restaurant/manage-food/add",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Food List",
+            icon: List,
+            route: "/restaurant/manage-food/list",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Food Variant",
+            icon: UtensilsCrossed,
+            route: "/restaurant/manage-food/variant",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Food Availability",
+            icon: CheckCircle,
+            route: "/restaurant/manage-food/availability",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Menu Type",
+            icon: FileText,
+            route: "/restaurant/manage-food/menu-type",
+            roles: ["superadmin", "manager"],
+          },
         ],
       },
       {
@@ -80,9 +201,24 @@ export const sidebarConfig: SidebarItem[] = [
         icon: Plus,
         roles: ["superadmin", "manager"],
         children: [
-          { label: "Add Add-ons", icon: Plus, route: "/restaurant/manage-addons/add", roles: ["superadmin", "manager"] },
-          { label: "Add-ons List", icon: List, route: "/restaurant/manage-addons/list", roles: ["superadmin", "manager"] },
-          { label: "Add-ons Assign List", icon: Archive, route: "/restaurant/manage-addons/assign-list", roles: ["superadmin", "manager"] },
+          {
+            label: "Add Add-ons",
+            icon: Plus,
+            route: "/restaurant/manage-addons/add",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Add-ons List",
+            icon: List,
+            route: "/restaurant/manage-addons/list",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Add-ons Assign List",
+            icon: Archive,
+            route: "/restaurant/manage-addons/assign-list",
+            roles: ["superadmin", "manager"],
+          },
         ],
       },
     ],
@@ -151,12 +287,7 @@ export const sidebarConfig: SidebarItem[] = [
     route: "/settings",
     roles: ["superadmin"],
   },
-  {
-    label: "Customer",
-    icon: Users,
-    route: "/customer",
-    roles: ["superadmin", "manager"],
-  },
+
   {
     label: "Car",
     icon: Car,

@@ -3,15 +3,6 @@
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-<<<<<<< HEAD
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { categories, products } from "@/data/pos-data";
-import { Calculator, Home, Plus, Search } from "lucide-react";
-import Image from "next/image";
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-=======
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +23,6 @@ import {
   FileText,
   Camera
 } from "lucide-react";
->>>>>>> 308be1469280b2952be835f01448f7aef23171a3
 
 interface CustomerData {
   id: string;
@@ -80,42 +70,6 @@ export default function CustomerDetailsPage() {
     createdAt: "2024-01-15"
   };
 
-<<<<<<< HEAD
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const tab = searchParams.get("tab") || "new";
-
-  const handleTabChange = (tabName: string) => {
-    const params = new URLSearchParams(searchParams as unknown as URLSearchParams);
-    params.set("tab", tabName);
-    router.replace(`?${params.toString()}`);
-  };
-
-  // Helper to get base filter for each tab
-  const getBaseFilter = (tab: string) => {
-    switch (tab) {
-      case "ongoing":
-        return (p: typeof products[number]) => p.category === "Burger";
-      case "online":
-        return (p: typeof products[number]) => p.category === "Juice";
-      case "today":
-        return (p: typeof products[number]) => p.category === "Biryani";
-      default:
-        return () => true;
-    }
-  };
-
-  const baseFilter = getBaseFilter(tab);
-  const filteredProducts = products
-    .filter(baseFilter)
-    .filter(p =>
-      (selectedCategory === "All" || p.category === selectedCategory) &&
-      (searchQuery === "" || p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-    
-  const paginatedProducts = filteredProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const pageCount = Math.ceil(filteredProducts.length / PAGE_SIZE);
-=======
   // Get status badge
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -128,23 +82,6 @@ export default function CustomerDetailsPage() {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
-  };
->>>>>>> 308be1469280b2952be835f01448f7aef23171a3
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<typeof products[number] | null>(null);
-  const [modalSize, setModalSize] = useState("Small");
-  const [modalQty, setModalQty] = useState(1);
-
-  const openProductModal = (product: typeof products[number]) => {
-    setSelectedProduct(product);
-    setModalSize("Small");
-    setModalQty(1);
-    setModalOpen(true);
-  };
-  const closeProductModal = () => {
-    setModalOpen(false);
-    setSelectedProduct(null);
   };
 
   return (
@@ -175,43 +112,6 @@ export default function CustomerDetailsPage() {
             </BreadcrumbList>
           </Breadcrumb>
 
-<<<<<<< HEAD
-          {/* Order Tabs */}
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant={tab === "new" ? "default" : "outline"}
-              size="sm"
-              className="h-8 px-3 rounded-full shadow-sm"
-              onClick={() => handleTabChange("new")}
-            >
-              <Home className="w-3.5 h-3.5 mr-1.5" /> New Order
-            </Button>
-            <Button
-              variant={tab === "ongoing" ? "default" : "outline"}
-              size="sm"
-              className="h-8 px-3 rounded-full"
-              onClick={() => handleTabChange("ongoing")}
-            >
-              On Going Order
-            </Button>
-            <Button
-              variant={tab === "online" ? "default" : "outline"}
-              size="sm"
-              className="h-8 px-3 rounded-full flex items-center gap-1.5"
-              onClick={() => handleTabChange("online")}
-            >
-              Online Order 
-              <Badge variant="destructive" className="px-1.5 py-0 text-[10px] rounded-full">0</Badge>
-            </Button>
-            <Button
-              variant={tab === "today" ? "default" : "outline"}
-              size="sm"
-              className="h-8 px-3 rounded-full"
-              onClick={() => handleTabChange("today")}
-            >
-              Today Order
-            </Button>
-=======
           {/* Title & Action Buttons */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -240,152 +140,10 @@ export default function CustomerDetailsPage() {
                 Edit Customer
               </Button>
             </div>
->>>>>>> 308be1469280b2952be835f01448f7aef23171a3
           </div>
         </div>
       </div>
 
-<<<<<<< HEAD
-      {/* Main Content Area */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 p-2 pb-20 overflow-y-auto">
-        {/* Left Panel - Products Section */}
-        {(tab === "new" || tab === "ongoing" || tab === "online" || tab === "today") && (
-          <div className="lg:col-span-2 flex flex-col space-y-4 min-h-0">
-            {/* Search and Category Filter */}
-            <div className="bg-white shadow-lg overflow-hidden">
-              <div className="p-2 space-y-2">
-                {/* Search Bar */}
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="Search products..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setPage(1);
-                    }}
-                    className="pl-9 h-9 rounded-lg border-border/80 focus:ring-1 focus:ring-ring focus:border-transparent shadow-lg"
-                  />
-                </div>
-                {/* Category Filter */}
-                <div className="flex gap-1.5 flex-nowrap overflow-x-auto pb-1">
-                  {categories.map((category) => (
-                    <Button
-                      key={category}
-                      variant={selectedCategory === category ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => {
-                        setSelectedCategory(category);
-                        setPage(1);
-                      }}
-                      className={`h-7 px-3 rounded-full text-xs whitespace-nowrap transition-all duration-200 ${
-                        selectedCategory === category ? "shadow-md" : "border-border/50 hover:border-border hover:shadow-sm"
-                      }`}
-                    >
-                      {category}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Products Grid */}
-            <div className="flex-1 bg-white rounded-lg shadow-lg min-h-0">
-              <div className="pt-3 h-full flex flex-col">
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-5 gap-3 h-full overflow-y-auto pr-1 pb-2">
-                    {paginatedProducts.length === 0 ? (
-                      <div className="col-span-full flex items-center justify-center h-32 text-muted-foreground">
-                        No products found.
-                      </div>
-                    ) : (
-                      paginatedProducts.map((product) => (
-                        <div 
-                          key={product.id} 
-                          className="group cursor-pointer bg-white rounded-sm shadow-lg hover:shadow-xl transition-all duration-200 flex flex-col h-36 overflow-hidden border border-gray-200/40 "
-                          style={{
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                          }}
-                          onClick={() => openProductModal(product)}
-                        >
-                          <div className="relative flex-1 bg-gray-50/40">
-                            <Image
-                              src={product.image}
-                              alt={product.name}
-                              fill
-                              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                              className="object-cover group-hover:scale-105 transition-transform duration-300"
-                              unoptimized
-                            />
-                          </div>
-                          <div className="p-2 flex flex-col justify-between h-14 bg-white">
-                            <h3 className="text-xs font-medium text-gray-900 line-clamp-1 leading-tight mb-1">
-                              {product.name}
-                            </h3>
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-primary">
-                                ${product.price}
-                              </span>
-                              <button className="h-5 w-5 rounded-full bg-white hover:bg-primary hover:text-primary-foreground transition-colors duration-200 flex items-center justify-center shadow-md border border-gray-200/50">
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-                {/* Pagination */}
-                {pageCount > 1 && (
-                  <div>
-                    <Pagination>
-                      <PaginationContent className="flex justify-center">
-                        <PaginationItem>
-                          <PaginationPrevious 
-                            onClick={() => setPage(Math.max(1, page - 1))}
-                            className={`${page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm`}
-                          />
-                        </PaginationItem>
-                        {Array.from({ length: Math.min(pageCount, 5) }, (_, i) => {
-                          let pageNum;
-                          if (pageCount <= 5) {
-                            pageNum = i + 1;
-                          } else if (page <= 3) {
-                            pageNum = i + 1;
-                          } else if (page >= pageCount - 2) {
-                            pageNum = pageCount - 4 + i;
-                          } else {
-                            pageNum = page - 2 + i;
-                          }
-                          return (
-                            <PaginationItem key={pageNum}>
-                              <PaginationLink
-                                onClick={() => setPage(pageNum)}
-                                isActive={page === pageNum}
-                                className={`cursor-pointer rounded-full hover:bg-accent ${page === pageNum ? "shadow-md" : "shadow-sm"}`}
-                              >
-                                {pageNum}
-                              </PaginationLink>
-                            </PaginationItem>
-                          );
-                        })}
-                        <PaginationItem>
-                          <PaginationNext 
-                            onClick={() => setPage(Math.min(pageCount, page + 1))}
-                            className={`${page === pageCount ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm`}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-=======
       {/* Customer Details Section */}
       <div className="flex-1 overflow-auto">
         <div className="max-w-6xl mx-auto p-6">
@@ -402,19 +160,9 @@ export default function CustomerDetailsPage() {
                       Member since: {new Date(customerData.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Total Bookings</p>
-                      <p className="text-xl font-bold text-foreground">15</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Total Spent</p>
-                      <p className="text-xl font-bold text-foreground">$2,450</p>
-                    </div>
-                  </div>
+                 
                 </div>
               </div>
->>>>>>> 308be1469280b2952be835f01448f7aef23171a3
 
               {/* Two Column Layout */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -642,43 +390,6 @@ export default function CustomerDetailsPage() {
           </div>
         </div>
       </div>
-
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md w-full rounded-lg">
-          <DialogHeader>
-            <DialogTitle>Item Information</DialogTitle>
-            
-          </DialogHeader>
-          {selectedProduct && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <span className="font-medium w-32">{selectedProduct.name}</span>
-                <select
-                  className="border rounded px-2 py-1"
-                  value={modalSize}
-                  onChange={e => setModalSize(e.target.value)}
-                >
-                  <option value="Small">Small</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Large">Large</option>
-                </select>
-                <input
-                  type="number"
-                  min={1}
-                  className="border rounded px-2 py-1 w-16"
-                  value={modalQty}
-                  onChange={e => setModalQty(Number(e.target.value))}
-                />
-                <span className="w-16 text-right">{(selectedProduct.price * modalQty).toFixed(2)}</span>
-              </div>
-              <DialogFooter className="flex gap-2">
-                <button className="bg-green-600 text-white px-4 py-2 rounded" onClick={closeProductModal}>Add To cart</button>
-                <button className="bg-green-700 text-white px-4 py-2 rounded" onClick={closeProductModal}>Add Multiple Variant</button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
