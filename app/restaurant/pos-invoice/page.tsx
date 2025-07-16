@@ -1,9 +1,9 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-<<<<<<< HEAD
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { categories, products } from "@/data/pos-data";
 import { Calculator, Home, Plus, Search } from "lucide-react";
@@ -11,76 +11,14 @@ import Image from "next/image";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-=======
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Home, 
-  Users, 
-  Eye,
-  Edit,
-  ArrowLeft,
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  Briefcase,
-  Globe,
-  CreditCard,
-  FileText,
-  Camera
-} from "lucide-react";
->>>>>>> 308be1469280b2952be835f01448f7aef23171a3
 
-interface CustomerData {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  dateOfBirth: string;
-  profession: string;
-  city: string;
-  gender: string;
-  nationality: string;
-  passportNo: string;
-  photoIdentityType: string;
-  photoIdentity: string;
-  address: string;
-  photoFront: string;
-  photoBack: string;
-  photoGuest: string;
-  status: "Active" | "Inactive" | "Blocked";
-  createdAt: string;
-}
+const PAGE_SIZE = 15;
 
-export default function CustomerDetailsPage() {
-  // Mock customer data
-  const customerData: CustomerData = {
-    id: "1",
-    firstName: "Ghghhj",
-    lastName: "Chris",
-    email: "admin@gmail.com",
-    phone: "919868862826",
-    dateOfBirth: "1990-05-15",
-    profession: "Software Engineer",
-    city: "New York",
-    gender: "Male",
-    nationality: "American",
-    passportNo: "A12345678",
-    photoIdentityType: "Passport",
-    photoIdentity: "passport",
-    address: "123 Main Street, Apartment 4B, New York, NY 10001, United States",
-    photoFront: "/placeholder-id-front.jpg",
-    photoBack: "/placeholder-id-back.jpg",
-    photoGuest: "/placeholder-guest.jpg",
-    status: "Active",
-    createdAt: "2024-01-15"
-  };
+export default function POSInvoicePage() {
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
 
-<<<<<<< HEAD
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = searchParams.get("tab") || "new";
@@ -115,21 +53,6 @@ export default function CustomerDetailsPage() {
     
   const paginatedProducts = filteredProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const pageCount = Math.ceil(filteredProducts.length / PAGE_SIZE);
-=======
-  // Get status badge
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>;
-      case 'Inactive':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Inactive</Badge>;
-      case 'Blocked':
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Blocked</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
->>>>>>> 308be1469280b2952be835f01448f7aef23171a3
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<typeof products[number] | null>(null);
@@ -150,32 +73,25 @@ export default function CustomerDetailsPage() {
   return (
     <div className="flex flex-col h-full bg-white relative">
       {/* Header Section */}
-      <div className="flex-shrink-0 bg-white/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border/50">
-        <div className="px-4 py-4 space-y-4">
+      <div className="flex-shrink-0 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="px-4 py-3 space-y-3">
           {/* Breadcrumb */}
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  <Home className="w-4 h-4" /> Dashboard
+                <BreadcrumbLink href="/restaurant" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Home className="w-3.5 h-3.5" /> Restaurant
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/customer/customer-list" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Customer List
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink href={`/customer/details/${customerData.id}`} className="text-sm font-medium">
-                  Customer Details
+                <BreadcrumbLink href="/restaurant/pos-invoice" className="text-sm font-medium">
+                  POS Invoice
                 </BreadcrumbLink>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
 
-<<<<<<< HEAD
           {/* Order Tabs */}
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -211,41 +127,10 @@ export default function CustomerDetailsPage() {
             >
               Today Order
             </Button>
-=======
-          {/* Title & Action Buttons */}
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <User className="w-6 h-6 text-primary" />
-              <div>
-                <h2 className="text-2xl font-bold text-foreground">Customer Details</h2>
-                <p className="text-sm text-muted-foreground">
-                  Customer ID: #{customerData.id} • {getStatusBadge(customerData.status)}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Button 
-                onClick={() => window.location.href = "/customer/customer-list"}
-                variant="outline"
-                className="h-10 px-6 rounded-full shadow-sm flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to List
-              </Button>
-              <Button 
-                onClick={() => window.location.href = `/customer/edit/${customerData.id}`}
-                className="h-10 px-6 rounded-full shadow-md flex items-center gap-2"
-              >
-                <Edit className="w-4 h-4" />
-                Edit Customer
-              </Button>
-            </div>
->>>>>>> 308be1469280b2952be835f01448f7aef23171a3
           </div>
         </div>
       </div>
 
-<<<<<<< HEAD
       {/* Main Content Area */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 p-2 pb-20 overflow-y-auto">
         {/* Left Panel - Products Section */}
@@ -385,259 +270,120 @@ export default function CustomerDetailsPage() {
             </div>
           </div>
         )}
-=======
-      {/* Customer Details Section */}
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-6xl mx-auto p-6">
-          <div className="bg-white rounded-lg shadow-lg border border-border/50">
-            <div className="p-6">
-              {/* Customer Info Header */}
-              <div className="border-b border-border/50 pb-4 mb-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground">
-                      {customerData.firstName} {customerData.lastName}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Member since: {new Date(customerData.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Total Bookings</p>
-                      <p className="text-xl font-bold text-foreground">15</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Total Spent</p>
-                      <p className="text-xl font-bold text-foreground">$2,450</p>
-                    </div>
+
+        {/* Right Panel - Order Form */}
+        <div className="lg:col-span-1 flex flex-col space-y-2 min-h-0 max-h-full overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-lg border bg-gray-200/60">
+            <div className="p-5">
+              <h2 className="text-base font-medium text-foreground mb-4">Order Details</h2>
+              
+              <form className="space-y-3.5">
+                {/* Customer Name */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Customer Name (Check In) <span className="text-destructive">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <select className="flex-1 h-9 px-3 py-1.5 bg-white border border-border/50 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm">
+                      <option>Select Customer</option>
+                    </select>
+                    <Button type="button" size="sm" className="h-9 w-9 p-0 rounded-lg shadow-sm">
+                      <Plus className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
+
+                {/* Customer Type */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Customer Type <span className="text-destructive">*</span>
+                  </label>
+                  <select className="w-full h-9 px-3 py-1.5 bg-white border border-border/50 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm">
+                    <option>Walk In Customer</option>
+                    <option>Member</option>
+                  </select>
+                </div>
+
+                {/* Waiter */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Waiter <span className="text-destructive">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <select className="flex-1 h-9 px-3 py-1.5 bg-white border border-border/50 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm">
+                      <option>Select Waiter</option>
+                      <option>Waiter 1</option>
+                      <option>Waiter 2</option>
+                    </select>
+                    <Button type="button" variant="outline" size="sm" className="h-9 px-2.5 rounded-lg shadow-sm">
+                      Person
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Table Map */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Table Map <span className="text-destructive">*</span>
+                  </label>
+                  <select className="w-full h-9 px-3 py-1.5 bg-white border border-border/50 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm">
+                    <option>Select Table</option>
+                    <option>Table 1</option>
+                    <option>Table 2</option>
+                  </select>
+                </div>
+
+                {/* Cooking Time */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Cooking Time</label>
+                  <Input 
+                    type="text" 
+                    placeholder="00:00:00" 
+                    className="h-9 rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                  />
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Action Bar */}
+      <div className="absolute bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t border-border/50 z-50 shadow-lg">
+        <div className="px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Order Summary Section */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">VAT/Tax (10%):</span>
+                <Input type="number" defaultValue={0} className="w-14 h-7 text-xs rounded-md shadow-sm" />
               </div>
->>>>>>> 308be1469280b2952be835f01448f7aef23171a3
-
-              {/* Two Column Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left Column */}
-                <div className="space-y-6">
-                  {/* First Name */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      First Name
-                    </Label>
-                    <Input
-                      type="text"
-                      value={customerData.firstName}
-                      disabled
-                      className="h-10 rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      Email
-                    </Label>
-                    <Input
-                      type="email"
-                      value={customerData.email}
-                      disabled
-                      className="h-10 rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Date of Birth */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Date of Birth
-                    </Label>
-                    <Input
-                      type="date"
-                      value={customerData.dateOfBirth}
-                      disabled
-                      className="h-10 rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* City */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      City
-                    </Label>
-                    <Input
-                      type="text"
-                      value={customerData.city}
-                      disabled
-                      className="h-10 rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Nationality */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <Globe className="w-4 h-4" />
-                      Nationality
-                    </Label>
-                    <Input
-                      type="text"
-                      value={customerData.nationality}
-                      disabled
-                      className="h-10 rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Photo Identity Type */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      Photo Identity Type
-                    </Label>
-                    <Input
-                      type="text"
-                      value={customerData.photoIdentityType}
-                      disabled
-                      className="h-10 rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Photo Front */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <Camera className="w-4 h-4" />
-                      Photo Front
-                    </Label>
-                    <div className="w-20 h-14 bg-gray-100 border border-border/50 rounded-lg flex items-center justify-center">
-                      <Camera className="w-6 h-6 text-gray-400" />
-                    </div>
-                  </div>
-
-                  {/* Address */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      Address
-                    </Label>
-                    <Textarea
-                      value={customerData.address}
-                      disabled
-                      className="min-h-[100px] rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed resize-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="space-y-6">
-                  {/* Last Name */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      Last Name
-                    </Label>
-                    <Input
-                      type="text"
-                      value={customerData.lastName}
-                      disabled
-                      className="h-10 rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Phone */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      Phone
-                    </Label>
-                    <Input
-                      type="tel"
-                      value={customerData.phone}
-                      disabled
-                      className="h-10 rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Profession */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <Briefcase className="w-4 h-4" />
-                      Profession
-                    </Label>
-                    <Input
-                      type="text"
-                      value={customerData.profession}
-                      disabled
-                      className="h-10 rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Gender */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      Gender
-                    </Label>
-                    <Input
-                      type="text"
-                      value={customerData.gender}
-                      disabled
-                      className="h-10 rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Passport No */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <CreditCard className="w-4 h-4" />
-                      Passport No
-                    </Label>
-                    <Input
-                      type="text"
-                      value={customerData.passportNo}
-                      disabled
-                      className="h-10 rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Photo Identity */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      Photo Identity
-                    </Label>
-                    <Input
-                      type="text"
-                      value={customerData.photoIdentity}
-                      disabled
-                      className="h-10 rounded-lg bg-gray-50 border-border/50 text-foreground cursor-not-allowed"
-                    />
-                  </div>
-
-                  {/* Photo Back */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <Camera className="w-4 h-4" />
-                      Photo Back
-                    </Label>
-                    <div className="w-20 h-14 bg-gray-100 border border-border/50 rounded-lg flex items-center justify-center">
-                      <Camera className="w-6 h-6 text-gray-400" />
-                    </div>
-                  </div>
-
-                  {/* Photo Guest */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <Camera className="w-4 h-4" />
-                      Photo Guest
-                    </Label>
-                    <div className="w-20 h-14 bg-gray-100 border border-border/50 rounded-lg flex items-center justify-center">
-                      <Camera className="w-6 h-6 text-gray-400" />
-                    </div>
-                  </div>
-                </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Service Charge (%):</span>
+                <Input type="number" defaultValue={0} className="w-14 h-7 text-xs rounded-md shadow-sm" />
               </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-medium text-foreground">Grand Total:</span>
+                <span className="bg-primary/10 text-primary rounded-lg px-3 py-1.5 text-sm font-semibold shadow-sm">
+                  $0.00
+                </span>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0 rounded-full shadow-sm">
+                <Calculator className="w-3.5 h-3.5" />
+              </Button>
+              <Button variant="destructive" size="sm" className="h-8 px-3 rounded-full shadow-sm">
+                Cancel
+              </Button>
+              <Button variant="secondary" size="sm" className="h-8 px-3 rounded-full shadow-sm">
+                Quick Order
+              </Button>
+              <Button variant="default" size="sm" className="h-8 px-4 rounded-full shadow-md">
+                Place Order
+              </Button>
             </div>
           </div>
         </div>
