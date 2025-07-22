@@ -1,7 +1,39 @@
-import { LucideIcon, Home, Waves, Utensils, Wrench, Calendar, Truck, MessageCircle, 
-  FileText, List, Users, UtensilsCrossed, Settings, Plus, Bed, CreditCard,
-  User, Cog, Car, Facebook, RotateCcw, HelpCircle, Archive, Clock,
-  CheckCircle, XCircle, Monitor, Volume2, Table, Layers3, Coffee } from "lucide-react";
+import {
+  LucideIcon,
+  Home,
+  Waves,
+  Utensils,
+  Wrench,
+  Calendar,
+  Truck,
+  MessageCircle,
+  FileText,
+  List,
+  Users,
+  UtensilsCrossed,
+  Settings,
+  Plus,
+  Bed,
+  CreditCard,
+  User,
+  Cog,
+  Car,
+  Facebook,
+  RotateCcw,
+  HelpCircle,
+  Archive,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Monitor,
+  Volume2,
+  Table,
+  Layers3,
+  Coffee,
+  Award,
+  ReceiptEuro,
+  Users2Icon,
+} from "lucide-react";
 
 export type Role = "superadmin" | "manager" | "cashier";
 
@@ -24,7 +56,7 @@ export const sidebarConfig: SidebarItem[] = [
   },
   {
     label: "Customer",
-    icon: Users,
+    icon: User,
     addon: true,
     roles: ["superadmin", "manager"],
     children: [
@@ -45,6 +77,187 @@ export const sidebarConfig: SidebarItem[] = [
         icon: List,
         route: "/customer/wakeup-call",
         roles: ["superadmin", "manager"],
+      },
+    ],
+  },
+  {
+    label: "Human Resource",
+    icon: Users,
+    addon: true,
+    roles: ["superadmin", "manager"],
+    children: [
+      {
+        label: "Attendance",
+        icon: FileText,
+        route: "/human-resource/attendance",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Award",
+        icon: Award,
+        route: "/human-resource/award",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Recruitment",
+        icon: ReceiptEuro,
+        roles: ["superadmin", "manager"],
+        children: [
+          {
+            label: "New Candidate",
+            icon: Plus,
+            route: "/human-resource/recruitment/new-candidate",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Manage Candidate",
+            icon: List,
+            route: "/human-resource/recruitment/manage-candidate",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Candidate Shortlist",
+            icon: List,
+            route: "/human-resource/recruitment/shortlist",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Interview",
+            icon: Calendar,
+            route: "/human-resource/recruitment/interview",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Candidate Selection",
+            icon: List,
+            route: "/human-resource/recruitment/selection",
+            roles: ["superadmin", "manager"],
+          },
+        ],
+      },
+      {
+        label: "Department",
+        icon: Users,
+        roles: ["superadmin", "manager"],
+        route: "/human-resource/recruitment/department",
+      },
+      {
+        label: "Employee",
+        icon: Users2Icon,
+        roles: ["superadmin", "manager"],
+        children: [
+          {
+            label: "Position",
+            icon: List,
+            route: "/human-resource/employee/positions",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Add Employee",
+            icon: Settings,
+            route: "/human-resource/employee/employee-setting",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Manage Employee",
+            icon: List,
+            route: "/human-resource/employee/manage-employee",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Employee Performance",
+            icon: ReceiptEuro,
+            route: "/human-resource/employee/performance",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Manage Employee Salary",
+            icon: ReceiptEuro,
+            route: "/human-resource/employee/salary",
+            roles: ["superadmin", "manager"],
+          },
+        ],
+      },
+      {
+        label: "Leave",
+        icon: Calendar,
+        roles: ["superadmin", "manager"],
+        children: [
+          {
+            label: "Weekly Holiday",
+            icon: Calendar,
+            route: "/human-resource/leave/weekly-holiday",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Holiday",
+            icon: Settings,
+            route: "/human-resource/leave/holiday",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Leave Type",
+            icon: List,
+            route: "/human-resource/leave/type",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Leave Application",
+            icon: FileText,
+            route: "/human-resource/leave/application",
+            roles: ["superadmin", "manager"],
+          },
+        ],
+      },
+      {
+        label: "Loan",
+        icon: ReceiptEuro,
+        roles: ["superadmin", "manager"],
+        children: [
+          {
+            label: "Grant Loan",
+            icon: Plus,
+            route: "/human-resource/loan/grant",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Loan Installment",
+            icon: ReceiptEuro,
+            route: "/human-resource/loan/installment",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Loan Report",
+            icon: List,
+            route: "/human-resource/loan/report",
+            roles: ["superadmin", "manager"],
+          },
+        ],
+      },
+      {
+        label: "Payroll",
+        icon: ReceiptEuro,
+        roles: ["superadmin", "manager"],
+        children: [
+          {
+            label: "Salary Type Setup",
+            icon: Settings,
+            route: "/human-resource/payroll/salary-type",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Salary Setup",
+            icon: FileText,
+            route: "/human-resource/payroll/setup",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Salary Genarate",
+            icon: List,
+            route: "/human-resource/payroll/genarate",
+            roles: ["superadmin", "manager"],
+          },
+        ],
       },
     ],
   },
@@ -339,4 +552,4 @@ export const sidebarConfig: SidebarItem[] = [
     route: "/help",
     roles: ["superadmin", "manager", "cashier"],
   },
-]; 
+];
