@@ -1,422 +1,612 @@
 "use client";
 
-import { useState } from "react";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext } from "@/components/ui/pagination";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { Home, Plus, Search, Eye, Edit, Trash2, FileText, Calendar, User, Phone, CreditCard } from "lucide-react";
-
-const PAGE_SIZE = 12;
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import {
+  Home,
+  Search,
+  Eye,
+  Edit,
+  Trash2,
+  Copy,
+  FileText,
+  Printer,
+  ChevronUp,
+  ChevronDown,
+  Building,
+  Users,
+  IdCard,
+  Download
+} from "lucide-react";
+import Link from "next/link";
 
 interface Booking {
   id: number;
   bookingNumber: string;
   roomType: string;
-  roomNo: string;
+  roomNumber: string;
   name: string;
   phone: string;
   checkIn: string;
   checkOut: string;
   paidAmount: number;
   dueAmount: number;
-  bookingStatus: "Pending" | "Confirmed" | "Cancelled" | "Completed";
-  paymentStatus: "Pending" | "Partial" | "Paid" | "Refunded";
+  bookingStatus: "Pending" | "Confirmed" | "Checked In" | "Checked Out" | "Cancelled";
+  paymentStatus: "Pending" | "Success" | "Failed" | "Partial";
 }
 
 const mockBookings: Booking[] = [
   {
     id: 1,
-    bookingNumber: "00000278",
-    roomType: "VIP",
-    roomNo: "101",
-    name: "Ghghhj",
-    phone: "+1234567890",
-    checkIn: "2024-01-15",
-    checkOut: "2024-01-18",
-    paidAmount: 0,
-    dueAmount: 45796,
+    bookingNumber: "0000282",
+    roomType: "Deluxe",
+    roomNumber: "165",
+    name: "farhid",
+    phone: "566567",
+    checkIn: "2025-07-18 01:00",
+    checkOut: "2025-07-18 03:00",
+    paidAmount: 0.00,
+    dueAmount: 183184.00,
     bookingStatus: "Pending",
     paymentStatus: "Pending"
   },
   {
     id: 2,
-    bookingNumber: "00000279",
-    roomType: "Deluxe room",
-    roomNo: "165",
-    name: "Alexander",
-    phone: "+1987654321",
-    checkIn: "2024-01-16",
-    checkOut: "2024-01-20",
-    paidAmount: 0,
-    dueAmount: 45796,
+    bookingNumber: "0000281",
+    roomType: "VIP",
+    roomNumber: "102",
+    name: "Tester",
+    phone: "0620425286",
+    checkIn: "2025-07-18 01:00",
+    checkOut: "2025-07-18 03:00",
+    paidAmount: 0.00,
+    dueAmount: 42800.00,
     bookingStatus: "Pending",
-    paymentStatus: "Pending"
+    paymentStatus: "Success"
   },
   {
     id: 3,
-    bookingNumber: "00000280",
+    bookingNumber: "0000280",
     roomType: "Standard",
-    roomNo: "203",
+    roomNumber: "201",
     name: "John Smith",
-    phone: "+1555123456",
-    checkIn: "2024-01-17",
-    checkOut: "2024-01-19",
-    paidAmount: 25000,
-    dueAmount: 15000,
+    phone: "9876543210",
+    checkIn: "2025-07-19 15:00",
+    checkOut: "2025-07-20 12:00",
+    paidAmount: 5000.00,
+    dueAmount: 15000.00,
     bookingStatus: "Confirmed",
     paymentStatus: "Partial"
   },
   {
     id: 4,
-    bookingNumber: "00000281",
+    bookingNumber: "0000279",
     roomType: "Suite",
-    roomNo: "301",
-    name: "Emma Johnson",
-    phone: "+1444987654",
-    checkIn: "2024-01-18",
-    checkOut: "2024-01-22",
-    paidAmount: 60000,
-    dueAmount: 0,
+    roomNumber: "301",
+    name: "Alice Johnson",
+    phone: "1234567890",
+    checkIn: "2025-07-20 14:00",
+    checkOut: "2025-07-22 11:00",
+    paidAmount: 25000.00,
+    dueAmount: 0.00,
     bookingStatus: "Confirmed",
-    paymentStatus: "Paid"
+    paymentStatus: "Success"
   },
   {
     id: 5,
-    bookingNumber: "00000282",
-    roomType: "Executive",
-    roomNo: "205",
-    name: "Michael Brown",
-    phone: "+1333456789",
-    checkIn: "2024-01-19",
-    checkOut: "2024-01-21",
-    paidAmount: 0,
-    dueAmount: 35000,
-    bookingStatus: "Cancelled",
-    paymentStatus: "Refunded"
-  },
-  {
-    id: 6,
-    bookingNumber: "00000283",
+    bookingNumber: "0000278",
     roomType: "Deluxe",
-    roomNo: "102",
-    name: "Sarah Wilson",
-    phone: "+1777888999",
-    checkIn: "2024-01-20",
-    checkOut: "2024-01-23",
-    paidAmount: 45000,
-    dueAmount: 5000,
-    bookingStatus: "Confirmed",
+    roomNumber: "150",
+    name: "Bob Wilson",
+    phone: "5555555555",
+    checkIn: "2025-07-16 16:00",
+    checkOut: "2025-07-18 10:00",
+    paidAmount: 8000.00,
+    dueAmount: 2000.00,
+    bookingStatus: "Checked In",
     paymentStatus: "Partial"
-  },
-  {
-    id: 7,
-    bookingNumber: "00000284",
-    roomType: "Standard",
-    roomNo: "204",
-    name: "David Lee",
-    phone: "+1666555444",
-    checkIn: "2024-01-21",
-    checkOut: "2024-01-24",
-    paidAmount: 30000,
-    dueAmount: 0,
-    bookingStatus: "Completed",
-    paymentStatus: "Paid"
-  },
-  {
-    id: 8,
-    bookingNumber: "00000285",
-    roomType: "VIP",
-    roomNo: "302",
-    name: "Lisa Anderson",
-    phone: "+1888999000",
-    checkIn: "2024-01-22",
-    checkOut: "2024-01-26",
-    paidAmount: 80000,
-    dueAmount: 0,
-    bookingStatus: "Confirmed",
-    paymentStatus: "Paid"
   }
 ];
 
-const statusFilters = ["All", "Pending", "Confirmed", "Cancelled", "Completed"];
+const pageSizes = [10, 25, 50, 100];
 
-export default function RoomReservationPage() {
-  const [selectedStatus, setSelectedStatus] = useState("All");
-  const [searchTerm, setSearchTerm] = useState("");
+const columns = [
+  { key: "sl", label: "SL" },
+  { key: "bookingNumber", label: "Booking Number" },
+  { key: "roomType", label: "Room Type" },
+  { key: "roomNumber", label: "Room No." },
+  { key: "name", label: "Name" },
+  { key: "phone", label: "Phone" },
+  { key: "checkIn", label: "Check In" },
+  { key: "checkOut", label: "Check Out" },
+  { key: "paidAmount", label: "Paid Amount" },
+  { key: "dueAmount", label: "Due Amount" },
+  { key: "bookingStatus", label: "Booking Status" },
+  { key: "paymentStatus", label: "Payment Status" },
+  { key: "action", label: "Action" },
+];
+
+export default function BookingListPage() {
+  const [entries, setEntries] = useState(10);
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "sl", dir: "asc" });
+  const [visibleCols, setVisibleCols] = useState(columns.map(c => c.key));
+  const [bookings, setBookings] = useState<Booking[]>(mockBookings);
 
-  const filteredBookings = mockBookings.filter((booking) => {
-    const matchesStatus = selectedStatus === "All" || booking.bookingStatus === selectedStatus;
-    const matchesSearch = 
-      booking.bookingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.roomType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.roomNo.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+  // Filtering
+  const filtered = useMemo(() => {
+    return bookings.filter(booking =>
+      booking.bookingNumber.toLowerCase().includes(search.toLowerCase()) ||
+      booking.name.toLowerCase().includes(search.toLowerCase()) ||
+      booking.phone.toLowerCase().includes(search.toLowerCase()) ||
+      booking.roomType.toLowerCase().includes(search.toLowerCase()) ||
+      booking.roomNumber.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [search, bookings]);
 
-  const paginatedBookings = filteredBookings.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const pageCount = Math.ceil(filteredBookings.length / PAGE_SIZE);
+  // Sorting
+  const sorted = useMemo(() => {
+    const sortedBookings = [...filtered];
+    if (sort.key === "sl") {
+      sortedBookings.sort((a, b) => sort.dir === "asc" ? a.id - b.id : b.id - a.id);
+    } else if (sort.key === "bookingNumber") {
+      sortedBookings.sort((a, b) => {
+        if (a.bookingNumber < b.bookingNumber) return sort.dir === "asc" ? -1 : 1;
+        if (a.bookingNumber > b.bookingNumber) return sort.dir === "asc" ? 1 : -1;
+        return 0;
+      });
+    } else if (sort.key === "name") {
+      sortedBookings.sort((a, b) => {
+        if (a.name < b.name) return sort.dir === "asc" ? -1 : 1;
+        if (a.name > b.name) return sort.dir === "asc" ? 1 : -1;
+        return 0;
+      });
+    } else if (sort.key === "paidAmount" || sort.key === "dueAmount") {
+      sortedBookings.sort((a, b) => {
+        const aVal = sort.key === "paidAmount" ? a.paidAmount : a.dueAmount;
+        const bVal = sort.key === "paidAmount" ? b.paidAmount : b.dueAmount;
+        return sort.dir === "asc" ? aVal - bVal : bVal - aVal;
+      });
+    }
+    return sortedBookings;
+  }, [filtered, sort]);
 
-  const getStatusBadge = (status: string, type: 'booking' | 'payment') => {
-    if (type === 'booking') {
-      switch (status) {
-        case 'Pending': return <Badge variant="outline" className="text-chart-1 border-chart-1/30 bg-chart-1/10">Pending</Badge>;
-        case 'Confirmed': return <Badge variant="outline" className="text-chart-2 border-chart-2/30 bg-chart-2/10">Confirmed</Badge>;
-        case 'Cancelled': return <Badge variant="outline" className="text-destructive border-destructive/30 bg-destructive/10">Cancelled</Badge>;
-        case 'Completed': return <Badge variant="outline" className="text-chart-3 border-chart-3/30 bg-chart-3/10">Completed</Badge>;
-        default: return <Badge variant="outline">{status}</Badge>;
-      }
-    } else {
-      switch (status) {
-        case 'Pending': return <Badge variant="outline" className="text-chart-1 border-chart-1/30 bg-chart-1/10">Pending</Badge>;
-        case 'Partial': return <Badge variant="outline" className="text-chart-4 border-chart-4/30 bg-chart-4/10">Partial</Badge>;
-        case 'Paid': return <Badge variant="outline" className="text-chart-2 border-chart-2/30 bg-chart-2/10">Paid</Badge>;
-        case 'Refunded': return <Badge variant="outline" className="text-chart-5 border-chart-5/30 bg-chart-5/10">Refunded</Badge>;
-        default: return <Badge variant="outline">{status}</Badge>;
-      }
+  // Pagination
+  const totalPages = Math.ceil(sorted.length / entries);
+  const paginated = sorted.slice((page - 1) * entries, page * entries);
+
+  // Export/Print handlers
+  const handleExport = (type: string) => {
+    alert(`Export as ${type}`);
+  };
+
+  // Delete booking
+  const handleDelete = (id: number) => {
+    if (confirm("Are you sure you want to delete this booking?")) {
+      setBookings(bookings.filter(b => b.id !== id));
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return `₹${amount.toLocaleString('en-IN')}`;
+  // Get status badge variant
+  const getBookingStatusConfig = (status: string) => {
+    switch (status) {
+      case "Confirmed":
+        return { variant: "default" as const, className: "bg-green-100 text-green-800" };
+      case "Pending":
+        return { variant: "secondary" as const, className: "bg-yellow-100 text-yellow-800" };
+      case "Checked In":
+        return { variant: "outline" as const, className: "bg-blue-100 text-blue-800" };
+      case "Checked Out":
+        return { variant: "outline" as const, className: "bg-purple-100 text-purple-800" };
+      case "Cancelled":
+        return { variant: "destructive" as const, className: "bg-red-100 text-red-800" };
+      default:
+        return { variant: "outline" as const, className: "bg-gray-100 text-gray-800" };
+    }
+  };
+
+  const getPaymentStatusConfig = (status: string) => {
+    switch (status) {
+      case "Success":
+        return { variant: "default" as const, className: "bg-green-100 text-green-800" };
+      case "Pending":
+        return { variant: "secondary" as const, className: "bg-yellow-100 text-yellow-800" };
+      case "Partial":
+        return { variant: "outline" as const, className: "bg-orange-100 text-orange-800" };
+      case "Failed":
+        return { variant: "destructive" as const, className: "bg-red-100 text-red-800" };
+      default:
+        return { variant: "outline" as const, className: "bg-gray-100 text-gray-800" };
+    }
   };
 
   return (
-    <div className="flex flex-col h-full bg-background relative">
+    <div className="flex flex-col h-full bg-white relative">
       {/* Header Section */}
-      <div className="flex-shrink-0 bg-background">
+      <div className="flex-shrink-0 bg-white/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border/50">
         <div className="px-4 py-4 space-y-4">
           {/* Breadcrumb */}
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/room-reservation" className="flex items-center gap-2 text-sm">
-                  <Home className="w-4 h-4" /> Room Reservation
+                <BreadcrumbLink href="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Home className="w-4 h-4" /> Dashboard
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/room-reservation/booking-list" className="text-sm font-medium">
+                <BreadcrumbLink href="/booking" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Booking
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/booking/booking-list" className="text-sm font-medium">
                   Booking List
                 </BreadcrumbLink>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
 
-          {/* Action Tabs */}
-          <div className="flex flex-wrap items-center gap-3">
-            <Button variant="default" size="sm" className="h-9 px-4 rounded-[var(--radius-lg)] shadow-sm">
-              <FileText className="w-4 h-4 mr-2" /> All Bookings
+          {/* Title */}
+          <div className="flex  justify-between items-center gap-3">
+            <div>
+              <Building className="w-6 h-6 text-primary" />
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">Booking List</h1>
+                <p className="text-sm text-muted-foreground">Manage all guest room bookings</p>
+              </div>
+            </div>
+            <Link href={"/room-reservation/room-booking"} >
+            <Button
+              
+              className="h-10 px-6 rounded-full shadow-md flex items-center gap-2"
+              >
+              
+              Room Booking
             </Button>
-            <Button variant="outline" size="sm" className="h-9 px-4 rounded-[var(--radius-lg)]">
-              Today&apos;s Check-in
-            </Button>
-            <Button variant="outline" size="sm" className="h-9 px-4 rounded-[var(--radius-lg)]">
-              Today&apos;s Check-out
-            </Button>
-            <Button variant="outline" size="sm" className="h-9 px-4 rounded-[var(--radius-lg)] ml-auto">
-              <Plus className="w-4 h-4 mr-2" /> New Booking
-            </Button>
+              </Link>
+          
           </div>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 min-h-0 flex flex-col gap-4 p-4 pb-4 overflow-y-auto">
-        {/* Search and Filter Section */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Status Filter */}
-          <Card className="bg-background border-0 shadow-none rounded-[var(--radius-lg)] flex-shrink-0">
-            <CardContent className="p-4">
-              <div className="flex flex-wrap gap-2">
-                {statusFilters.map((status) => (
-                  <Button
-                    key={status}
-                    variant={selectedStatus === status ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setSelectedStatus(status);
-                      setPage(1);
-                    }}
-                    className="h-8 px-3 rounded-[var(--radius-lg)] text-sm font-medium transition-all duration-200"
-                  >
-                    {status}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+      {/* Controls Section */}
+      <div className="flex-shrink-0 bg-white shadow-lg border-b border-border/50">
+        <div className="px-4 py-4 space-y-4">
+          {/* Top Controls */}
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Entries Selection */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Show</span>
+              <Select value={String(entries)} onValueChange={v => { setEntries(Number(v)); setPage(1); }}>
+                <SelectTrigger className="w-20 h-9 text-sm rounded-lg border-border/50 shadow-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {pageSizes.map(size => (
+                    <SelectItem key={size} value={String(size)}>{size}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-sm font-medium text-muted-foreground">entries</span>
+            </div>
 
-          {/* Search */}
-          <Card className="bg-background border-0 shadow-none rounded-[var(--radius-lg)] flex-1">
-            <CardContent className="p-4">
+            {/* Export Buttons */}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => handleExport("Copy")}
+                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleExport("CSV")}
+                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-600 hover:bg-green-700 text-white"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                CSV
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleExport("PDF")}
+                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-600 hover:bg-green-700 text-white"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                PDF
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleExport("Print")}
+                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-600 hover:bg-green-700 text-white"
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                Print
+              </Button>
+            </div>
+
+            {/* Column Visibility Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9 px-4 rounded-lg text-sm shadow-sm"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Column visibility
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                {columns.map(col => (
+                  <DropdownMenuCheckboxItem
+                    key={col.key}
+                    checked={visibleCols.includes(col.key)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setVisibleCols([...visibleCols, col.key]);
+                      } else {
+                        setVisibleCols(visibleCols.filter(c => c !== col.key));
+                      }
+                    }}
+                  >
+                    {col.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Search Bar */}
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-sm font-medium text-muted-foreground">Search:</span>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search by booking number, name, room..."
-                  value={searchTerm}
+                  placeholder="Search bookings..."
+                  value={search}
                   onChange={(e) => {
-                    setSearchTerm(e.target.value);
+                    setSearch(e.target.value);
                     setPage(1);
                   }}
-                  className="pl-10 h-10 rounded-[var(--radius-lg)] border-border"
+                  className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
                 />
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Bookings Grid */}
-        <Card className="flex-1 bg-background border-0 shadow-none rounded-[var(--radius-lg)] min-h-0">
-          <CardContent className="p-4 h-full flex flex-col">
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 h-full overflow-y-auto pr-2">
-                {paginatedBookings.map((booking) => (
-                  <div 
-                    key={booking.id} 
-                    className="group cursor-pointer bg-card border border-border/50 rounded-lg hover:border-primary/30 hover:shadow-sm transition-all duration-200 flex flex-col h-80 overflow-hidden"
-                  >
-                    {/* Header */}
-                    <div className="p-4 border-b border-border/30 bg-muted/20">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold text-primary">#{booking.bookingNumber}</span>
-                        <div className="flex gap-1">
-                          {getStatusBadge(booking.bookingStatus, 'booking')}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-foreground">{booking.name}</span>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 p-4 space-y-3">
-                      {/* Room Info */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Room Type</span>
-                          <span className="text-sm font-medium text-foreground">{booking.roomType}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Room No.</span>
-                          <span className="text-sm font-medium text-foreground">#{booking.roomNo}</span>
-                        </div>
-                      </div>
-
-                      {/* Contact */}
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">{booking.phone}</span>
-                      </div>
-
-                      {/* Dates */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">Check-in: {booking.checkIn}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">Check-out: {booking.checkOut}</span>
-                        </div>
-                      </div>
-
-                      {/* Payment Info */}
-                      <div className="space-y-2 pt-2 border-t border-border/30">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Paid Amount</span>
-                          <span className="text-sm font-medium text-chart-2">{formatCurrency(booking.paidAmount)}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Due Amount</span>
-                          <span className="text-sm font-medium text-destructive">{formatCurrency(booking.dueAmount)}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Payment Status</span>
-                          {getStatusBadge(booking.paymentStatus, 'payment')}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="p-3 border-t border-border/30 bg-muted/10">
-                      <div className="flex items-center justify-between">
-                        <div className="flex gap-1">
-                          <button className="h-7 w-7 rounded-md border border-border/50 bg-background hover:bg-accent transition-colors duration-200 flex items-center justify-center">
-                            <Eye className="w-3 h-3 text-muted-foreground" />
-                          </button>
-                          <button className="h-7 w-7 rounded-md border border-border/50 bg-background hover:bg-accent transition-colors duration-200 flex items-center justify-center">
-                            <Edit className="w-3 h-3 text-muted-foreground" />
-                          </button>
-                          <button className="h-7 w-7 rounded-md border border-border/50 bg-background hover:bg-destructive/10 transition-colors duration-200 flex items-center justify-center">
-                            <Trash2 className="w-3 h-3 text-destructive" />
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <CreditCard className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-xs font-semibold text-foreground">
-                            {formatCurrency(booking.paidAmount + booking.dueAmount)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
-            
-            {/* Pagination */}
-            {pageCount > 1 && (
-              <div className="mt-4 pt-4">
-                <Pagination>
-                  <PaginationContent className="flex justify-center">
-                    <PaginationItem>
-                      <PaginationPrevious 
-                        onClick={() => setPage(Math.max(1, page - 1))}
-                        className={`${page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-[var(--radius-lg)]`}
-                      />
-                    </PaginationItem>
-                    {Array.from({ length: Math.min(pageCount, 5) }, (_, i) => {
-                      let pageNum;
-                      if (pageCount <= 5) {
-                        pageNum = i + 1;
-                      } else if (page <= 3) {
-                        pageNum = i + 1;
-                      } else if (page >= pageCount - 2) {
-                        pageNum = pageCount - 4 + i;
-                      } else {
-                        pageNum = page - 2 + i;
-                      }
-                      return (
-                        <PaginationItem key={pageNum}>
-                          <PaginationLink
-                            onClick={() => setPage(pageNum)}
-                            isActive={page === pageNum}
-                            className="cursor-pointer rounded-[var(--radius-lg)] hover:bg-accent"
+          </div>
+        </div>
+      </div>
+
+      {/* Table Section */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-auto">
+          <div className="bg-white shadow-lg">
+            <Table>
+              <TableHeader className="sticky top-0 bg-white z-10">
+                <TableRow className="border-b border-border/50">
+                  {columns.filter(col => visibleCols.includes(col.key)).map(col => (
+                    <TableHead
+                      key={col.key}
+                      className="text-sm font-medium text-muted-foreground cursor-pointer select-none hover:bg-accent transition-colors duration-200 border-b border-border/50 whitespace-nowrap h-12"
+                      onClick={() => {
+                        if (col.key !== "action") {
+                          setSort(s => ({
+                            key: col.key,
+                            dir: s.key === col.key ? (s.dir === "asc" ? "desc" : "asc") : "asc"
+                          }));
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        {col.label}
+                        {col.key !== "action" && (
+                          <div className="flex flex-col">
+                            {sort.key === col.key ? (
+                              sort.dir === "asc" ?
+                                <ChevronUp className="w-4 h-4 text-foreground" /> :
+                                <ChevronDown className="w-4 h-4 text-foreground" />
+                            ) : (
+                              <ChevronUp className="w-4 h-4 text-muted-foreground/50" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginated.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={visibleCols.length} className="text-center py-12">
+                      <div className="flex flex-col items-center gap-3">
+                        <Building className="w-12 h-12 text-muted-foreground" />
+                        <p className="text-base text-muted-foreground">No bookings found</p>
+                        <p className="text-sm text-muted-foreground">Try adjusting your search criteria</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginated.map((booking, idx) => (
+                    <TableRow key={booking.id} className="hover:bg-accent/50 transition-colors duration-200 border-b border-border/50">
+                      {visibleCols.includes("sl") && (
+                        <TableCell className="text-sm text-foreground font-medium py-3">
+                          {(page - 1) * entries + idx + 1}
+                        </TableCell>
+                      )}
+                      {visibleCols.includes("bookingNumber") && (
+                        <TableCell className="text-sm py-3 font-medium text-blue-600">
+                          {booking.bookingNumber}
+                        </TableCell>
+                      )}
+                      {visibleCols.includes("roomType") && (
+                        <TableCell className="text-sm py-3">
+                          {booking.roomType}
+                        </TableCell>
+                      )}
+                      {visibleCols.includes("roomNumber") && (
+                        <TableCell className="text-sm py-3 font-medium">
+                          {booking.roomNumber}
+                        </TableCell>
+                      )}
+                      {visibleCols.includes("name") && (
+                        <TableCell className="text-sm py-3">
+                          {booking.name}
+                        </TableCell>
+                      )}
+                      {visibleCols.includes("phone") && (
+                        <TableCell className="text-sm py-3">
+                          {booking.phone}
+                        </TableCell>
+                      )}
+                      {visibleCols.includes("checkIn") && (
+                        <TableCell className="text-sm py-3">
+                          {booking.checkIn}
+                        </TableCell>
+                      )}
+                      {visibleCols.includes("checkOut") && (
+                        <TableCell className="text-sm py-3">
+                          {booking.checkOut}
+                        </TableCell>
+                      )}
+                      {visibleCols.includes("paidAmount") && (
+                        <TableCell className="text-sm py-3 font-medium">
+                          {booking.paidAmount.toLocaleString()}
+                        </TableCell>
+                      )}
+                      {visibleCols.includes("dueAmount") && (
+                        <TableCell className="text-sm py-3 font-medium text-red-600">
+                          {booking.dueAmount.toLocaleString()}
+                        </TableCell>
+                      )}
+                      {visibleCols.includes("bookingStatus") && (
+                        <TableCell className="text-sm py-3">
+                          <Badge
+                            variant={getBookingStatusConfig(booking.bookingStatus).variant}
+                            className={getBookingStatusConfig(booking.bookingStatus).className}
                           >
-                            {pageNum}
-                          </PaginationLink>
-                        </PaginationItem>
-                      );
-                    })}
-                    <PaginationItem>
-                      <PaginationNext 
-                        onClick={() => setPage(Math.min(pageCount, page + 1))}
-                        className={`${page === pageCount ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-[var(--radius-lg)]`}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
+                            {booking.bookingStatus}
+                          </Badge>
+                        </TableCell>
+                      )}
+                      {visibleCols.includes("paymentStatus") && (
+                        <TableCell className="text-sm py-3">
+                          <Badge
+                            variant={getPaymentStatusConfig(booking.paymentStatus).variant}
+                            className={getPaymentStatusConfig(booking.paymentStatus).className}
+                          >
+                            {booking.paymentStatus}
+                          </Badge>
+                        </TableCell>
+                      )}
+                      {visibleCols.includes("action") && (
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                            >
+                              <Eye className="w-4 h-4 text-blue-600" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 w-8 p-0 rounded-full border-yellow-200 hover:bg-yellow-50 hover:border-yellow-300 shadow-sm"
+                            >
+                              <Edit className="w-4 h-4 text-yellow-600" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 w-8 p-0 rounded-full border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
+                            >
+                              <IdCard className="w-4 h-4 text-gray-600" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDelete(booking.id)}
+                              className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex-shrink-0 bg-white/80 backdrop-blur-sm border-t border-border/50 z-10">
+        <div className="px-4 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {(page - 1) * entries + 1} to {Math.min(page * entries, sorted.length)} of {sorted.length} entries
+            </div>
+
+            {totalPages > 1 && (
+              <Pagination>
+                <PaginationContent className="flex justify-center">
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setPage(Math.max(1, page - 1))}
+                      className={`${page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-9 px-4 text-sm`}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (page <= 3) {
+                      pageNum = i + 1;
+                    } else if (page >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = page - 2 + i;
+                    }
+                    return (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          onClick={() => setPage(pageNum)}
+                          isActive={page === pageNum}
+                          className={`cursor-pointer rounded-full hover:bg-accent h-9 px-4 text-sm ${page === pageNum ? "shadow-md" : "shadow-sm"}`}
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  })}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setPage(Math.min(totalPages, page + 1))}
+                      className={`${page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-9 px-4 text-sm`}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -239,7 +239,7 @@ export default function NewReservationPage() {
 
         setIsSearching(true);
         setSearchError("");
-        
+
         // Simulate API call delay
         setTimeout(() => {
             const customer = mockExistingCustomers.find(c => c.mobile === searchMobile.trim());
@@ -336,28 +336,22 @@ export default function NewReservationPage() {
             {/* Header Section */}
             <div className="flex-shrink-0 bg-white/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border/50">
                 <div className="px-4 py-4 space-y-4">
-                    {/* Breadcrumb */}
-                    <Breadcrumb>
-                        <BreadcrumbList>
-                            <BreadcrumbItem>
-                                <BreadcrumbLink href="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    <Home className="w-4 h-4" /> Dashboard
-                                </BreadcrumbLink>
-                            </BreadcrumbItem>
-                            <BreadcrumbSeparator />
-                            <BreadcrumbItem>
-                                <BreadcrumbLink href="/booking" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Booking
-                                </BreadcrumbLink>
-                            </BreadcrumbItem>
-                            <BreadcrumbSeparator />
-                            <BreadcrumbItem>
-                                <BreadcrumbLink href="/booking/new-reservation" className="text-sm font-medium">
-                                    New Reservation
-                                </BreadcrumbLink>
-                            </BreadcrumbItem>
-                        </BreadcrumbList>
-                    </Breadcrumb>
+                    {/* Back Button */}
+                    <button
+                        onClick={() => history.back()}
+                        className="flex items-center text-sm font-medium text-secondary hover:text-secondary gap-2"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back
+                    </button>
 
                     {/* Title & Booking List Button */}
                     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -378,6 +372,7 @@ export default function NewReservationPage() {
                     </div>
                 </div>
             </div>
+
 
             {/* Main Content */}
             <div className="flex-1 overflow-auto">
@@ -684,7 +679,7 @@ export default function NewReservationPage() {
                                 </div>
                             </div>
                             <div className="pt-4 border-t">
-                                <div className="text-lg font-semibold">Total Amount: ₹{total.toLocaleString()}</div>
+                                <div className="text-lg font-semibold">Total Amount: Rs.{total.toLocaleString()}</div>
                             </div>
                         </CardContent>
                     </Card>
