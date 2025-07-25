@@ -5,11 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import {
@@ -18,15 +16,11 @@ import {
     LogOut,
     User,
     Calendar,
-    Clock,
     DollarSign,
-    MapPin,
     Phone,
     Mail,
-    CreditCard,
     Receipt,
-    CheckCircle,
-    AlertCircle
+    CheckCircle
 } from "lucide-react";
 
 interface CheckoutRoom {
@@ -157,8 +151,6 @@ export default function CheckoutPage() {
     const [checkoutRooms, setCheckoutRooms] = useState<CheckoutRoom[]>(mockCheckoutRooms);
     const [filteredRooms, setFilteredRooms] = useState<CheckoutRoom[]>(mockCheckoutRooms);
     const [searchQuery, setSearchQuery] = useState<string>("");
-    const [selectedRooms, setSelectedRooms] = useState<number[]>([]);
-    const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
     const [selectedRoom, setSelectedRoom] = useState<CheckoutRoom | null>(null);
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState<boolean>(false);
     const [paymentAmount, setPaymentAmount] = useState<string>("");
@@ -168,33 +160,11 @@ export default function CheckoutPage() {
     useEffect(() => {
         const filtered = checkoutRooms.filter(room =>
             room.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            room.guestName.toLowerCase().includes(searchQuery.toLowerCase())
+            room.guestName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            room.roomType.toLowerCase().includes(searchQuery.toLowerCase())
         );
         setFilteredRooms(filtered);
     }, [searchQuery, checkoutRooms]);
-
-    const handleRoomSelection = (roomId: number) => {
-        setSelectedRooms(prev =>
-            prev.includes(roomId)
-                ? prev.filter(id => id !== roomId)
-                : [...prev, roomId]
-        );
-    };
-
-    const handleSelectAll = () => {
-        if (selectedRooms.length === filteredRooms.length) {
-            setSelectedRooms([]);
-        } else {
-            setSelectedRooms(filteredRooms.map(room => room.id));
-        }
-    };
-
-    const handleGoAction = () => {
-        if (selectedRooms.length > 0) {
-            console.log("Processing checkout for rooms:", selectedRooms);
-            // You can add navigation or other actions here
-        }
-    };
 
     const handleIndividualCheckout = (room: CheckoutRoom) => {
         setSelectedRoom(room);
@@ -206,26 +176,11 @@ export default function CheckoutPage() {
         if (selectedRoom) {
             // Update room status and remove from checkout list
             setCheckoutRooms(prev => prev.filter(room => room.id !== selectedRoom.id));
-            setSelectedRooms(prev => prev.filter(id => id !== selectedRoom.id));
             setIsCheckoutModalOpen(false);
             setSelectedRoom(null);
             setPaymentAmount("");
             setCheckoutNotes("");
         }
-    };
-
-    const getTotalSelected = () => {
-        return selectedRooms.reduce((total, roomId) => {
-            const room = checkoutRooms.find(r => r.id === roomId);
-            return total + (room?.totalAmount || 0);
-        }, 0);
-    };
-
-    const getTotalRemaining = () => {
-        return selectedRooms.reduce((total, roomId) => {
-            const room = checkoutRooms.find(r => r.id === roomId);
-            return total + (room?.remainingAmount || 0);
-        }, 0);
     };
 
     return (
@@ -237,19 +192,29 @@ export default function CheckoutPage() {
                     <Breadcrumb>
                         <BreadcrumbList>
                             <BreadcrumbItem>
-                                <BreadcrumbLink href="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    <Home className="w-4 h-4" /> Dashboard
+                                <BreadcrumbLink
+                                    href="/dashboard"
+                                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    <Home className="w-4 h-4" />
+                                    Dashboard
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>
-                                <BreadcrumbLink href="/check-out" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                <BreadcrumbLink
+                                    href="/check-out"
+                                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                >
                                     Check Out
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>
-                                <BreadcrumbLink href="/check-out" className="text-sm font-medium">
+                                <BreadcrumbLink
+                                    href="/check-out"
+                                    className="text-sm font-medium"
+                                >
                                     Guest Checkout
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
@@ -265,117 +230,41 @@ export default function CheckoutPage() {
                         </div>
                     </div>
 
-                    {/* Room Selection Controls */}
-                    <Card className="border border-border/50 shadow-sm">
-                        <CardContent className="p-4">
-                            <div className="flex flex-col md:flex-row gap-4 items-end">
-                                {/* Room Selection Dropdown */}
-                                <div className="flex-1 space-y-2">
-                                    <Label className="text-sm font-medium">Room No.:</Label>
-                                    <div className="relative">
-                                        <div
-                                            className="border border-border/50 rounded-lg bg-white shadow-sm cursor-pointer"
-                                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                        >
-                                            <div className="flex items-center gap-2 p-3">
-                                                <Search className="w-4 h-4 text-muted-foreground" />
-                                                <Input
-                                                    placeholder="Search rooms or guests..."
-                                                    value={searchQuery}
-                                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                                    onFocus={() => setIsDropdownOpen(true)}
-                                                    className="border-none shadow-none focus-visible:ring-0 p-0"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Dropdown List */}
-                                        {isDropdownOpen && (
-                                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-border/50 rounded-lg shadow-lg z-20">
-                                                <div className="p-3 border-b border-border/50">
-                                                    <div className="flex items-center gap-2">
-                                                        <Checkbox
-                                                            checked={selectedRooms.length === filteredRooms.length && filteredRooms.length > 0}
-                                                            onCheckedChange={handleSelectAll}
-                                                        />
-                                                        <span className="text-sm font-medium">Select All ({filteredRooms.length})</span>
-                                                    </div>
-                                                </div>
-                                                <ScrollArea className="max-h-64">
-                                                    {filteredRooms.map((room) => (
-                                                        <div
-                                                            key={room.id}
-                                                            className="flex items-center gap-3 p-3 hover:bg-accent/50 cursor-pointer transition-colors"
-                                                            onClick={() => handleRoomSelection(room.id)}
-                                                        >
-                                                            <Checkbox
-                                                                checked={selectedRooms.includes(room.id)}
-                                                                onCheckedChange={() => handleRoomSelection(room.id)}
-                                                            />
-                                                            <div className="flex-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-medium">{room.roomNumber}</span>
-                                                                    <span className="text-muted-foreground">-</span>
-                                                                    <span className="text-foreground">{room.guestName}</span>
-                                                                    {room.remainingAmount > 0 && (
-                                                                        <Badge variant="destructive" className="text-xs">
-                                                                            ${room.remainingAmount} due
-                                                                        </Badge>
-                                                                    )}
-                                                                </div>
-                                                                <div className="text-xs text-muted-foreground">{room.roomType}</div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </ScrollArea>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Action Button */}
-                                <Button
-                                    onClick={handleGoAction}
-                                    disabled={selectedRooms.length === 0}
-                                    className="h-10 px-8 rounded-full shadow-md"
-                                >
-                                    Go ({selectedRooms.length})
-                                </Button>
-                            </div>
-
-                            {/* Selected Rooms Summary */}
-                            {selectedRooms.length > 0 && (
-                                <div className="mt-4 p-3 bg-accent/20 rounded-lg border border-border/50">
-                                    <div className="flex flex-wrap gap-2 mb-2">
-                                        {selectedRooms.map(roomId => {
-                                            const room = checkoutRooms.find(r => r.id === roomId);
-                                            return room ? (
-                                                <Badge key={roomId} variant="secondary" className="bg-accent text-accent-foreground">
-                                                    {room.roomNumber} - {room.guestName}
-                                                </Badge>
-                                            ) : null;
-                                        })}
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span>Total Amount: <strong>${getTotalSelected().toFixed(2)}</strong></span>
-                                        <span>Remaining Due: <strong className="text-destructive">${getTotalRemaining().toFixed(2)}</strong></span>
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                    {/* Search Bar */}
+                    <div className="flex items-center gap-2">
+                        <div className="relative flex-1 max-w-md">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="text"
+                                placeholder="Search by room number, guest name, or room type..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 h-10 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                            />
+                        </div>
+                        {searchQuery && (
+                            <Badge variant="secondary" className="text-sm">
+                                {filteredRooms.length} room(s) found
+                            </Badge>
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* Checkout Rooms Grid */}
             <div className="flex-1 overflow-auto">
                 <div className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filteredRooms.map((room) => (
-                            <Card key={room.id} className="border border-border/50 shadow-sm hover:shadow-md transition-shadow">
+                            <Card
+                                key={room.id}
+                                className="border border-border/50 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full"
+                            >
                                 <CardHeader className="pb-3">
                                     <div className="flex items-center justify-between">
-                                        <CardTitle className="text-lg font-semibold">Room {room.roomNumber}</CardTitle>
+                                        <CardTitle className="text-lg font-semibold">
+                                            Room {room.roomNumber}
+                                        </CardTitle>
                                         <Badge variant={room.remainingAmount > 0 ? "destructive" : "default"}>
                                             {room.remainingAmount > 0 ? "Payment Due" : "Paid"}
                                         </Badge>
@@ -383,89 +272,105 @@ export default function CheckoutPage() {
                                     <p className="text-muted-foreground font-medium">{room.roomType}</p>
                                 </CardHeader>
 
-                                <CardContent className="space-y-4">
-                                    {/* Guest Information */}
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2">
-                                            <User className="w-4 h-4 text-muted-foreground" />
-                                            <span className="font-medium">{room.guestName}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <Phone className="w-4 h-4" />
-                                            <span>{room.guestPhone}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <Mail className="w-4 h-4" />
-                                            <span>{room.guestEmail}</span>
-                                        </div>
-                                    </div>
-
-                                    <Separator />
-
-                                    {/* Stay Information */}
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex items-center justify-between">
-                                            <span className="flex items-center gap-2">
-                                                <Calendar className="w-4 h-4 text-muted-foreground" />
-                                                Check-in:
-                                            </span>
-                                            <span>{room.checkInDate.toLocaleDateString()}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="flex items-center gap-2">
-                                                <Calendar className="w-4 h-4 text-muted-foreground" />
-                                                Check-out:
-                                            </span>
-                                            <span>{room.checkOutDate.toLocaleDateString()}</span>
-                                        </div>
-                                    </div>
-
-                                    <Separator />
-
-                                    {/* Billing Information */}
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span>Total Amount:</span>
-                                            <span className="font-semibold">${room.totalAmount.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm">
-                                            <span>Paid Amount:</span>
-                                            <span className="text-green-600">${room.paidAmount.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex items-center justify-between text-sm font-semibold">
-                                            <span>Remaining:</span>
-                                            <span className={room.remainingAmount > 0 ? "text-destructive" : "text-green-600"}>
-                                                ${room.remainingAmount.toFixed(2)}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Services */}
-                                    {room.services.length > 0 && (
-                                        <>
-                                            <Separator />
-                                            <div>
-                                                <p className="text-sm font-medium mb-2">Services Used:</p>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {room.services.map((service, index) => (
-                                                        <Badge key={index} variant="outline" className="text-xs">
-                                                            {service}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
+                                <CardContent className="flex flex-col flex-1">
+                                    <div className="space-y-4 flex-1">
+                                        {/* Guest Information */}
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                                <span className="font-medium truncate">{room.guestName}</span>
                                             </div>
-                                        </>
-                                    )}
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Phone className="w-4 h-4 flex-shrink-0" />
+                                                <span className="truncate">{room.guestPhone}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Mail className="w-4 h-4 flex-shrink-0" />
+                                                <span className="truncate">{room.guestEmail}</span>
+                                            </div>
+                                        </div>
 
-                                    {/* Checkout Button */}
-                                    <Button
-                                        onClick={() => handleIndividualCheckout(room)}
-                                        variant="destructive"
-                                        className="w-full mt-4 rounded-full shadow-sm"
-                                    >
-                                        <LogOut className="w-4 h-4 mr-2" />
-                                        Process Checkout
-                                    </Button>
+                                        <Separator />
+
+                                        {/* Stay Information */}
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex items-center justify-between">
+                                                <span className="flex items-center gap-2">
+                                                    <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                                    Check-in:
+                                                </span>
+                                                <span className="font-medium">
+                                                    {room.checkInDate.toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="flex items-center gap-2">
+                                                    <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                                    Check-out:
+                                                </span>
+                                                <span className="font-medium">
+                                                    {room.checkOutDate.toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <Separator />
+
+                                        {/* Billing Information */}
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-muted-foreground">Total Amount:</span>
+                                                <span className="font-semibold">${room.totalAmount.toFixed(2)}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="text-muted-foreground">Paid Amount:</span>
+                                                <span className="text-green-600 font-medium">
+                                                    ${room.paidAmount.toFixed(2)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-sm font-semibold">
+                                                <span className="text-muted-foreground">Remaining:</span>
+                                                <span className={room.remainingAmount > 0 ? "text-destructive" : "text-green-600"}>
+                                                    ${room.remainingAmount.toFixed(2)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Services */}
+                                        {room.services.length > 0 && (
+                                            <>
+                                                <Separator />
+                                                <div>
+                                                    <p className="text-sm font-medium mb-2 text-muted-foreground">
+                                                        Services Used:
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {room.services.map((service, index) => (
+                                                            <Badge
+                                                                key={index}
+                                                                variant="outline"
+                                                                className="text-xs"
+                                                            >
+                                                                {service}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* Checkout Button - Always at bottom */}
+                                    <div className="mt-4 pt-4">
+                                        <Button
+                                            onClick={() => handleIndividualCheckout(room)}
+                                            variant="destructive"
+                                            className="w-full rounded-full shadow-sm"
+                                        >
+                                            <LogOut className="w-4 h-4 mr-2" />
+                                            Process Checkout
+                                        </Button>
+                                    </div>
                                 </CardContent>
                             </Card>
                         ))}
@@ -475,8 +380,15 @@ export default function CheckoutPage() {
                     {filteredRooms.length === 0 && (
                         <div className="text-center py-12">
                             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-foreground mb-2">No pending checkouts</h3>
-                            <p className="text-muted-foreground">All guests have been checked out or no rooms match your search</p>
+                            <h3 className="text-lg font-semibold text-foreground mb-2">
+                                {searchQuery ? "No rooms match your search" : "No pending checkouts"}
+                            </h3>
+                            <p className="text-muted-foreground">
+                                {searchQuery
+                                    ? "Try adjusting your search criteria"
+                                    : "All guests have been checked out"
+                                }
+                            </p>
                         </div>
                     )}
                 </div>
@@ -508,7 +420,10 @@ export default function CheckoutPage() {
                                         <div>
                                             <span className="text-muted-foreground">Stay Duration:</span>
                                             <p className="font-medium">
-                                                {Math.ceil((selectedRoom.checkOutDate.getTime() - selectedRoom.checkInDate.getTime()) / (1000 * 60 * 60 * 24))} nights
+                                                {Math.ceil(
+                                                    (selectedRoom.checkOutDate.getTime() - selectedRoom.checkInDate.getTime()) /
+                                                    (1000 * 60 * 60 * 24)
+                                                )} nights
                                             </p>
                                         </div>
                                     </div>
@@ -525,32 +440,42 @@ export default function CheckoutPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     <div className="space-y-2">
-                                        <div className="flex justify-between">
-                                            <span>Total Amount:</span>
-                                            <span className="font-semibold">${selectedRoom.totalAmount.toFixed(2)}</span>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-muted-foreground">Total Amount:</span>
+                                            <span className="font-semibold">
+                                                ${selectedRoom.totalAmount.toFixed(2)}
+                                            </span>
                                         </div>
-                                        <div className="flex justify-between text-green-600">
+                                        <div className="flex justify-between items-center text-green-600">
                                             <span>Amount Paid:</span>
-                                            <span>${selectedRoom.paidAmount.toFixed(2)}</span>
+                                            <span className="font-medium">
+                                                ${selectedRoom.paidAmount.toFixed(2)}
+                                            </span>
                                         </div>
                                         <Separator />
-                                        <div className="flex justify-between text-lg font-bold">
+                                        <div className="flex justify-between items-center text-lg font-bold">
                                             <span>Amount Due:</span>
-                                            <span className={selectedRoom.remainingAmount > 0 ? "text-destructive" : "text-green-600"}>
+                                            <span className={
+                                                selectedRoom.remainingAmount > 0 ? "text-destructive" : "text-green-600"
+                                            }>
                                                 ${selectedRoom.remainingAmount.toFixed(2)}
                                             </span>
                                         </div>
                                     </div>
 
                                     {selectedRoom.remainingAmount > 0 && (
-                                        <div className="space-y-2">
-                                            <Label>Payment Amount</Label>
+                                        <div className="space-y-2 mt-4">
+                                            <Label htmlFor="payment-amount">Payment Amount</Label>
                                             <Input
+                                                id="payment-amount"
                                                 type="number"
                                                 value={paymentAmount}
                                                 onChange={(e) => setPaymentAmount(e.target.value)}
                                                 placeholder="Enter payment amount"
                                                 className="border border-border/50"
+                                                min="0"
+                                                max={selectedRoom.remainingAmount}
+                                                step="0.01"
                                             />
                                         </div>
                                     )}
@@ -559,13 +484,14 @@ export default function CheckoutPage() {
 
                             {/* Checkout Notes */}
                             <div className="space-y-2">
-                                <Label>Checkout Notes (Optional)</Label>
+                                <Label htmlFor="checkout-notes">Checkout Notes (Optional)</Label>
                                 <Textarea
+                                    id="checkout-notes"
                                     value={checkoutNotes}
                                     onChange={(e) => setCheckoutNotes(e.target.value)}
                                     placeholder="Add any checkout notes or special instructions..."
                                     rows={3}
-                                    className="border border-border/50"
+                                    className="border border-border/50 resize-none"
                                 />
                             </div>
 
