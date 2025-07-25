@@ -339,7 +339,7 @@ export default function NewReservationPage() {
                     {/* Back Button */}
                     <button
                         onClick={() => history.back()}
-                        className="flex items-center text-sm font-medium text-secondary hover:text-secondary gap-2"
+                        className="flex items-center text-sm font-medium text-secondary hover:text-primary gap-2"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -909,11 +909,11 @@ export default function NewReservationPage() {
                                         <Label>Gender</Label>
                                         <RadioGroup value={newCustomer.gender} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, gender: value }))}>
                                             <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="male" id="male" />
+                                                <RadioGroupItem className="border border-gray-500" value="male" id="male" />
                                                 <Label htmlFor="male">Male</Label>
                                             </div>
                                             <div className="flex items-center space-x-2">
-                                                <RadioGroupItem value="female" id="female" />
+                                                <RadioGroupItem className="border border-gray-500" value="female" id="female" />
                                                 <Label htmlFor="female">Female</Label>
                                             </div>
                                         </RadioGroup>
@@ -1013,7 +1013,7 @@ export default function NewReservationPage() {
                                     </div>
                                     <div className="space-y-2 md:col-span-2 lg:col-span-3">
                                         <Label>Address</Label>
-                                        <Textarea value={newCustomer.address} onChange={(e) => setNewCustomer(prev => ({ ...prev, address: e.target.value }))} />
+                                        <Textarea className="border border-gray-200" value={newCustomer.address} onChange={(e) => setNewCustomer(prev => ({ ...prev, address: e.target.value }))} />
                                     </div>
                                 </div>
                             </CardContent>
@@ -1103,23 +1103,7 @@ export default function NewReservationPage() {
                             </CardContent>
                         </Card>
 
-                        {/* Comments */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-lg">
-                                    <MessageCircle className="w-5 h-5" />
-                                    Comments
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Textarea
-                                    value={newCustomer.comments}
-                                    onChange={(e) => setNewCustomer(prev => ({ ...prev, comments: e.target.value }))}
-                                    placeholder="Enter any additional comments or remarks..."
-                                    rows={4}
-                                />
-                            </CardContent>
-                        </Card>
+                       
 
                         {/* Modal Actions */}
                         <div className="flex justify-end gap-3 pt-4">
