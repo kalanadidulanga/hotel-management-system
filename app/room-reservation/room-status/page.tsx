@@ -1,33 +1,21 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import {
-    Home,
-    Search,
     CalendarIcon,
-    Building,
-    Bed,
+    Search,
     Clock,
-    Users,
-    Wifi,
-    Tv,
-    Wind,
-    MapPin,
-    Timer,
-    CheckCircle,
-    XCircle,
-    AlertCircle,
-    Info
+    User,
+    Building2,
+    Bed
 } from "lucide-react";
 
 interface Room {
@@ -35,475 +23,350 @@ interface Room {
     roomNumber: string;
     floor: string;
     roomType: string;
-    status: "Available" | "Booked" | "Checkin" | "Checkout" | "Cleaning" | "Maintenance";
-    checkIn?: string;
-    checkOut?: string;
+    status: 'available' | 'booked' | 'checkin';
+    checkOutDate?: Date;
+    checkOutTime?: string;
     guestName?: string;
-    timeRemaining?: string;
-    image?: string;
-    amenities?: string[];
 }
 
 const mockRooms: Room[] = [
     {
-        id: 1,
+        id: 101,
         roomNumber: "101",
         floor: "First Floor",
         roomType: "VIP",
-        status: "Booked",
-        checkOut: "2025-07-18",
-        guestName: "John Doe",
-        timeRemaining: "20h 37m 51s",
-        image: "/api/placeholder/300/200",
-        amenities: ["Wifi", "TV", "AC"]
+        status: "available"
     },
     {
-        id: 2,
+        id: 102,
         roomNumber: "102",
         floor: "First Floor",
         roomType: "Standard",
-        status: "Available",
-        image: "/api/placeholder/300/200",
-        amenities: ["Wifi", "TV"]
+        status: "checkin",
+        checkOutDate: new Date(Date.now() + 4 * 60 * 60 * 1000), // 4 hours from now
+        checkOutTime: "12:00",
+        guestName: "John Doe"
     },
     {
-        id: 3,
+        id: 103,
         roomNumber: "103",
         floor: "First Floor",
         roomType: "Deluxe",
-        status: "Checkin",
-        checkOut: "2025-08-02",
-        guestName: "Jane Smith",
-        timeRemaining: "12d 17h 52m",
-        image: "/api/placeholder/300/200",
-        amenities: ["Wifi", "TV", "AC"]
+        status: "booked",
+        checkOutDate: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000), // 8 days from now
+        checkOutTime: "11:00",
+        guestName: "Jane Smith"
     },
     {
-        id: 4,
-        roomNumber: "104",
-        floor: "First Floor",
-        roomType: "Standard",
-        status: "Checkout",
-        checkOut: "2025-07-17",
-        guestName: "Mike Johnson",
-        image: "/api/placeholder/300/200",
-        amenities: ["Wifi", "TV"]
-    },
-    {
-        id: 5,
+        id: 201,
         roomNumber: "201",
         floor: "Second Floor",
-        roomType: "VIP",
-        status: "Available",
-        image: "/api/placeholder/300/200",
-        amenities: ["Wifi", "TV", "AC"]
+        roomType: "Suite",
+        status: "available"
     },
     {
-        id: 6,
+        id: 202,
         roomNumber: "202",
         floor: "Second Floor",
         roomType: "Standard",
-        status: "Cleaning",
-        image: "/api/placeholder/300/200",
-        amenities: ["Wifi", "TV"]
+        status: "checkin",
+        checkOutDate: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
+        checkOutTime: "14:00",
+        guestName: "Mike Wilson"
     },
     {
-        id: 7,
+        id: 203,
         roomNumber: "203",
         floor: "Second Floor",
-        roomType: "Deluxe",
-        status: "Available",
-        image: "/api/placeholder/300/200",
-        amenities: ["Wifi", "TV", "AC"]
-    },
-    {
-        id: 8,
-        roomNumber: "204",
-        floor: "Second Floor",
-        roomType: "Standard",
-        status: "Maintenance",
-        image: "/api/placeholder/300/200",
-        amenities: ["Wifi", "TV"]
-    },
-    {
-        id: 9,
-        roomNumber: "301",
-        floor: "Third Floor",
         roomType: "VIP",
-        status: "Available",
-        image: "/api/placeholder/300/200",
-        amenities: ["Wifi", "TV", "AC"]
-    },
-    {
-        id: 10,
-        roomNumber: "302",
-        floor: "Third Floor",
-        roomType: "Standard",
-        status: "Available",
-        image: "/api/placeholder/300/200",
-        amenities: ["Wifi", "TV"]
-    },
-    {
-        id: 11,
-        roomNumber: "303",
-        floor: "Third Floor",
-        roomType: "Deluxe",
-        status: "Available",
-        image: "/api/placeholder/300/200",
-        amenities: ["Wifi", "TV", "AC"]
-    },
-    {
-        id: 12,
-        roomNumber: "304",
-        floor: "Third Floor",
-        roomType: "Standard",
-        status: "Available",
-        image: "/api/placeholder/300/200",
-        amenities: ["Wifi", "TV"]
+        status: "booked",
+        checkOutDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+        checkOutTime: "10:00",
+        guestName: "Sarah Johnson"
     }
 ];
 
-const statusOptions = [
-    { value: "all", label: "All Statuses" },
-    { value: "Available", label: "Available" },
-    { value: "Booked", label: "Booked" },
-    { value: "Checkin", label: "Check In" },
-    { value: "Checkout", label: "Check Out" },
-    { value: "Cleaning", label: "Cleaning" },
-    { value: "Maintenance", label: "Maintenance" }
-];
-
 export default function RoomStatusPage() {
-    const [searchDate, setSearchDate] = useState<Date>();
-    const [searchStatus, setSearchStatus] = useState("all");
-    const [floorName, setFloorName] = useState("");
-    const [generalSearch, setGeneralSearch] = useState("");
     const [rooms, setRooms] = useState<Room[]>(mockRooms);
+    const [filteredRooms, setFilteredRooms] = useState<Room[]>(mockRooms);
+    const [searchDate, setSearchDate] = useState<Date>();
+    const [statusFilter, setStatusFilter] = useState<string>("");
+    const [floorFilter, setFloorFilter] = useState<string>("");
+    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [countdowns, setCountdowns] = useState<{ [key: number]: string }>({});
 
-    // Timer effect for countdown
+    // Calculate countdown timer
+    const calculateCountdown = (checkOutDate: Date, checkOutTime: string) => {
+        const now = new Date();
+        const checkOut = new Date(checkOutDate);
+        const [hours, minutes] = checkOutTime.split(':');
+        checkOut.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+        const diff = checkOut.getTime() - now.getTime();
+
+        if (diff <= 0) return "Overdue";
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const remainingHours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const remainingMinutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        if (days > 0) {
+            return `${days}d ${remainingHours}h ${remainingMinutes}m ${seconds}s`;
+        } else {
+            return `${remainingHours}h ${remainingMinutes}m ${seconds}s`;
+        }
+    };
+
+    // Update countdown every second
     useEffect(() => {
         const interval = setInterval(() => {
-            setRooms(prevRooms => 
-                prevRooms.map(room => {
-                    if (room.timeRemaining && (room.status === "Booked" || room.status === "Checkin")) {
-                        // This is a simplified countdown - in real app, calculate from actual dates
-                        return room;
-                    }
-                    return room;
-                })
-            );
+            const newCountdowns: { [key: number]: string } = {};
+            rooms.forEach(room => {
+                if (room.checkOutDate && room.checkOutTime && (room.status === 'checkin' || room.status === 'booked')) {
+                    newCountdowns[room.id] = calculateCountdown(room.checkOutDate, room.checkOutTime);
+                }
+            });
+            setCountdowns(newCountdowns);
         }, 1000);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [rooms]);
 
-    // Filtering logic
-    const filteredRooms = useMemo(() => {
-        return rooms.filter(room => {
-            const matchesStatus = searchStatus === "all" || room.status === searchStatus;
-            const matchesFloor = floorName === "" || room.floor.toLowerCase().includes(floorName.toLowerCase());
-            const matchesSearch = generalSearch === "" || 
-                room.roomNumber.toLowerCase().includes(generalSearch.toLowerCase()) ||
-                room.roomType.toLowerCase().includes(generalSearch.toLowerCase()) ||
-                room.guestName?.toLowerCase().includes(generalSearch.toLowerCase());
-            
-            return matchesStatus && matchesFloor && matchesSearch;
-        });
-    }, [rooms, searchStatus, floorName, generalSearch]);
+    // Filter rooms based on search criteria
+    useEffect(() => {
+        let filtered = rooms;
 
-    // Get status badge variant and icon
-    const getStatusConfig = (status: string) => {
+        if (statusFilter && statusFilter !== "All") {
+            filtered = filtered.filter(room => room.status === statusFilter);
+        }
+
+        if (floorFilter && floorFilter !== "All") {
+            filtered = filtered.filter(room => room.floor === floorFilter);
+        }
+
+        if (searchQuery) {
+            filtered = filtered.filter(room =>
+                room.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                room.guestName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                room.roomType.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        setFilteredRooms(filtered);
+    }, [statusFilter, floorFilter, searchQuery, rooms]);
+
+    const handleSearch = () => {
+        // Implement additional search logic if needed
+        console.log("Search triggered");
+    };
+
+    const getStatusColor = (status: string) => {
         switch (status) {
-            case "Available":
-                return { 
-                    variant: "default" as const, 
-                    className: "bg-green-100 text-green-800 border-green-200",
-                    icon: <CheckCircle className="w-3 h-3" />
-                };
-            case "Booked":
-                return { 
-                    variant: "secondary" as const, 
-                    className: "bg-blue-100 text-blue-800 border-blue-200",
-                    icon: <Clock className="w-3 h-3" />
-                };
-            case "Checkin":
-                return { 
-                    variant: "outline" as const, 
-                    className: "bg-orange-100 text-orange-800 border-orange-200",
-                    icon: <Info className="w-3 h-3" />
-                };
-            case "Checkout":
-                return { 
-                    variant: "outline" as const, 
-                    className: "bg-purple-100 text-purple-800 border-purple-200",
-                    icon: <XCircle className="w-3 h-3" />
-                };
-            case "Cleaning":
-                return { 
-                    variant: "outline" as const, 
-                    className: "bg-yellow-100 text-yellow-800 border-yellow-200",
-                    icon: <AlertCircle className="w-3 h-3" />
-                };
-            case "Maintenance":
-                return { 
-                    variant: "destructive" as const, 
-                    className: "bg-red-100 text-red-800 border-red-200",
-                    icon: <XCircle className="w-3 h-3" />
-                };
+            case 'available':
+                return 'bg-green-500 hover:bg-green-600';
+            case 'checkin':
+                return 'bg-yellow-500 hover:bg-yellow-600';
+            case 'booked':
+                return 'bg-blue-500 hover:bg-blue-600';
             default:
-                return { 
-                    variant: "outline" as const, 
-                    className: "bg-gray-100 text-gray-800 border-gray-200",
-                    icon: <Info className="w-3 h-3" />
-                };
+                return 'bg-gray-500 hover:bg-gray-600';
         }
     };
 
-    // Get amenity icon
-    const getAmenityIcon = (amenity: string) => {
-        switch (amenity.toLowerCase()) {
-            case "wifi":
-                return <Wifi className="w-3 h-3" />;
-            case "tv":
-                return <Tv className="w-3 h-3" />;
-            case "ac":
-                return <Wind className="w-3 h-3" />;
+    const getStatusText = (status: string) => {
+        switch (status) {
+            case 'available':
+                return 'Available';
+            case 'checkin':
+                return 'Check In';
+            case 'booked':
+                return 'Booked';
             default:
-                return <Info className="w-3 h-3" />;
+                return 'Unknown';
         }
     };
+
+    const uniqueFloors = Array.from(new Set(rooms.map(room => room.floor)));
 
     return (
-        <div className="flex flex-col h-full bg-white relative">
+        <div className="flex flex-col h-full bg-gray-50 relative">
             {/* Header Section */}
-            <div className="flex-shrink-0 bg-white/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border/50">
-                <div className="px-4 py-4 space-y-4">
-                    {/* Breadcrumb */}
-                    <Breadcrumb>
-                        <BreadcrumbList>
-                            <BreadcrumbItem>
-                                <BreadcrumbLink href="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    <Home className="w-4 h-4" /> Dashboard
-                                </BreadcrumbLink>
-                            </BreadcrumbItem>
-                            <BreadcrumbSeparator />
-                            <BreadcrumbItem>
-                                <BreadcrumbLink href="/room-status" className="text-sm font-medium">
-                                    Room Status
-                                </BreadcrumbLink>
-                            </BreadcrumbItem>
-                        </BreadcrumbList>
-                    </Breadcrumb>
-
-                    {/* Title */}
+            <div className="flex-shrink-0 bg-white/80 backdrop-blur-sm sticky top-0 z-10 border-b border-gray-200">
+                <div className="px-6 py-4 space-y-4">
+                    {/* Page Title */}
                     <div className="flex items-center gap-3">
-                        <Building className="w-6 h-6 text-primary" />
+                        <Building2 className="w-8 h-8 text-blue-600" />
                         <div>
-                            <h1 className="text-xl font-semibold text-foreground">Room Status</h1>
-                            <p className="text-sm text-muted-foreground">Monitor real-time room availability and occupancy</p>
+                            <h1 className="text-2xl font-bold text-gray-900">Room Status</h1>
+                            <p className="text-sm text-gray-600">Monitor room availability and occupancy</p>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            {/* Search Filters */}
-            <div className="flex-shrink-0 bg-white shadow-lg border-b border-border/50">
-                <div className="px-4 py-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {/* Search & Filter Controls */}
+                    <div className="flex flex-wrap items-end gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
                         {/* Search Date */}
                         <div className="space-y-2">
-                            <Label htmlFor="searchDate" className="text-sm font-medium">
-                                Search Date
-                            </Label>
+                            <Label className="text-sm font-medium">Search Date</Label>
                             <Popover>
                                 <PopoverTrigger asChild>
-                                    <Button
-                                        id="searchDate"
-                                        variant="outline"
-                                        className="w-full justify-start text-left font-normal h-9 rounded-lg border-border/50 shadow-sm"
-                                    >
+                                    <Button variant="outline" className="w-[200px] justify-start border border-gray-300">
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {searchDate ? format(searchDate, "PPP") : <span>Pick a date</span>}
+                                        {searchDate ? format(searchDate, "PPP") : "Pick a date"}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={searchDate}
-                                        onSelect={setSearchDate}
-                                        initialFocus
-                                    />
+                                    <Calendar mode="single" selected={searchDate} onSelect={setSearchDate} />
                                 </PopoverContent>
                             </Popover>
                         </div>
 
                         {/* Search Status */}
                         <div className="space-y-2">
-                            <Label htmlFor="searchStatus" className="text-sm font-medium">
-                                Search Status
-                            </Label>
-                            <Select value={searchStatus} onValueChange={setSearchStatus}>
-                                <SelectTrigger id="searchStatus" className="h-9 rounded-lg border-border/50 shadow-sm">
-                                    <SelectValue placeholder="Select status" />
+                            <Label className="text-sm font-medium">Search Status</Label>
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="w-[150px] border border-gray-300">
+                                    <SelectValue placeholder="All Status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {statusOptions.map(option => (
-                                        <SelectItem key={option.value} value={option.value}>
-                                            {option.label}
-                                        </SelectItem>
-                                    ))}
+                                    <SelectItem value="All">All Status</SelectItem>
+                                    <SelectItem value="available">Available</SelectItem>
+                                    <SelectItem value="checkin">Check In</SelectItem>
+                                    <SelectItem value="booked">Booked</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
                         {/* Floor Name */}
                         <div className="space-y-2">
-                            <Label htmlFor="floorName" className="text-sm font-medium">
-                                Floor Name
-                            </Label>
-                            <Input
-                                id="floorName"
-                                value={floorName}
-                                onChange={(e) => setFloorName(e.target.value)}
-                                placeholder="Enter floor name..."
-                                className="h-9 rounded-lg border-border/50 shadow-sm"
-                            />
+                            <Label className="text-sm font-medium">Floor Name</Label>
+                            <Select value={floorFilter} onValueChange={setFloorFilter}>
+                                <SelectTrigger className="w-[150px] border border-gray-300">
+                                    <SelectValue placeholder="All Floors" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="All">All Floors</SelectItem>
+                                    {uniqueFloors.map(floor => (
+                                        <SelectItem key={floor} value={floor}>{floor}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         {/* Search Button */}
                         <div className="space-y-2">
-                            <Label className="text-sm font-medium opacity-0">Search</Label>
-                            <Button 
-                                className="w-full h-9 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm"
-                                onClick={() => {
-                                    // Trigger search/filter
-                                    console.log("Search triggered");
-                                }}
+                            <Label className="text-sm font-medium invisible">Search</Label>
+                            <Button
+                                onClick={handleSearch}
+                                className="bg-green-600 hover:bg-green-700 text-white px-6"
                             >
                                 <Search className="w-4 h-4 mr-2" />
                                 Search
                             </Button>
                         </div>
 
-                        {/* General Search */}
-                        <div className="space-y-2">
-                            <Label htmlFor="generalSearch" className="text-sm font-medium">
-                                General Search
-                            </Label>
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="generalSearch"
-                                    value={generalSearch}
-                                    onChange={(e) => setGeneralSearch(e.target.value)}
-                                    placeholder="Search..."
-                                    className="pl-10 h-9 rounded-lg border-border/50 shadow-sm"
-                                />
-                            </div>
+                        {/* Search Field */}
+                        <div className="space-y-2 ml-auto">
+                            <Label className="text-sm font-medium">Search</Label>
+                            <Input
+                                placeholder="Room number, guest name..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-[250px] border border-gray-300"
+                            />
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Room Status Cards Grid */}
+            {/* Room Cards Grid */}
             <div className="flex-1 overflow-auto">
-                <div className="p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {filteredRooms.map((room) => {
-                            const statusConfig = getStatusConfig(room.status);
-                            return (
-                                <Card key={room.id} className="relative overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow">
-                                    {/* Room Image */}
-                                    <div className="relative h-32 bg-muted">
-                                        <img 
-                                            src={room.image} 
-                                            alt={`Room ${room.roomNumber}`}
-                                            className="w-full h-full object-cover"
-                                        />
-                                        {/* Status Badge */}
-                                        <div className="absolute top-2 right-2">
-                                            <Badge 
-                                                variant={statusConfig.variant}
-                                                className={`${statusConfig.className} flex items-center gap-1`}
-                                            >
-                                                {statusConfig.icon}
-                                                {room.status}
-                                            </Badge>
+                <div className="p-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        {filteredRooms.map((room) => (
+                            <Card
+                                key={room.id}
+                                className="overflow-hidden border border-gray-200 shadow-md hover:shadow-lg transition-shadow cursor-pointer h-fit"
+                            >
+                                <div className="relative">
+                                    {/* Room Image with Gradient Overlay */}
+                                    <div
+                                        className="h-48 bg-cover bg-center relative flex items-center justify-center"
+                                        style={{
+                                            backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.8)), url(https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&h=300&fit=crop&crop=center)`
+                                        }}
+                                    >
+                                        {/* Floor Name */}
+                                        <div className="absolute top-3 left-3">
+                                            <span className="bg-black/60 text-white px-3 py-1 rounded-full text-xs font-medium">
+                                                {room.floor}
+                                            </span>
+                                        </div>
+
+                                        {/* Room Info Overlay - Centered */}
+                                        <div className="text-center text-white">
+                                            <h3 className="text-2xl font-bold mb-1">Room No. {room.roomNumber}</h3>
+                                            <p className="text-sm opacity-90 font-medium">{room.roomType}</p>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <CardContent className="p-4 space-y-3">
-                                        {/* Room Info */}
-                                        <div className="space-y-1">
-                                            <div className="flex items-center justify-between">
-                                                <h3 className="font-semibold text-foreground">
-                                                    Room No. {room.roomNumber}
-                                                </h3>
-                                                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                                                    {room.roomType}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                <MapPin className="w-3 h-3" />
-                                                {room.floor}
-                                            </div>
+                                <CardContent className="p-4">
+                                    <div className="space-y-3 h-full flex flex-col">
+                                        {/* Guest Info - Fixed height container */}
+                                        <div className="h-6 flex items-center justify-center">
+                                            {room.guestName && (
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <User className="w-4 h-4 text-gray-500" />
+                                                    <span className="text-gray-700 font-medium">{room.guestName}</span>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {/* Guest Info */}
-                                        {room.guestName && (
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                    <Users className="w-3 h-3" />
-                                                    {room.guestName}
+                                        {/* Check Out Info - Fixed height container */}
+                                        <div className="h-5 flex items-center justify-between text-sm">
+                                            <span className="text-gray-600 font-medium">Check Out:</span>
+                                            <span className="font-semibold text-gray-800">
+                                                {room.checkOutDate
+                                                    ? format(room.checkOutDate, "MMM dd, yyyy")
+                                                    : "None"
+                                                }
+                                            </span>
+                                        </div>
+
+                                        {/* Countdown Timer - Fixed height container */}
+                                        <div className="h-8 flex items-center justify-center">
+                                            {countdowns[room.id] && (
+                                                <div className="flex items-center gap-2 text-sm bg-orange-50 p-2 rounded-lg border border-orange-200 w-full justify-center">
+                                                    <Clock className="w-4 h-4 text-orange-500" />
+                                                    <span className="font-mono text-orange-700 font-bold">
+                                                        {countdowns[room.id]}
+                                                    </span>
                                                 </div>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
 
-                                        {/* Check-in/Check-out Info */}
-                                        {room.checkOut && (
-                                            <div className="space-y-1">
-                                                <div className="text-sm text-muted-foreground">
-                                                    Check Out: {room.checkOut}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Time Remaining */}
-                                        {room.timeRemaining && (
-                                            <div className="flex items-center gap-1 text-sm font-medium text-primary">
-                                                <Timer className="w-3 h-3" />
-                                                {room.timeRemaining}
-                                            </div>
-                                        )}
-
-                                        {/* Amenities */}
-                                        {room.amenities && room.amenities.length > 0 && (
-                                            <div className="flex items-center gap-2 pt-2 border-t border-border/50">
-                                                {room.amenities.map((amenity, index) => (
-                                                    <div 
-                                                        key={index}
-                                                        className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded"
-                                                    >
-                                                        {getAmenityIcon(amenity)}
-                                                        {amenity}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            );
-                        })}
+                                        {/* Status Button */}
+                                        <div className="mt-auto">
+                                            <Button
+                                                className={`w-full text-white font-semibold ${getStatusColor(room.status)} py-2`}
+                                                size="sm"
+                                            >
+                                                {getStatusText(room.status)}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
                     </div>
 
                     {/* No Results */}
                     {filteredRooms.length === 0 && (
                         <div className="text-center py-12">
-                            <Building className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-foreground mb-2">No rooms found</h3>
-                            <p className="text-muted-foreground">
-                                Try adjusting your search filters to find rooms.
-                            </p>
+                            <Bed className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">No rooms found</h3>
+                            <p className="text-gray-600">Try adjusting your search criteria</p>
                         </div>
                     )}
                 </div>

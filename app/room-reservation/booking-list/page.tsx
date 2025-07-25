@@ -24,7 +24,8 @@ import {
   Building,
   Users,
   IdCard,
-  Download
+  Download,
+  Plus
 } from "lucide-react";
 import Link from "next/link";
 
@@ -257,25 +258,21 @@ export default function BookingListPage() {
             </BreadcrumbList>
           </Breadcrumb>
 
-          {/* Title */}
-          <div className="flex  justify-between items-center gap-3">
-            <div>
+          {/* Title & Room Booking Button */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
               <Building className="w-6 h-6 text-primary" />
               <div>
                 <h1 className="text-xl font-semibold text-foreground">Booking List</h1>
                 <p className="text-sm text-muted-foreground">Manage all guest room bookings</p>
               </div>
             </div>
-            <Link href={"/room-reservation/room-booking"} >
-            <Button
-              
-              className="h-10 px-6 rounded-full shadow-md flex items-center gap-2"
-              >
-              
-              Room Booking
-            </Button>
-              </Link>
-          
+            <Link href={"/room-reservation/room-booking"} className="flex-shrink-0">
+              <Button className="h-10 px-6 rounded-full shadow-md flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Room Booking
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
@@ -305,39 +302,63 @@ export default function BookingListPage() {
             <div className="flex gap-2">
               <Button
                 size="sm"
+                variant="outline"
                 onClick={() => handleExport("Copy")}
-                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-600 hover:bg-green-700 text-white"
+                className="h-9 px-4 rounded-full text-sm shadow-sm"
               >
                 <Copy className="w-4 h-4 mr-2" />
                 Copy
               </Button>
               <Button
                 size="sm"
+                variant="outline"
                 onClick={() => handleExport("CSV")}
-                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-600 hover:bg-green-700 text-white"
+                className="h-9 px-4 rounded-full text-sm shadow-sm"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 CSV
               </Button>
               <Button
                 size="sm"
+                variant="outline"
                 onClick={() => handleExport("PDF")}
-                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-600 hover:bg-green-700 text-white"
+                className="h-9 px-4 rounded-full text-sm shadow-sm"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 PDF
               </Button>
               <Button
                 size="sm"
+                variant="outline"
                 onClick={() => handleExport("Print")}
-                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-600 hover:bg-green-700 text-white"
+                className="h-9 px-4 rounded-full text-sm shadow-sm"
               >
                 <Printer className="w-4 h-4 mr-2" />
                 Print
               </Button>
             </div>
 
-            {/* Column Visibility Dropdown */}
+            {/* Search Bar */}
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-sm font-medium text-muted-foreground">Search:</span>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search bookings..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Column Visibility */}
+          <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -347,7 +368,6 @@ export default function BookingListPage() {
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Column visibility
-                  <ChevronDown className="w-4 h-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
@@ -368,24 +388,6 @@ export default function BookingListPage() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* Search Bar */}
-            <div className="flex items-center gap-2 ml-auto">
-              <span className="text-sm font-medium text-muted-foreground">Search:</span>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search bookings..."
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                  className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
-                />
-              </div>
-            </div>
           </div>
         </div>
       </div>

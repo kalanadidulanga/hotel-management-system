@@ -152,23 +152,6 @@ export default function CheckInListPage() {
     const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "sl", dir: "asc" });
     const [visibleCols, setVisibleCols] = useState(columns.map(c => c.key));
     const [checkIns, setCheckIns] = useState<CheckIn[]>(mockCheckIns);
-    
-
-    // Direct check-in form state
-    const [directCheckIn, setDirectCheckIn] = useState({
-        guestName: "",
-        phone: "",
-        email: "",
-        roomType: "",
-        roomNumber: "",
-        checkInDate: undefined as Date | undefined,
-        checkOutDate: undefined as Date | undefined,
-        adults: 1,
-        children: 0,
-        specialRequests: "",
-        advanceAmount: 0,
-        paymentMode: ""
-    });
 
     // Filtering
     const filtered = useMemo(() => {
@@ -223,8 +206,6 @@ export default function CheckInListPage() {
             setCheckIns(checkIns.filter(c => c.id !== id));
         }
     };
-
-   
 
     // Get status badge variant
     const getBookingStatusConfig = (status: string) => {
@@ -293,14 +274,11 @@ export default function CheckInListPage() {
                             </div>
                         </div>
                         <Link href={"/room-reservation/room-booking"} className="flex-shrink-0">
-                        <Button
-                           
-                           className="h-10 px-6 rounded-full shadow-md flex items-center gap-2"
-                           >
-                            <Plus className="w-4 h-4" />
-                            Direct Checkin
-                        </Button>
-                            </Link>
+                            <Button className="h-10 px-6 rounded-full shadow-md flex items-center gap-2">
+                                <Plus className="w-4 h-4" />
+                                Direct Checkin
+                            </Button>
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -330,39 +308,63 @@ export default function CheckInListPage() {
                         <div className="flex gap-2">
                             <Button
                                 size="sm"
+                                variant="outline"
                                 onClick={() => handleExport("Copy")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-600 hover:bg-green-700 text-white"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                             >
                                 <Copy className="w-4 h-4 mr-2" />
                                 Copy
                             </Button>
                             <Button
                                 size="sm"
+                                variant="outline"
                                 onClick={() => handleExport("CSV")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-600 hover:bg-green-700 text-white"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 CSV
                             </Button>
                             <Button
                                 size="sm"
+                                variant="outline"
                                 onClick={() => handleExport("PDF")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-600 hover:bg-green-700 text-white"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 PDF
                             </Button>
                             <Button
                                 size="sm"
+                                variant="outline"
                                 onClick={() => handleExport("Print")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-600 hover:bg-green-700 text-white"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                             >
                                 <Printer className="w-4 h-4 mr-2" />
                                 Print
                             </Button>
                         </div>
 
-                        {/* Column Visibility Dropdown */}
+                        {/* Search Bar */}
+                        <div className="flex items-center gap-2 ml-auto">
+                            <span className="text-sm font-medium text-muted-foreground">Search:</span>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    type="text"
+                                    placeholder="Search check-ins..."
+                                    value={search}
+                                    onChange={(e) => {
+                                        setSearch(e.target.value);
+                                        setPage(1);
+                                    }}
+                                    className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Column Visibility */}
+                    <div className="flex items-center gap-2">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
@@ -372,7 +374,6 @@ export default function CheckInListPage() {
                                 >
                                     <Eye className="w-4 h-4 mr-2" />
                                     Column visibility
-                                    <ChevronDown className="w-4 h-4 ml-2" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-48">
@@ -393,24 +394,6 @@ export default function CheckInListPage() {
                                 ))}
                             </DropdownMenuContent>
                         </DropdownMenu>
-
-                        {/* Search Bar */}
-                        <div className="flex items-center gap-2 ml-auto">
-                            <span className="text-sm font-medium text-muted-foreground">Search:</span>
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    type="text"
-                                    placeholder="Search check-ins..."
-                                    value={search}
-                                    onChange={(e) => {
-                                        setSearch(e.target.value);
-                                        setPage(1);
-                                    }}
-                                    className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
-                                />
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -626,8 +609,6 @@ export default function CheckInListPage() {
                     </div>
                 </div>
             </div>
-
-          
         </div>
     );
 }

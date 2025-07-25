@@ -81,6 +81,64 @@ export const sidebarConfig: SidebarItem[] = [
     ],
   },
   {
+    label: "Room Facilities",
+    icon: User,
+    addon: true,
+    roles: ["superadmin", "manager"],
+    children: [
+      {
+        label: "Facility List",
+        icon: FileText,
+        route: "/room-facilities/room-facilities-details-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Facility Deatils List",
+        icon: List,
+        route: "/room-facilities/room-facilities-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Room Size List",
+        icon: List,
+        route: "/room-facilities/room-size-list",
+        roles: ["superadmin", "manager"],
+      },
+    ],
+  },
+  {
+    label: "Room Reservation",
+    icon: Bed,
+    addon: true,
+    roles: ["superadmin", "manager"],
+    children: [
+      {
+        label: "Booking List",
+        icon: FileText,
+        route: "/room-reservation/booking-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Check In",
+        icon: List,
+        route: "/room-reservation/check-in",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Check Out",
+        icon: List,
+        route: "/room-reservation/check-out",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Room Status",
+        icon: List,
+        route: "/room-reservation/room-status",
+        roles: ["superadmin", "manager"],
+      },
+    ],
+  },
+  {
     label: "Human Resource",
     icon: Users,
     addon: true,
@@ -464,45 +522,7 @@ export const sidebarConfig: SidebarItem[] = [
     addon: true,
     roles: ["superadmin"],
   },
-  {
-    label: "Room Reservation",
-    icon: Bed,
-    addon: true,
-    roles: ["superadmin", "manager"],
-    children: [
-      {
-        label: "Booking List",
-        icon: FileText,
-        route: "/room-reservation/booking-list",
-        roles: ["superadmin", "manager"],
-      },
-      {
-        label: "Check In",
-        icon: List,
-        route: "/room-reservation/checkin-list",
-        roles: ["superadmin", "manager"],
-      },
-      {
-        label: "Check Out",
-        icon: List,
-        route: "/room-reservation/checkout-list",
-        roles: ["superadmin", "manager"],
-      },
-      {
-        label: "Room Status",
-        icon: List,
-        route: "/room-reservation/room-status",
-        roles: ["superadmin", "manager"],
-      },
-    ],
-  },
 
-  {
-    label: "Room Facilities",
-    icon: Bed,
-    route: "/room-facilities",
-    roles: ["superadmin", "manager"],
-  },
   {
     label: "Hall Room",
     icon: Home,
