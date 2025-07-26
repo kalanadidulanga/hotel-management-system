@@ -197,7 +197,20 @@ export const sidebarConfig: SidebarItem[] = [
         label: "Department",
         icon: Users,
         roles: ["superadmin", "manager"],
-        route: "/human-resource/recruitment/department",
+        children: [
+          {
+            label: "Department List",
+            icon: List,
+            route: "/human-resource/recruitment/department",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Division List",
+            icon: List,
+            route: "/human-resource/recruitment/division",
+            roles: ["superadmin", "manager"],
+          },
+        ],
       },
       {
         label: "Employee",
