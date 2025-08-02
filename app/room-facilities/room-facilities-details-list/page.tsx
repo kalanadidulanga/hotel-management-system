@@ -1,191 +1,191 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-    Home,
-    Plus,
-    Search,
-    Eye,
-    Edit,
-    Trash2,
-    Copy,
-    FileText,
-    Printer,
-    Settings,
-    ChevronUp,
-    ChevronDown,
-    Image as ImageIcon,
-    Building
-} from "lucide-react";
-import { useState, useMemo } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { id, se } from "date-fns/locale";
+import { Building, ChevronDown, ChevronUp, Copy, Edit, Eye, FileText, Home, Loader2, Plus, Printer, Search, Settings, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import useSWR from "swr";
 
 interface FacilityDetail {
     id: number;
     facilityType: string;
-    facilityName: string;
-    image: string;
+    facility_name: string;
     description?: string;
 }
 
-const mockFacilityDetails: FacilityDetail[] = [
-    {
-        id: 1,
-        facilityType: "Aroma",
-        facilityName: "Air Conditioner",
-        image: "/test.jpg",
-        description: "High-efficiency cooling system"
-    },
-    {
-        id: 2,
-        facilityType: "Lighting",
-        facilityName: "LED Ceiling Lights",
-        image: "/test.jpg",
-        description: "Energy-efficient LED lighting"
-    },
-    {
-        id: 3,
-        facilityType: "Entertainment",
-        facilityName: "Smart TV",
-        image: "/test.jpg",
-        description: "55-inch 4K Smart Television"
-    },
-    {
-        id: 4,
-        facilityType: "Comfort",
-        facilityName: "Premium Bedding",
-        image: "/test.jpg",
-        description: "Luxury cotton bedding set"
-    },
-    {
-        id: 5,
-        facilityType: "Connectivity",
-        facilityName: "High-Speed WiFi",
-        image: "/test.jpg",
-        description: "Fiber optic internet connection"
-    },
-    {
-        id: 6,
-        facilityType: "Storage",
-        facilityName: "Room Safe",
-        image: "/test.jpg",
-        description: "Digital security safe"
-    },
-    {
-        id: 7,
-        facilityType: "Refreshment",
-        facilityName: "Mini Refrigerator",
-        image: "/test.jpg",
-        description: "Compact cooling unit"
-    },
-    {
-        id: 8,
-        facilityType: "Comfort",
-        facilityName: "Balcony Access",
-        image: "/test.jpg",
-        description: "Private outdoor space"
-    },
-];
+interface FacilityType {
+    id: number;
+    name: string;
+}
 
-const facilityTypes = ["Aroma", "Lighting", "Entertainment", "Comfort", "Connectivity", "Storage", "Refreshment"];
+const fetcher = (url: string) => fetch(url).then(res => {
+    if (!res.ok) throw new Error('Failed to fetch');
+    return res.json();
+});
 
 const pageSizes = [10, 25, 50, 100];
 
 const columns = [
     { key: "sl", label: "SL" },
-    { key: "facilityType", label: "Add Facility Type" },
+    { key: "facilityType", label: "Facility Type" },
     { key: "facilityName", label: "Facility Name" },
-    { key: "image", label: "Image" },
     { key: "action", label: "Action" },
 ];
 
 export default function RoomFacilitiesDetailsListPage() {
+    const { data: facilityDetails = [], error, isLoading, mutate } = useSWR<FacilityDetail[]>(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-facilities/room-facilities-details-list`,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+        }
+    );
+
+    const { data: facilityTypes = [], error: typesError, isLoading: typesLoading } = useSWR<FacilityType[]>(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-facilities/room-facilities-list`,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+        }
+    );
+
     const [entries, setEntries] = useState(10);
     const [page, setPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
     const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "sl", dir: "asc" });
     const [visibleCols, setVisibleCols] = useState(columns.map(c => c.key));
-    const [facilityDetails, setFacilityDetails] = useState<FacilityDetail[]>(mockFacilityDetails);
 
     // Modal states
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedFacility, setSelectedFacility] = useState<FacilityDetail | null>(null);
+    console.log(selectedFacility?.id)
     const [formData, setFormData] = useState({
         facilityType: "",
         facilityName: "",
-        image: "",
         description: ""
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Handle form submission for add
-    const handleAddSubmit = () => {
-        if (!formData.facilityType || !formData.facilityName) return;
+    const handleAddSubmit = async () => {
+        if (!formData.facilityType || !formData.facilityName) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
 
-        const newFacility: FacilityDetail = {
-            id: Math.max(...facilityDetails.map(f => f.id)) + 1,
-            facilityType: formData.facilityType,
-            facilityName: formData.facilityName,
-            image: formData.image || "/api/placeholder/80/80",
-            description: formData.description
-        };
+        setIsSubmitting(true);
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-facilities/room-facilities-details-list`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    facility_type: formData.facilityType,
+                    facility_name: formData.facilityName,
+                    description: formData.description
+                }),
+            });
 
-        setFacilityDetails([...facilityDetails, newFacility]);
-        setShowAddModal(false);
-        setFormData({
-            facilityType: "",
-            facilityName: "",
-            image: "",
-            description: ""
-        });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to add facility detail");
+            }
+
+            // Refresh the data
+            await mutate();
+            setShowAddModal(false);
+            setFormData({
+                facilityType: "",
+                facilityName: "",
+                description: ""
+            });
+            toast.success("Facility detail added successfully!");
+        } catch (error) {
+            console.error("Add facility error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to add facility detail. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     // Handle form submission for edit
-    const handleEditSubmit = () => {
-        if (!selectedFacility || !formData.facilityType || !formData.facilityName) return;
+    const handleEditSubmit = async () => {
+        if (!selectedFacility || !formData.facilityType || !formData.facilityName) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
 
-        setFacilityDetails(facilityDetails.map(f =>
-            f.id === selectedFacility.id
-                ? { ...f, ...formData }
-                : f
-        ));
+        setIsSubmitting(true);
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-facilities/room-facilities-details-list`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+               body: JSON.stringify({
+                id: selectedFacility.id,
+                   facility_type: formData.facilityType,
+                   facility_name: formData.facilityName,
+                   description: formData.description
+}),
 
-        setShowEditModal(false);
-        setSelectedFacility(null);
-        setFormData({
-            facilityType: "",
-            facilityName: "",
-            image: "",
-            description: ""
-        });
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to update facility detail");
+            }
+
+            // Refresh the data
+            await mutate();
+            setShowEditModal(false);
+            setSelectedFacility(null);
+            setFormData({
+                facilityType: "",
+                facilityName: "",
+                description: ""
+            });
+            toast.success("Facility detail updated successfully!");
+        } catch (error) {
+            console.error("Update facility error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to update facility detail. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     // Handle edit click
     const handleEditClick = (facility: FacilityDetail) => {
         setSelectedFacility(facility);
         setFormData({
-            facilityType: facility.facilityType,
-            facilityName: facility.facilityName,
-            image: facility.image,
+            facilityType: facility.facilityType || "",
+            facilityName: facility.facility_name || "",
             description: facility.description || ""
         });
         setShowEditModal(true);
     };
 
-    // Filtering
+    // Filtering with null safety
     const filteredFacilities = useMemo(() => {
+        if (!facilityDetails?.length) return [];
         return facilityDetails.filter(facility =>
-            facility.facilityType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            facility.facilityName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (facility.description && facility.description.toLowerCase().includes(searchQuery.toLowerCase()))
+            (facility?.facilityType?.toLowerCase() ?? "").includes(searchQuery.toLowerCase()) ||
+            (facility?.facility_name?.toLowerCase() ?? "").includes(searchQuery.toLowerCase()) ||
+            (facility?.description?.toLowerCase() ?? "").includes(searchQuery.toLowerCase())
         );
     }, [searchQuery, facilityDetails]);
 
@@ -201,7 +201,7 @@ export default function RoomFacilitiesDetailsListPage() {
             });
         } else if (sort.key === "facilityName") {
             sorted.sort((a, b) => {
-                const result = a.facilityName.localeCompare(b.facilityName);
+                const result = a.facility_name.localeCompare(b.facility_name);
                 return sort.dir === "asc" ? result : -result;
             });
         }
@@ -214,24 +214,75 @@ export default function RoomFacilitiesDetailsListPage() {
 
     // Export handlers
     const handleExport = (type: string) => {
-        alert(`Export as ${type}`);
+        toast.info(`Exporting as ${type}...`);
     };
 
     // Delete facility
-    const handleDelete = (id: number) => {
-        if (confirm("Are you sure you want to delete this facility detail?")) {
-            setFacilityDetails(facilityDetails.filter(f => f.id !== id));
+    const handleDelete = async (id: number, name: string) => {
+        if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-facilities/room-facilities-details-list`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    id: id
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to delete facility detail");
+            }
+
+            // Refresh the data
+            await mutate();
+            toast.success("Facility detail deleted successfully!");
+        } catch (error) {
+            console.error("Delete facility error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to delete facility detail. Please try again.");
         }
     };
 
-    // Image upload handler
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const imageUrl = URL.createObjectURL(file);
-            setFormData(prev => ({ ...prev, image: imageUrl }));
-        }
-    };
+    // Loading skeleton
+    const LoadingSkeleton = () => (
+        <div className="space-y-4 p-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 py-3">
+                    <Skeleton className="h-4 w-8" />
+                    <div className="flex items-center space-x-3">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-4 w-32" />
+                    </div>
+                    <Skeleton className="h-4 w-64" />
+                    <div className="flex space-x-2 ml-auto">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
+    // Error state
+    if (error) {
+        return (
+            <div className="flex flex-col h-full bg-white relative">
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                        <Settings className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-foreground mb-2">Error Loading Data</h3>
+                        <p className="text-sm text-muted-foreground mb-4">Failed to load facility details</p>
+                        <Button onClick={() => mutate()} variant="outline">
+                            Try Again
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full bg-white relative">
@@ -273,6 +324,7 @@ export default function RoomFacilitiesDetailsListPage() {
                         <Button
                             onClick={() => setShowAddModal(true)}
                             className="h-10 px-6 rounded-full shadow-md flex items-center gap-2"
+                            disabled={isLoading}
                         >
                             <Plus className="w-4 h-4" />
                             Add Facility Details
@@ -309,6 +361,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("Copy")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={isLoading}
                             >
                                 <Copy className="w-4 h-4 mr-2" />
                                 Copy
@@ -318,6 +371,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("CSV")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={isLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 CSV
@@ -327,6 +381,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("PDF")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={isLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 PDF
@@ -336,6 +391,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("Print")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={isLoading}
                             >
                                 <Printer className="w-4 h-4 mr-2" />
                                 Print
@@ -356,6 +412,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                         setPage(1);
                                     }}
                                     className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                                    disabled={isLoading}
                                 />
                             </div>
                         </div>
@@ -373,6 +430,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                 setVisibleCols(next);
                             }}
                             className="h-9 px-4 rounded-lg text-sm shadow-sm"
+                            disabled={isLoading}
                         >
                             <Eye className="w-4 h-4 mr-2" />
                             Column visibility
@@ -393,7 +451,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                             key={col.key}
                                             className="text-sm font-medium text-muted-foreground cursor-pointer select-none hover:bg-accent transition-colors duration-200 border-b border-border/50 whitespace-nowrap h-12"
                                             onClick={() => {
-                                                if (col.key !== "action" && col.key !== "image") {
+                                                if (col.key !== "action" && !isLoading) {
                                                     setSort(s => ({
                                                         key: col.key,
                                                         dir: s.key === col.key ? (s.dir === "asc" ? "desc" : "asc") : "asc"
@@ -403,7 +461,7 @@ export default function RoomFacilitiesDetailsListPage() {
                                         >
                                             <div className="flex items-center gap-2">
                                                 {col.label}
-                                                {col.key !== "action" && col.key !== "image" && (
+                                                {col.key !== "action" && (
                                                     <div className="flex flex-col">
                                                         {sort.key === col.key ? (
                                                             sort.dir === "asc" ?
@@ -420,12 +478,26 @@ export default function RoomFacilitiesDetailsListPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {paginatedFacilities.length === 0 ? (
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={visibleCols.length} className="p-0">
+                                            <LoadingSkeleton />
+                                        </TableCell>
+                                    </TableRow>
+                                ) : paginatedFacilities.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={visibleCols.length} className="text-center py-12">
                                             <div className="flex flex-col items-center gap-3">
                                                 <Settings className="w-12 h-12 text-muted-foreground" />
-                                                <p className="text-base text-muted-foreground">No facility details found</p>
+                                                <p className="text-base text-muted-foreground">
+                                                    {searchQuery ? "No facility details found" : "No facility details available"}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {searchQuery
+                                                        ? "Try adjusting your search criteria"
+                                                        : "Add your first facility detail to get started"
+                                                    }
+                                                </p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -447,25 +519,10 @@ export default function RoomFacilitiesDetailsListPage() {
                                             )}
                                             {visibleCols.includes("facilityName") && (
                                                 <TableCell className="text-sm py-3">
-                                                    <div className="text-foreground font-medium">{facility.facilityName}</div>
+                                                    <div className="text-foreground font-medium">{facility.facility_name}</div>
                                                     {facility.description && (
                                                         <div className="text-sm text-muted-foreground mt-1">{facility.description}</div>
                                                     )}
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("image") && (
-                                                <TableCell className="py-3">
-                                                    <div className="w-12 h-12 border border-border/50 rounded overflow-hidden">
-                                                        <img
-                                                            src={facility.image}
-                                                            alt={facility.facilityName}
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) => {
-                                                                const target = e.target as HTMLImageElement;
-                                                                target.src = "/api/placeholder/80/80";
-                                                            }}
-                                                        />
-                                                    </div>
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("action") && (
@@ -476,14 +533,16 @@ export default function RoomFacilitiesDetailsListPage() {
                                                             variant="outline"
                                                             onClick={() => handleEditClick(facility)}
                                                             className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                                                            disabled={isSubmitting}
                                                         >
                                                             <Edit className="w-4 h-4 text-blue-600" />
                                                         </Button>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => handleDelete(facility.id)}
+                                                            onClick={() => handleDelete(facility.id, facility.facility_name)}
                                                             className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
+                                                            disabled={isSubmitting}
                                                         >
                                                             <Trash2 className="w-4 h-4 text-red-600" />
                                                         </Button>
@@ -504,7 +563,7 @@ export default function RoomFacilitiesDetailsListPage() {
                 <div className="px-4 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="text-sm text-muted-foreground">
-                            Showing {(page - 1) * entries + 1} to {Math.min(page * entries, sortedFacilities.length)} of {sortedFacilities.length} entries
+                            Showing {Math.min((page - 1) * entries + 1, sortedFacilities.length)} to {Math.min(page * entries, sortedFacilities.length)} of {sortedFacilities.length} entries
                         </div>
 
                         {totalPages > 1 && (
@@ -565,15 +624,19 @@ export default function RoomFacilitiesDetailsListPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="facilityType" className="text-sm font-medium">
-                                    Facility Type
+                                    Facility Type <span className="text-red-500">*</span>
                                 </Label>
-                                <Select value={formData.facilityType} onValueChange={(value) => setFormData(prev => ({ ...prev, facilityType: value }))}>
+                                <Select
+                                    value={formData.facilityType || ""}
+                                    onValueChange={(value) => setFormData(prev => ({ ...prev, facilityType: value }))}
+                                    disabled={isSubmitting || typesLoading}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select facility type" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {facilityTypes.map(type => (
-                                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                                        {facilityTypes?.map(type => (
+                                            <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -581,14 +644,20 @@ export default function RoomFacilitiesDetailsListPage() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="facilityName" className="text-sm font-medium">
-                                    Facility Name
+                                    Facility Name <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="facilityName"
                                     placeholder="Enter facility name"
-                                    value={formData.facilityName}
+                                    value={formData.facilityName || ""}
                                     onChange={(e) => setFormData(prev => ({ ...prev, facilityName: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && formData.facilityType && formData.facilityName.trim()) {
+                                            handleAddSubmit();
+                                        }
+                                    }}
                                 />
                             </div>
                         </div>
@@ -600,39 +669,12 @@ export default function RoomFacilitiesDetailsListPage() {
                             <Textarea
                                 id="description"
                                 placeholder="Enter facility description..."
-                                value={formData.description}
+                                value={formData.description || ""}
                                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                                 className="min-h-[80px] rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent resize-none"
                                 rows={3}
+                                disabled={isSubmitting}
                             />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="image" className="text-sm font-medium">
-                                Facility Image
-                            </Label>
-                            <div className="flex items-center gap-4">
-                                <div className="w-20 h-20 border border-border/50 rounded overflow-hidden flex items-center justify-center bg-muted">
-                                    {formData.image ? (
-                                        <img
-                                            src={formData.image}
-                                            alt="Preview"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                                    )}
-                                </div>
-                                <div className="flex-1">
-                                    <Input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageUpload}
-                                        className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
-                                    />
-                                    <p className="text-sm text-muted-foreground mt-1">Upload an image for this facility</p>
-                                </div>
-                            </div>
                         </div>
 
                         <div className="flex justify-end gap-2 pt-4">
@@ -643,20 +685,27 @@ export default function RoomFacilitiesDetailsListPage() {
                                     setFormData({
                                         facilityType: "",
                                         facilityName: "",
-                                        image: "",
                                         description: ""
                                     });
                                 }}
                                 className="px-4"
+                                disabled={isSubmitting}
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={handleAddSubmit}
-                                disabled={!formData.facilityType || !formData.facilityName}
+                                disabled={!formData.facilityType || !formData.facilityName || isSubmitting}
                                 className="px-4"
                             >
-                                Add Facility Details
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Adding...
+                                    </>
+                                ) : (
+                                    "Add Facility Details"
+                                )}
                             </Button>
                         </div>
                     </div>
@@ -676,15 +725,19 @@ export default function RoomFacilitiesDetailsListPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="editFacilityType" className="text-sm font-medium">
-                                    Facility Type
+                                    Facility Type <span className="text-red-500">*</span>
                                 </Label>
-                                <Select value={formData.facilityType} onValueChange={(value) => setFormData(prev => ({ ...prev, facilityType: value }))}>
+                                <Select
+                                    value={formData.facilityType || ""}
+                                    onValueChange={(value) => setFormData(prev => ({ ...prev, facilityType: value }))}
+                                    disabled={isSubmitting || typesLoading}
+                                >
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {facilityTypes.map(type => (
-                                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                                        {facilityTypes?.map(type => (
+                                            <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -692,14 +745,20 @@ export default function RoomFacilitiesDetailsListPage() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="editFacilityName" className="text-sm font-medium">
-                                    Facility Name
+                                    Facility Name <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="editFacilityName"
                                     placeholder="Enter facility name"
-                                    value={formData.facilityName}
+                                    value={formData.facilityName || ""}
                                     onChange={(e) => setFormData(prev => ({ ...prev, facilityName: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && formData.facilityType && formData.facilityName.trim()) {
+                                            handleEditSubmit();
+                                        }
+                                    }}
                                 />
                             </div>
                         </div>
@@ -711,39 +770,12 @@ export default function RoomFacilitiesDetailsListPage() {
                             <Textarea
                                 id="editDescription"
                                 placeholder="Enter facility description..."
-                                value={formData.description}
+                                value={formData.description || ""}
                                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                                 className="min-h-[80px] rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent resize-none"
                                 rows={3}
+                                disabled={isSubmitting}
                             />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="editImage" className="text-sm font-medium">
-                                Facility Image
-                            </Label>
-                            <div className="flex items-center gap-4">
-                                <div className="w-20 h-20 border border-border/50 rounded overflow-hidden flex items-center justify-center bg-muted">
-                                    {formData.image ? (
-                                        <img
-                                            src={formData.image}
-                                            alt="Preview"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <ImageIcon className="w-8 h-8 text-muted-foreground" />
-                                    )}
-                                </div>
-                                <div className="flex-1">
-                                    <Input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageUpload}
-                                        className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
-                                    />
-                                    <p className="text-sm text-muted-foreground mt-1">Upload a new image or keep current one</p>
-                                </div>
-                            </div>
                         </div>
 
                         <div className="flex justify-end gap-2 pt-4">
@@ -755,20 +787,27 @@ export default function RoomFacilitiesDetailsListPage() {
                                     setFormData({
                                         facilityType: "",
                                         facilityName: "",
-                                        image: "",
                                         description: ""
                                     });
                                 }}
                                 className="px-4"
+                                disabled={isSubmitting}
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={handleEditSubmit}
-                                disabled={!formData.facilityType || !formData.facilityName}
+                                disabled={!formData.facilityType || !formData.facilityName || isSubmitting}
                                 className="px-4"
                             >
-                                Save Changes
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    "Save Changes"
+                                )}
                             </Button>
                         </div>
                     </div>

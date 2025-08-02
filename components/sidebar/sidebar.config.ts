@@ -89,13 +89,13 @@ export const sidebarConfig: SidebarItem[] = [
       {
         label: "Facility List",
         icon: FileText,
-        route: "/room-facilities/room-facilities-details-list",
+        route: "/room-facilities/room-facilities-list",
         roles: ["superadmin", "manager"],
       },
       {
         label: "Facility Deatils List",
         icon: List,
-        route: "/room-facilities/room-facilities-list",
+        route: "/room-facilities/room-facilities-details-list",
         roles: ["superadmin", "manager"],
       },
       {

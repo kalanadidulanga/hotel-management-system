@@ -1,14 +1,16 @@
-import { auth } from "@/auth"
+import { session } from "@/hooks/getServerSession"
 
 
 export default async function UserAvatar() {
-    const session = await auth()
+   
+  const user = await session()
 
-    if (!session?.user) return null
+ 
 
     return (
         <div>
-           {session.user?.email}
+           {user?.email}
+            {user?.name}
         </div>
     )
 }
