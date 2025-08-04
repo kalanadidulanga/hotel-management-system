@@ -47,3 +47,41 @@ model Room_Size_List{
     id             Int                @id @default(autoincrement())
     name     String    @unique
 }
+
+model Customer {
+  id               Int          @id @default(autoincrement())
+  title            String
+  firstName        String
+  lastName         String?
+  gender           String
+  dateOfBirth      DateTime
+  anniversary      DateTime?
+  nationality      Nationality
+  isVip            Boolean      @default(false)
+  occupation       String?                         // ✅ was 'profession'
+  email            String       @unique
+  countryCode      String
+  phone            String       @unique             // ✅ matches 'mobile' in UI
+  contactType      String
+  country          String
+  state            String
+  city             String
+  zipcode          String
+  address          String
+  identityType     String
+  identityNumber   String       @unique             // ✅ was 'nationalId'
+  frontIdUrl       String?
+  backIdUrl        String?
+  guestImageUrl    String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+
+
+
+enum Nationality {
+  native
+  foreigner
+}
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, differenceInHours, differenceInDays } from "date-fns";
 import {
     Home,
     Plus,
@@ -37,7 +37,8 @@ import {
     MessageCircle,
     List,
     Search,
-    UserCheck
+    UserCheck,
+    Gift
 } from "lucide-react";
 
 interface Customer {
@@ -70,7 +71,6 @@ interface NewCustomer {
     title: string;
     firstName: string;
     lastName: string;
-    fatherName: string;
     gender: string;
     occupation: string;
     dateOfBirth: Date | undefined;
@@ -90,6 +90,12 @@ interface NewCustomer {
     backSideImage: File | null;
     guestImage: File | null;
     comments: string;
+}
+
+interface Complimentary {
+    id: string;
+    name: string;
+    price: number;
 }
 
 const mockCustomers: Customer[] = [
@@ -149,6 +155,37 @@ const mockExistingCustomers: ExistingCustomer[] = [
     }
 ];
 
+// Room data with hourly rates
+const roomTypes = {
+    "single": {
+        name: "Single Room",
+        nightlyRate: 25000,
+        hourlyRate: 1500,
+        rooms: ["101", "102", "103"]
+    },
+    "double": {
+        name: "Double Room",
+        nightlyRate: 35000,
+        hourlyRate: 2000,
+        rooms: ["201", "202", "203"]
+    },
+    "suite": {
+        name: "Suite",
+        nightlyRate: 75000,
+        hourlyRate: 4500,
+        rooms: ["301", "302", "303"]
+    }
+};
+
+// Complimentary items
+const complimentaryItems: Complimentary[] = [
+    { id: "welcome-drink", name: "Welcome Drink", price: 500 },
+    { id: "breakfast", name: "Breakfast", price: 1200 },
+    { id: "wifi", name: "WiFi", price: 300 },
+    { id: "spa", name: "Spa Access", price: 2000 },
+    { id: "parking", name: "Parking", price: 800 }
+];
+
 export default function NewReservationPage() {
     // Form states
     const [checkInDate, setCheckInDate] = useState<Date>();
@@ -157,15 +194,22 @@ export default function NewReservationPage() {
     const [checkOutTime, setCheckOutTime] = useState("12:00");
     const [arrivalFrom, setArrivalFrom] = useState("");
     const [bookingType, setBookingType] = useState("");
-    const [bookingReference, setBookingReference] = useState("");
+
     const [purposeOfVisit, setPurposeOfVisit] = useState("");
     const [remarks, setRemarks] = useState("");
 
     // Room details
     const [roomType, setRoomType] = useState("");
-    const [roomNumber, setRoomNumber] = useState("116");
+    const [roomNumber, setRoomNumber] = useState("");
     const [adults, setAdults] = useState(1);
     const [children, setChildren] = useState(0);
+    const [roomPrice, setRoomPrice] = useState(0);
+
+    // Billing options
+    const [billingType, setBillingType] = useState("nightly"); // "nightly" or "hourly"
+
+    // Complimentary
+    const [selectedComplimentary, setSelectedComplimentary] = useState<string[]>([]);
 
     // Customer data
     const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
@@ -199,7 +243,6 @@ export default function NewReservationPage() {
         title: "Mr",
         firstName: "",
         lastName: "",
-        fatherName: "",
         gender: "male",
         occupation: "",
         dateOfBirth: undefined,
@@ -221,9 +264,89 @@ export default function NewReservationPage() {
         comments: ""
     });
 
+    // Calculate room price based on billing type and duration
+    const calculateRoomPrice = () => {
+        if (!roomType || !checkInDate || !checkOutDate) return 0;
+
+        const roomInfo = roomTypes[roomType as keyof typeof roomTypes];
+        if (!roomInfo) return 0;
+
+        // Create full datetime objects
+        const checkIn = new Date(checkInDate);
+        const [checkInHour, checkInMinute] = checkInTime.split(':');
+        checkIn.setHours(parseInt(checkInHour), parseInt(checkInMinute));
+
+        const checkOut = new Date(checkOutDate);
+        const [checkOutHour, checkOutMinute] = checkOutTime.split(':');
+        checkOut.setHours(parseInt(checkOutHour), parseInt(checkOutMinute));
+
+        if (billingType === "hourly") {
+            const totalHours = differenceInHours(checkOut, checkIn);
+            return Math.max(1, totalHours) * roomInfo.hourlyRate; // Minimum 1 hour
+        } else {
+            const totalNights = differenceInDays(checkOut, checkIn);
+            const nights = totalNights <= 0 ? 1 : totalNights; // Minimum 1 night
+            return nights * roomInfo.nightlyRate;
+        }
+    };
+
+    // Handle room type change
+    const handleRoomTypeChange = (type: string) => {
+        setRoomType(type);
+        setRoomNumber(""); // Reset room number when type changes
+    };
+
+    // Update room price when dependencies change
+    useEffect(() => {
+        const newPrice = calculateRoomPrice();
+        setRoomPrice(newPrice);
+    }, [roomType, checkInDate, checkOutDate, checkInTime, checkOutTime, billingType]);
+
+    // Handle room number change
+    const handleRoomNumberChange = (number: string) => {
+        setRoomNumber(number);
+    };
+
+    // Handle complimentary selection
+    const handleComplimentaryChange = (itemId: string, checked: boolean) => {
+        if (checked) {
+            setSelectedComplimentary([...selectedComplimentary, itemId]);
+        } else {
+            setSelectedComplimentary(selectedComplimentary.filter(id => id !== itemId));
+        }
+    };
+
+    // Calculate complimentary total
+    const complimentaryTotal = selectedComplimentary.reduce((sum, itemId) => {
+        const item = complimentaryItems.find(c => c.id === itemId);
+        return sum + (item ? item.price : 0);
+    }, 0);
+
     // Calculate totals
-    const subtotal = customers.reduce((sum, customer) => sum + customer.rent, 0);
+    const subtotal = customers.reduce((sum, customer) => sum + customer.rent, 0) + roomPrice + complimentaryTotal;
     const total = subtotal + tax + serviceCharge - discountAmount - commissionAmount;
+
+    // Get duration info for display
+    const getDurationInfo = () => {
+        if (!checkInDate || !checkOutDate) return "";
+
+        const checkIn = new Date(checkInDate);
+        const [checkInHour, checkInMinute] = checkInTime.split(':');
+        checkIn.setHours(parseInt(checkInHour), parseInt(checkInMinute));
+
+        const checkOut = new Date(checkOutDate);
+        const [checkOutHour, checkOutMinute] = checkOutTime.split(':');
+        checkOut.setHours(parseInt(checkOutHour), parseInt(checkOutMinute));
+
+        if (billingType === "hourly") {
+            const totalHours = Math.max(1, differenceInHours(checkOut, checkIn));
+            return `${totalHours} hour${totalHours > 1 ? 's' : ''}`;
+        } else {
+            const totalNights = differenceInDays(checkOut, checkIn);
+            const nights = totalNights <= 0 ? 1 : totalNights;
+            return `${nights} night${nights > 1 ? 's' : ''}`;
+        }
+    };
 
     // Handle file upload
     const handleFileUpload = (field: keyof NewCustomer, file: File | null) => {
@@ -263,7 +386,7 @@ export default function NewReservationPage() {
                 mobile: foundCustomer.mobile,
                 checkIn: checkInDate ? format(checkInDate, "yyyy-MM-dd") + " " + checkInTime : "",
                 checkOut: checkOutDate ? format(checkOutDate, "yyyy-MM-dd") + " " + checkOutTime : "",
-                rent: 35000 // Default rent
+                rent: roomPrice
             };
             setCustomers([...customers, customer]);
             setIsOldCustomerModalOpen(false);
@@ -283,7 +406,7 @@ export default function NewReservationPage() {
                 mobile: newCustomer.mobile,
                 checkIn: checkInDate ? format(checkInDate, "yyyy-MM-dd") + " " + checkInTime : "",
                 checkOut: checkOutDate ? format(checkOutDate, "yyyy-MM-dd") + " " + checkOutTime : "",
-                rent: 35000 // Default rent
+                rent: roomPrice
             };
             setCustomers([...customers, customer]);
             setIsNewCustomerModalOpen(false);
@@ -294,7 +417,6 @@ export default function NewReservationPage() {
                 title: "Mr",
                 firstName: "",
                 lastName: "",
-                fatherName: "",
                 gender: "male",
                 occupation: "",
                 dateOfBirth: undefined,
@@ -373,7 +495,6 @@ export default function NewReservationPage() {
                 </div>
             </div>
 
-
             {/* Main Content */}
             <div className="flex-1 overflow-auto">
                 <div className="p-6 space-y-6">
@@ -427,6 +548,20 @@ export default function NewReservationPage() {
                                     <Input type="time" value={checkOutTime} onChange={(e) => setCheckOutTime(e.target.value)} />
                                 </div>
 
+                                {/* Billing Type */}
+                                <div className="space-y-2">
+                                    <Label>Billing Type</Label>
+                                    <Select value={billingType} onValueChange={setBillingType}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="nightly">Per Night</SelectItem>
+                                            <SelectItem value="hourly">Per Hour</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
                                 {/* Other fields */}
                                 <div className="space-y-2">
                                     <Label>Arrival From</Label>
@@ -445,19 +580,7 @@ export default function NewReservationPage() {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Booking Reference</Label>
-                                    <Select value={bookingReference} onValueChange={setBookingReference}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Choose reference" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="direct">Direct</SelectItem>
-                                            <SelectItem value="booking.com">Booking.com</SelectItem>
-                                            <SelectItem value="expedia">Expedia</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                               
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -484,7 +607,7 @@ export default function NewReservationPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div className="space-y-2">
                                     <Label>Room Type</Label>
-                                    <Select value={roomType} onValueChange={setRoomType}>
+                                    <Select value={roomType} onValueChange={handleRoomTypeChange}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select room type" />
                                         </SelectTrigger>
@@ -497,14 +620,18 @@ export default function NewReservationPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Room No.</Label>
-                                    <Select value={roomNumber} onValueChange={setRoomNumber}>
+                                    <Select
+                                        value={roomNumber}
+                                        onValueChange={handleRoomNumberChange}
+                                        disabled={!roomType}
+                                    >
                                         <SelectTrigger>
-                                            <SelectValue />
+                                            <SelectValue placeholder={roomType ? "Select room number" : "Select room type first"} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="116">116</SelectItem>
-                                            <SelectItem value="117">117</SelectItem>
-                                            <SelectItem value="118">118</SelectItem>
+                                            {roomType && roomTypes[roomType as keyof typeof roomTypes]?.rooms.map(room => (
+                                                <SelectItem key={room} value={room}>{room}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -517,6 +644,63 @@ export default function NewReservationPage() {
                                     <Input type="number" value={children} onChange={(e) => setChildren(Number(e.target.value))} min="0" />
                                 </div>
                             </div>
+                            {roomType && (
+                                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+                                        <div>
+                                            <strong>Duration:</strong> {getDurationInfo()}
+                                        </div>
+                                        <div>
+                                            <strong>Billing:</strong> {billingType === "hourly" ? "Per Hour" : "Per Night"}
+                                        </div>
+                                        <div>
+                                            <strong>Rate:</strong> Rs. {billingType === "hourly"
+                                                ? roomTypes[roomType as keyof typeof roomTypes]?.hourlyRate.toLocaleString()
+                                                : roomTypes[roomType as keyof typeof roomTypes]?.nightlyRate.toLocaleString()
+                                            }/{billingType === "hourly" ? "hour" : "night"}
+                                        </div>
+                                        <div>
+                                            <strong>Total Room Price:</strong> Rs. {roomPrice.toLocaleString()}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Complimentary Services */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Gift className="w-5 h-5" />
+                                Complimentary Services
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {complimentaryItems.map(item => (
+                                    <div key={item.id} className="flex items-center space-x-3 p-3 border rounded-lg">
+                                        <Checkbox
+                                            id={item.id}
+                                            checked={selectedComplimentary.includes(item.id)}
+                                            onCheckedChange={(checked) => handleComplimentaryChange(item.id, checked as boolean)}
+                                        />
+                                        <div className="flex-1">
+                                            <Label htmlFor={item.id} className="font-medium cursor-pointer">
+                                                {item.name}
+                                            </Label>
+                                            <p className="text-sm text-muted-foreground">Rs. {item.price}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {selectedComplimentary.length > 0 && (
+                                <div className="mt-4 p-4 bg-green-50 rounded-lg">
+                                    <p className="text-sm text-green-800">
+                                        <strong>Complimentary Total:</strong> Rs. {complimentaryTotal.toLocaleString()}
+                                    </p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -643,6 +827,16 @@ export default function NewReservationPage() {
                                     <Input type="number" value={total} readOnly className="bg-muted" />
                                 </div>
                             </div>
+                            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>Room Price ({getDurationInfo()}): Rs. {roomPrice.toLocaleString()}</div>
+                                    <div>Complimentary: Rs. {complimentaryTotal.toLocaleString()}</div>
+                                    <div>Tax: Rs. {tax.toLocaleString()}</div>
+                                    <div>Service Charge: Rs. {serviceCharge.toLocaleString()}</div>
+                                    <div>Discount: -Rs. {discountAmount.toLocaleString()}</div>
+                                    <div>Commission: -Rs. {commissionAmount.toLocaleString()}</div>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -665,7 +859,6 @@ export default function NewReservationPage() {
                                         <SelectContent>
                                             <SelectItem value="cash">Cash</SelectItem>
                                             <SelectItem value="card">Card</SelectItem>
-                                            <SelectItem value="upi">UPI</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -901,10 +1094,7 @@ export default function NewReservationPage() {
                                         <Label>Last Name</Label>
                                         <Input value={newCustomer.lastName} onChange={(e) => setNewCustomer(prev => ({ ...prev, lastName: e.target.value }))} />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label>Father Name</Label>
-                                        <Input value={newCustomer.fatherName} onChange={(e) => setNewCustomer(prev => ({ ...prev, fatherName: e.target.value }))} />
-                                    </div>
+
                                     <div className="space-y-2">
                                         <Label>Gender</Label>
                                         <RadioGroup value={newCustomer.gender} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, gender: value }))}>
@@ -952,7 +1142,17 @@ export default function NewReservationPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Nationality</Label>
-                                        <Input value={newCustomer.nationality} onChange={(e) => setNewCustomer(prev => ({ ...prev, nationality: e.target.value }))} />
+
+                                        <RadioGroup value={newCustomer.nationality} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, nationality: value }))}>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem className="border border-gray-500" value="native" id="native" />
+                                                <Label htmlFor="native">Native</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem className="border border-gray-500" value="foreigner" id="foreigner" />
+                                                <Label htmlFor="foreigner">Foreigner</Label>
+                                            </div>
+                                        </RadioGroup>
                                     </div>
                                     <div className="space-y-2">
                                         <div className="flex items-center space-x-2">
@@ -1102,8 +1302,6 @@ export default function NewReservationPage() {
                                 </div>
                             </CardContent>
                         </Card>
-
-                       
 
                         {/* Modal Actions */}
                         <div className="flex justify-end gap-3 pt-4">
