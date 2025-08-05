@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 import {
     Home,
     Plus,
@@ -26,26 +28,14 @@ import {
     Bed,
     Users
 } from "lucide-react";
+import useSWR from "swr";
+import { toast } from "sonner";
+import { id } from "date-fns/locale";
 
 interface RoomSize {
     id: number;
     name: string;
 }
-
-const mockRoomSizes: RoomSize[] = [
-    { id: 1, name: "Executive Suite" },
-    { id: 2, name: "Double-Double" },
-    { id: 3, name: "Twin" },
-    { id: 4, name: "King" },
-    { id: 5, name: "Queen" },
-    { id: 6, name: "Quad" },
-    { id: 7, name: "Triple" },
-    { id: 8, name: "Double" },
-    { id: 9, name: "Single" },
-    { id: 10, name: "Deluxe Suite" },
-    { id: 11, name: "Presidential Suite" },
-    { id: 12, name: "Junior Suite" },
-];
 
 const pageSizes = [10, 25, 50, 100];
 
@@ -55,22 +45,42 @@ const columns = [
     { key: "action", label: "Action" },
 ];
 
+// Fetcher function
+const fetcher = (url: string) => fetch(url).then(res => {
+    if (!res.ok) throw new Error('Failed to fetch');
+    return res.json();
+});
+
 export default function RoomSizeListPage() {
     const [entries, setEntries] = useState(10);
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
     const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "sl", dir: "asc" });
     const [visibleCols, setVisibleCols] = useState(columns.map(c => c.key));
-    const [roomSizes, setRoomSizes] = useState<RoomSize[]>(mockRoomSizes);
+
     const [editingRoomSize, setEditingRoomSize] = useState<RoomSize | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [newRoomSizeName, setNewRoomSizeName] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Filtering
+    // Use SWR to fetch data
+    const { data: roomSizes = [], error, isLoading, mutate } = useSWR<RoomSize[]>(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-facilities/room-size-list`,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+        }
+    );
+
+    console.log("Room Sizes:", roomSizes);
+
+    // Filtering with null safety
     const filtered = useMemo(() => {
+        if (!roomSizes?.length) return [];
         return roomSizes.filter(roomSize =>
-            roomSize.name.toLowerCase().includes(search.toLowerCase())
+            roomSize?.name?.toLowerCase()?.includes(search.toLowerCase())
         );
     }, [search, roomSizes]);
 
@@ -81,9 +91,9 @@ export default function RoomSizeListPage() {
             sortedRoomSizes.sort((a, b) => sort.dir === "asc" ? a.id - b.id : b.id - a.id);
         } else if (sort.key === "roomSize") {
             sortedRoomSizes.sort((a, b) => {
-                if (a.name < b.name) return sort.dir === "asc" ? -1 : 1;
-                if (a.name > b.name) return sort.dir === "asc" ? 1 : -1;
-                return 0;
+                return sort.dir === "asc"
+                    ? a.name.localeCompare(b.name)
+                    : b.name.localeCompare(a.name);
             });
         }
         return sortedRoomSizes;
@@ -95,19 +105,43 @@ export default function RoomSizeListPage() {
 
     // Export/Print handlers
     const handleExport = (type: string) => {
-        alert(`Export as ${type}`);
+        toast.info(`Exporting as ${type}...`);
     };
 
     // Add room size
-    const handleAddRoomSize = () => {
-        if (newRoomSizeName.trim()) {
-            const newRoomSize: RoomSize = {
-                id: Math.max(...roomSizes.map(r => r.id)) + 1,
-                name: newRoomSizeName.trim()
-            };
-            setRoomSizes([...roomSizes, newRoomSize]);
+    const handleAddRoomSize = async () => {
+        if (!newRoomSizeName.trim()) {
+            toast.error("Please enter a room size name");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-facilities/room-size-list`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    room_size: newRoomSizeName,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to add room size");
+            }
+
+            // Refresh the data
+            await mutate();
             setNewRoomSizeName("");
             setIsAddModalOpen(false);
+            toast.success("Room size added successfully!");
+        } catch (error) {
+            console.error("Add room size error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to add room size. Please try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -117,20 +151,70 @@ export default function RoomSizeListPage() {
         setIsEditModalOpen(true);
     };
 
-    const handleSaveEdit = () => {
-        if (editingRoomSize) {
-            setRoomSizes(roomSizes.map(r =>
-                r.id === editingRoomSize.id ? editingRoomSize : r
-            ));
+    const handleSaveEdit = async () => {
+        if (!editingRoomSize?.name.trim()) {
+            toast.error("Please enter a room size name");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-facilities/room-size-list`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    id: editingRoomSize.id,
+                    room_size: editingRoomSize.name,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to update room size");
+            }
+
+            // Refresh the data
+            await mutate();
             setIsEditModalOpen(false);
             setEditingRoomSize(null);
+            toast.success("Room size updated successfully!");
+        } catch (error) {
+            console.error("Update room size error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to update room size. Please try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     // Delete room size
-    const handleDelete = (id: number) => {
-        if (confirm("Are you sure you want to delete this room size?")) {
-            setRoomSizes(roomSizes.filter(r => r.id !== id));
+    const handleDelete = async (id: number, name: string) => {
+        if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-facilities/room-size-list`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    id: id,
+                   
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to delete room size");
+            }
+
+            // Refresh the data
+            await mutate();
+            toast.success("Room size deleted successfully!");
+        } catch (error) {
+            console.error("Delete room size error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to delete room size. Please try again.");
         }
     };
 
@@ -143,6 +227,43 @@ export default function RoomSizeListPage() {
         if (lowerName.includes('double') || lowerName.includes('twin')) return <Bed className="w-4 h-4 text-chart-3" />;
         return <Settings className="w-4 h-4 text-muted-foreground" />;
     };
+
+    // Loading skeleton
+    const LoadingSkeleton = () => (
+        <div className="space-y-4 p-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 py-3">
+                    <Skeleton className="h-4 w-8" />
+                    <div className="flex items-center space-x-3">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-4 w-32" />
+                    </div>
+                    <div className="flex space-x-2 ml-auto">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
+    // Error state
+    if (error) {
+        return (
+            <div className="flex flex-col h-full bg-white relative">
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                        <Settings className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-foreground mb-2">Error Loading Data</h3>
+                        <p className="text-sm text-muted-foreground mb-4">Failed to load room sizes</p>
+                        <Button onClick={() => mutate()} variant="outline">
+                            Try Again
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full bg-white relative">
@@ -184,6 +305,7 @@ export default function RoomSizeListPage() {
                         <Button
                             onClick={() => setIsAddModalOpen(true)}
                             className="h-10 px-6 rounded-full shadow-md flex items-center gap-2"
+                            disabled={isLoading}
                         >
                             <Plus className="w-4 h-4" />
                             Add Room Size
@@ -220,6 +342,7 @@ export default function RoomSizeListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("Copy")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={isLoading}
                             >
                                 <Copy className="w-4 h-4 mr-2" />
                                 Copy
@@ -229,6 +352,7 @@ export default function RoomSizeListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("CSV")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={isLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 CSV
@@ -238,6 +362,7 @@ export default function RoomSizeListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("PDF")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={isLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 PDF
@@ -247,6 +372,7 @@ export default function RoomSizeListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("Print")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={isLoading}
                             >
                                 <Printer className="w-4 h-4 mr-2" />
                                 Print
@@ -267,6 +393,7 @@ export default function RoomSizeListPage() {
                                         setPage(1);
                                     }}
                                     className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                                    disabled={isLoading}
                                 />
                             </div>
                         </div>
@@ -284,6 +411,7 @@ export default function RoomSizeListPage() {
                                 setVisibleCols(next);
                             }}
                             className="h-9 px-4 rounded-lg text-sm shadow-sm"
+                            disabled={isLoading}
                         >
                             <Eye className="w-4 h-4 mr-2" />
                             Column visibility
@@ -304,7 +432,7 @@ export default function RoomSizeListPage() {
                                             key={col.key}
                                             className="text-sm font-medium text-muted-foreground cursor-pointer select-none hover:bg-accent transition-colors duration-200 border-b border-border/50 whitespace-nowrap h-12"
                                             onClick={() => {
-                                                if (col.key !== "action") {
+                                                if (col.key !== "action" && !isLoading) {
                                                     setSort(s => ({
                                                         key: col.key,
                                                         dir: s.key === col.key ? (s.dir === "asc" ? "desc" : "asc") : "asc"
@@ -331,13 +459,26 @@ export default function RoomSizeListPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {paginated.length === 0 ? (
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={visibleCols.length} className="p-0">
+                                            <LoadingSkeleton />
+                                        </TableCell>
+                                    </TableRow>
+                                ) : paginated.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={visibleCols.length} className="text-center py-12">
                                             <div className="flex flex-col items-center gap-3">
                                                 <Settings className="w-12 h-12 text-muted-foreground" />
-                                                <p className="text-base text-muted-foreground">No room sizes found</p>
-                                                <p className="text-sm text-muted-foreground">Try adjusting your search or add new room sizes</p>
+                                                <p className="text-base text-muted-foreground">
+                                                    {search ? "No room sizes found" : "No room sizes available"}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {search
+                                                        ? "Try adjusting your search criteria"
+                                                        : "Add your first room size to get started"
+                                                    }
+                                                </p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -367,14 +508,16 @@ export default function RoomSizeListPage() {
                                                             variant="outline"
                                                             onClick={() => handleEdit(roomSize)}
                                                             className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                                                            disabled={isSubmitting}
                                                         >
                                                             <Edit className="w-4 h-4 text-blue-600" />
                                                         </Button>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => handleDelete(roomSize.id)}
+                                                            onClick={() => handleDelete(roomSize.id, roomSize.name)}
                                                             className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
+                                                            disabled={isSubmitting}
                                                         >
                                                             <Trash2 className="w-4 h-4 text-red-600" />
                                                         </Button>
@@ -395,7 +538,7 @@ export default function RoomSizeListPage() {
                 <div className="px-4 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="text-sm text-muted-foreground">
-                            Showing {(page - 1) * entries + 1} to {Math.min(page * entries, sorted.length)} of {sorted.length} entries
+                            Showing {Math.min((page - 1) * entries + 1, sorted.length)} to {Math.min(page * entries, sorted.length)} of {sorted.length} entries
                         </div>
 
                         {totalPages > 1 && (
@@ -463,6 +606,12 @@ export default function RoomSizeListPage() {
                                 onChange={(e) => setNewRoomSizeName(e.target.value)}
                                 placeholder="Enter room size name..."
                                 className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                disabled={isSubmitting}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && newRoomSizeName.trim()) {
+                                        handleAddRoomSize();
+                                    }
+                                }}
                             />
                         </div>
                         <div className="flex justify-end gap-2 pt-4">
@@ -473,15 +622,23 @@ export default function RoomSizeListPage() {
                                     setNewRoomSizeName("");
                                 }}
                                 className="px-4"
+                                disabled={isSubmitting}
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={handleAddRoomSize}
-                                disabled={!newRoomSizeName.trim()}
+                                disabled={!newRoomSizeName.trim() || isSubmitting}
                                 className="px-4"
                             >
-                                Add Room Size
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Adding...
+                                    </>
+                                ) : (
+                                    "Add Room Size"
+                                )}
                             </Button>
                         </div>
                     </div>
@@ -508,6 +665,12 @@ export default function RoomSizeListPage() {
                                     value={editingRoomSize.name}
                                     onChange={(e) => setEditingRoomSize({ ...editingRoomSize, name: e.target.value })}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && editingRoomSize.name.trim()) {
+                                            handleSaveEdit();
+                                        }
+                                    }}
                                 />
                             </div>
                             <div className="flex justify-end gap-2 pt-4">
@@ -515,14 +678,23 @@ export default function RoomSizeListPage() {
                                     variant="outline"
                                     onClick={() => setIsEditModalOpen(false)}
                                     className="px-4"
+                                    disabled={isSubmitting}
                                 >
                                     Cancel
                                 </Button>
                                 <Button
                                     onClick={handleSaveEdit}
+                                    disabled={!editingRoomSize.name.trim() || isSubmitting}
                                     className="px-4"
                                 >
-                                    Save Changes
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        "Save Changes"
+                                    )}
                                 </Button>
                             </div>
                         </div>

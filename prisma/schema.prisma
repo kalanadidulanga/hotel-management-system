@@ -1,0 +1,87 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  
+  ADMIN
+  MANAGER
+  CASHIER
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(CASHIER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model Room_Facility_List {
+  id        Int                          @id @default(autoincrement())
+  name      String                       @unique
+  details   Room_Facilities_Details_List[] 
+}
+
+model Room_Facilities_Details_List {
+  id             Int                @id @default(autoincrement())
+  facilityType   String
+  facility_type  Room_Facility_List @relation(fields: [facilityType], references: [name])
+  facility_name  String  @unique
+  description    String
+
+}
+
+model Room_Size_List{
+    id             Int                @id @default(autoincrement())
+    name     String    @unique
+}
+
+model Customer {
+  id               Int          @id @default(autoincrement())
+  title            String
+  firstName        String
+  lastName         String?
+  gender           String
+  dateOfBirth      DateTime
+  anniversary      DateTime?
+  nationality      Nationality
+  isVip            Boolean      @default(false)
+  occupation       String?                         // ✅ was 'profession'
+  email            String       @unique
+  countryCode      String
+  phone            String       @unique             // ✅ matches 'mobile' in UI
+  contactType      String
+  country          String
+  state            String
+  city             String
+  zipcode          String
+  address          String
+  identityType     String
+  identityNumber   String       @unique             // ✅ was 'nationalId'
+  frontIdUrl       String?
+  backIdUrl        String?
+  guestImageUrl    String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+
+
+
+enum Nationality {
+  native
+  foreigner
+}
+

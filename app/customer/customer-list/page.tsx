@@ -9,9 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     Home,
     Plus,
@@ -24,15 +25,17 @@ import {
     Printer,
     Settings,
     DollarSign,
-    CreditCard,
     ChevronUp,
     ChevronDown,
     Users,
     Check,
     Receipt,
-    MessageSquare
+    MessageSquare,
+    Loader2
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
+import useSWR from "swr";
 import Link from "next/link";
 
 interface Customer {
@@ -54,136 +57,20 @@ interface Booking {
     status: "Pending" | "Paid" | "Refunded";
 }
 
-const mockCustomers: Customer[] = [
-    {
-        id: 1,
-        firstName: "John",
-        lastName: "Doe",
-        email: "john.doe@example.com",
-        phone: "+1234567890",
-        balance: 150.00,
-        status: "Active",
-        createdAt: "2024-01-15"
-    },
-    {
-        id: 2,
-        firstName: "Jane",
-        lastName: "Smith",
-        email: "jane.smith@example.com",
-        phone: "+1987654321",
-        balance: -50.00,
-        status: "Active",
-        createdAt: "2024-01-16"
-    },
-    {
-        id: 3,
-        firstName: "Michael",
-        lastName: "Johnson",
-        email: "michael.j@example.com",
-        phone: "+1555123456",
-        balance: 0.00,
-        status: "Inactive",
-        createdAt: "2024-01-17"
-    },
-    {
-        id: 4,
-        firstName: "Emily",
-        lastName: "Brown",
-        email: "emily.brown@example.com",
-        phone: "+1444987654",
-        balance: 300.00,
-        status: "Active",
-        createdAt: "2024-01-18"
-    },
-    {
-        id: 5,
-        firstName: "David",
-        lastName: "Wilson",
-        email: "david.wilson@example.com",
-        phone: "+1333456789",
-        balance: -25.00,
-        status: "Blocked",
-        createdAt: "2024-01-19"
-    },
-    {
-        id: 6,
-        firstName: "Sarah",
-        lastName: "Davis",
-        email: "sarah.davis@example.com",
-        phone: "+1222345678",
-        balance: 75.00,
-        status: "Active",
-        createdAt: "2024-01-20"
-    },
-    {
-        id: 7,
-        firstName: "Olivia",
-        lastName: "Martinez",
-        email: "olivia.martinez@example.com",
-        phone: "+1777888999",
-        balance: 200.00,
-        status: "Active",
-        createdAt: "2024-01-21"
-    },
-    {
-        id: 8,
-        firstName: "William",
-        lastName: "Lee",
-        email: "william.lee@example.com",
-        phone: "+1666777888",
-        balance: -10.00,
-        status: "Inactive",
-        createdAt: "2024-01-22"
-    },
-    {
-        id: 9,
-        firstName: "Sophia",
-        lastName: "Garcia",
-        email: "sophia.garcia@example.com",
-        phone: "+1555666777",
-        balance: 0.00,
-        status: "Blocked",
-        createdAt: "2024-01-23"
-    },
-    {
-        id: 10,
-        firstName: "James",
-        lastName: "Anderson",
-        email: "james.anderson@example.com",
-        phone: "+1444555666",
-        balance: 120.00,
-        status: "Active",
-        createdAt: "2024-01-24"
-    },
-    {
-        id: 11,
-        firstName: "Ava",
-        lastName: "Clark",
-        email: "ava.clark@example.com",
-        phone: "+1888999000",
-        balance: 50.00,
-        status: "Active",
-        createdAt: "2024-01-25"
-    },
-    {
-        id: 12,
-        firstName: "Benjamin",
-        lastName: "Walker",
-        email: "benjamin.walker@example.com",
-        phone: "+1777666555",
-        balance: -100.00,
-        status: "Blocked",
-        createdAt: "2024-01-26"
-    }
-];
+interface CustomerResponse {
+    customers: Customer[];
+    total: number;
+    totalPages: number;
+}
 
-const mockBookings: Booking[] = [
-    { id: "1", bookingNumber: "00000001", customerName: "Kisembo Ishikawa", amount: 250.00, status: "Paid" },
-    { id: "2", bookingNumber: "00000002", customerName: "Efe Chia", amount: 180.00, status: "Pending" },
-    { id: "3", bookingNumber: "00000003", customerName: "John Smith", amount: 320.00, status: "Paid" },
-    { id: "4", bookingNumber: "00000004", customerName: "Maria Rodriguez", amount: 450.00, status: "Refunded" },
-    { id: "5", bookingNumber: "00000005", customerName: "Ahmed Hassan", amount: 200.00, status: "Pending" },
-];
+interface BookingResponse {
+    bookings: Booking[];
+}
+
+const fetcher = (url: string) => fetch(url).then(res => {
+    if (!res.ok) throw new Error('Failed to fetch');
+    return res.json();
+});
 
 const pageSizes = [10, 25, 50, 100];
 
@@ -204,7 +91,7 @@ export default function CustomerListPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "sl", dir: "asc" });
     const [visibleCols, setVisibleCols] = useState(columns.map(c => c.key));
-    const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+    const [debouncedSearch, setDebouncedSearch] = useState("");
 
     // Payment modal states
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -214,9 +101,70 @@ export default function CustomerListPage() {
     const [searchBooking, setSearchBooking] = useState("");
     const [bookingOpen, setBookingOpen] = useState(false);
     const [remarks, setRemarks] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Debounce search query
+    useEffect(() => {
+        console.log("Search query changed:", searchQuery);
+        const timer = setTimeout(() => {
+            console.log("Setting debounced search:", searchQuery);
+            setDebouncedSearch(searchQuery);
+            setPage(1); // Reset to first page when search changes
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Build API URL with query parameters
+    const buildApiUrl = () => {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: entries.toString(),
+            sortBy: sort.key,
+            sortOrder: sort.dir,
+        });
+
+        if (debouncedSearch) {
+            params.append('search', debouncedSearch);
+        }
+
+        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+        const fullUrl = `${baseUrl}/api/customer/customer-list?${params.toString()}`;
+
+        // Debug logging
+        console.log("API URL:", fullUrl);
+        console.log("Search query:", debouncedSearch);
+
+        return fullUrl;
+    };
+
+    // Fetch customers with SWR
+    const { data: customerData, error: customerError, isLoading: customersLoading, mutate: mutateCustomers } = useSWR<CustomerResponse>(
+        buildApiUrl(),
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+        }
+    );
+
+    // Fetch bookings for payment modal
+    const { data: bookingData, error: bookingError, isLoading: bookingsLoading } = useSWR<BookingResponse>(
+        showPaymentModal ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/bookings` : null,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+        }
+    );
+
+    const customers = customerData?.customers || [];
+    const totalCustomers = customerData?.total || 0;
+    const totalPages = customerData?.totalPages || 0;
+    const bookings = bookingData?.bookings || [];
 
     // Filter bookings based on search
-    const filteredBookings = mockBookings.filter(booking =>
+    const filteredBookings = bookings.filter(booking =>
         booking.bookingNumber.toLowerCase().includes(searchBooking.toLowerCase()) ||
         booking.customerName.toLowerCase().includes(searchBooking.toLowerCase())
     );
@@ -228,70 +176,123 @@ export default function CustomerListPage() {
     };
 
     // Handle payment form submission
-    const handlePaymentSubmit = () => {
-        if (!selectedBooking || !paymentType) return;
+    const handlePaymentSubmit = async () => {
+        if (!selectedBooking || !paymentType || !selectedCustomerForPayment) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
 
-        const booking = mockBookings.find(b => b.id === selectedBooking);
-        alert(`Payment ${paymentType} processed for booking ${booking?.bookingNumber}${remarks ? ` with remarks: ${remarks}` : ''}`);
+        setIsSubmitting(true);
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/payments`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    customerId: selectedCustomerForPayment.id,
+                    bookingId: selectedBooking,
+                    paymentType: paymentType,
+                    remarks: remarks
+                }),
+            });
 
-        // Reset form
-        setSelectedBooking("");
-        setPaymentType("refund");
-        setRemarks("");
-        setShowPaymentModal(false);
-        setSelectedCustomerForPayment(null);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to process payment");
+            }
+
+            // Refresh customer data
+            await mutateCustomers();
+
+            toast.success("Payment processed successfully!");
+
+            // Reset form
+            setSelectedBooking("");
+            setPaymentType("refund");
+            setRemarks("");
+            setShowPaymentModal(false);
+            setSelectedCustomerForPayment(null);
+        } catch (error) {
+            console.error("Payment error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to process payment. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
-    // Filtering
-    const filteredCustomers = useMemo(() => {
-        return customers.filter(customer =>
-            customer.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            customer.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            customer.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            customer.status.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [searchQuery, customers]);
-
-    // Sorting
-    const sortedCustomers = useMemo(() => {
-        const sorted = [...filteredCustomers];
-        if (sort.key === "sl") {
-            sorted.sort((a, b) => sort.dir === "asc" ? a.id - b.id : b.id - a.id);
-        } else if (sort.key === "firstName") {
-            sorted.sort((a, b) => {
-                const result = a.firstName.localeCompare(b.firstName);
-                return sort.dir === "asc" ? result : -result;
-            });
-        } else if (sort.key === "lastName") {
-            sorted.sort((a, b) => {
-                const result = a.lastName.localeCompare(b.lastName);
-                return sort.dir === "asc" ? result : -result;
-            });
-        } else if (sort.key === "email") {
-            sorted.sort((a, b) => {
-                const result = a.email.localeCompare(b.email);
-                return sort.dir === "asc" ? result : -result;
-            });
-        } else if (sort.key === "balance") {
-            sorted.sort((a, b) => sort.dir === "asc" ? a.balance - b.balance : b.balance - a.balance);
-        }
-        return sorted;
-    }, [filteredCustomers, sort]);
-
-    // Pagination
-    const totalPages = Math.ceil(sortedCustomers.length / entries);
-    const paginatedCustomers = sortedCustomers.slice((page - 1) * entries, page * entries);
-
     // Export handlers
-    const handleExport = (type: string) => {
-        alert(`Export as ${type}`);
+    const handleExport = async (type: string) => {
+        try {
+            const params = new URLSearchParams({
+                format: type.toLowerCase(),
+                sortBy: sort.key,
+                sortOrder: sort.dir,
+            });
+
+            if (debouncedSearch) {
+                params.append('search', debouncedSearch);
+            }
+
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/customers/export?${params.toString()}`);
+
+            if (!response.ok) {
+                throw new Error('Export failed');
+            }
+
+            // Handle file download based on type
+            if (type === 'CSV' || type === 'PDF') {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `customers.${type.toLowerCase()}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else if (type === 'Copy') {
+                const text = await response.text();
+                await navigator.clipboard.writeText(text);
+                toast.success("Data copied to clipboard!");
+            } else if (type === 'Print') {
+                const htmlContent = await response.text();
+                const printWindow = window.open('', '_blank');
+                printWindow?.document.write(htmlContent);
+                printWindow?.document.close();
+                printWindow?.print();
+            }
+        } catch (error) {
+            toast.error(`Failed to export as ${type}`);
+        }
     };
 
     // Delete customer
-    const handleDelete = (id: number) => {
-        if (confirm("Are you sure you want to delete this customer?")) {
-            setCustomers(customers.filter(c => c.id !== id));
+    const handleDelete = async (id: number, name: string) => {
+        if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/customer/customer-list`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  id : id
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to delete customer");
+            }
+
+            // Refresh the data
+            await mutateCustomers();
+            toast.success("Customer deleted successfully!");
+        } catch (error) {
+            console.error("Delete customer error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to delete customer. Please try again.");
         }
     };
 
@@ -313,6 +314,48 @@ export default function CustomerListPage() {
                 return <Badge variant="outline">{status}</Badge>;
         }
     };
+
+    // Loading skeleton
+    const LoadingSkeleton = () => (
+        <div className="space-y-4 p-4">
+            {Array.from({ length: entries }).map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 py-3">
+                    <Skeleton className="h-4 w-8" />
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-6 w-16" />
+                    <div className="flex space-x-2 ml-auto">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
+    // Error state
+    if (customerError) {
+        return (
+            <div className="flex flex-col h-full bg-white relative">
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                        <Settings className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-foreground mb-2">Error Loading Data</h3>
+                        <p className="text-sm text-muted-foreground mb-4">Failed to load customers</p>
+                        <Button onClick={() => mutateCustomers()} variant="outline">
+                            Try Again
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full bg-white relative">
@@ -340,10 +383,18 @@ export default function CustomerListPage() {
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                             <Users className="w-6 h-6 text-primary" />
-                            <h1 className="text-xl font-semibold text-foreground">Customer Management</h1>
+                            <div>
+                                <h1 className="text-xl font-semibold text-foreground">Customer Management</h1>
+                                <p className="text-sm text-muted-foreground">
+                                    {totalCustomers > 0 ? `${totalCustomers} customers found` : 'Manage your customers'}
+                                </p>
+                            </div>
                         </div>
                         <Link href={"/customer/customer-list/create"}>
-                            <Button className="h-10 px-6 rounded-full shadow-md flex items-center gap-2">
+                            <Button
+                                className="h-10 px-6 rounded-full shadow-md flex items-center gap-2"
+                                disabled={customersLoading}
+                            >
                                 <Plus className="w-4 h-4" />
                                 Add New Customer
                             </Button>
@@ -360,7 +411,14 @@ export default function CustomerListPage() {
                         {/* Entries Selection */}
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-muted-foreground">Show</span>
-                            <Select value={String(entries)} onValueChange={v => { setEntries(Number(v)); setPage(1); }}>
+                            <Select
+                                value={String(entries)}
+                                onValueChange={v => {
+                                    setEntries(Number(v));
+                                    setPage(1);
+                                }}
+                                disabled={customersLoading}
+                            >
                                 <SelectTrigger className="w-20 h-9 text-sm rounded-lg border-border/50 shadow-sm">
                                     <SelectValue />
                                 </SelectTrigger>
@@ -380,6 +438,7 @@ export default function CustomerListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("Copy")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={customersLoading}
                             >
                                 <Copy className="w-4 h-4 mr-2" />
                                 Copy
@@ -389,6 +448,7 @@ export default function CustomerListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("CSV")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={customersLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 CSV
@@ -398,6 +458,7 @@ export default function CustomerListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("PDF")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={customersLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 PDF
@@ -407,6 +468,7 @@ export default function CustomerListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("Print")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={customersLoading}
                             >
                                 <Printer className="w-4 h-4 mr-2" />
                                 Print
@@ -422,11 +484,9 @@ export default function CustomerListPage() {
                                     type="text"
                                     placeholder="Search customers..."
                                     value={searchQuery}
-                                    onChange={(e) => {
-                                        setSearchQuery(e.target.value);
-                                        setPage(1);
-                                    }}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
                                     className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                                    disabled={customersLoading}
                                 />
                             </div>
                         </div>
@@ -444,6 +504,7 @@ export default function CustomerListPage() {
                                 setVisibleCols(next);
                             }}
                             className="h-9 px-4 rounded-lg text-sm shadow-sm"
+                            disabled={customersLoading}
                         >
                             <Eye className="w-4 h-4 mr-2" />
                             Column visibility
@@ -464,11 +525,12 @@ export default function CustomerListPage() {
                                             key={col.key}
                                             className="text-sm font-medium text-muted-foreground cursor-pointer select-none hover:bg-accent transition-colors duration-200 border-b border-border/50 whitespace-nowrap h-12"
                                             onClick={() => {
-                                                if (col.key !== "action") {
+                                                if (col.key !== "action" && !customersLoading) {
                                                     setSort(s => ({
                                                         key: col.key,
                                                         dir: s.key === col.key ? (s.dir === "asc" ? "desc" : "asc") : "asc"
                                                     }));
+                                                    setPage(1);
                                                 }
                                             }}
                                         >
@@ -491,17 +553,31 @@ export default function CustomerListPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {paginatedCustomers.length === 0 ? (
+                                {customersLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={visibleCols.length} className="p-0">
+                                            <LoadingSkeleton />
+                                        </TableCell>
+                                    </TableRow>
+                                ) : customers.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={visibleCols.length} className="text-center py-12">
                                             <div className="flex flex-col items-center gap-3">
-                                                <Settings className="w-12 h-12 text-muted-foreground" />
-                                                <p className="text-base text-muted-foreground">No customers found</p>
+                                                <Users className="w-12 h-12 text-muted-foreground" />
+                                                <p className="text-base text-muted-foreground">
+                                                    {searchQuery ? "No customers found" : "No customers available"}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {searchQuery
+                                                        ? "Try adjusting your search criteria"
+                                                        : "Add your first customer to get started"
+                                                    }
+                                                </p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    paginatedCustomers.map((customer, idx) => (
+                                    customers.map((customer, idx) => (
                                         <TableRow key={customer.id} className="hover:bg-accent/50 transition-colors duration-200 border-b border-border/50">
                                             {visibleCols.includes("sl") && (
                                                 <TableCell className="text-sm text-foreground font-medium py-3">
@@ -546,44 +622,50 @@ export default function CustomerListPage() {
                                                 <TableCell className="py-3">
                                                     <div className="flex items-center gap-2">
                                                         <Link href={`/customer/customer-list/update/${customer.id}`}>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            
-                                                            className="h-8 w-8 p-0 rounded-full border-green-200 hover:bg-green-50 hover:border-green-300 shadow-sm"
-                                                        >
-                                                            <Edit className="w-4 h-4 text-green-600" />
-                                                        </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-8 w-8 p-0 rounded-full border-green-200 hover:bg-green-50 hover:border-green-300 shadow-sm"
+                                                                disabled={customersLoading}
+                                                            >
+                                                                <Edit className="w-4 h-4 text-green-600" />
+                                                            </Button>
                                                         </Link>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
                                                             onClick={() => handlePaymentClick(customer)}
                                                             className="h-8 w-8 p-0 rounded-full border-teal-200 hover:bg-teal-50 hover:border-teal-300 shadow-sm"
+                                                            disabled={customersLoading}
                                                         >
                                                             <DollarSign className="w-4 h-4 text-teal-600" />
                                                         </Button>
+                                                        <Link href={`/customer/options/${customer.id}`}>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                                                                disabled={customersLoading}
+                                                            >
+                                                                <Settings className="w-4 h-4 text-blue-600" />
+                                                            </Button>
+                                                        </Link>
+                                                        <Link href={`/customer/customer_info/${customer.id}`}>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                                                                disabled={customersLoading}
+                                                            >
+                                                                <Eye className="w-4 h-4 text-blue-600" />
+                                                            </Button>
+                                                        </Link>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => window.location.href = `/customer/options/${customer.id}`}
-                                                            className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
-                                                        >
-                                                            <Settings className="w-4 h-4 text-blue-600" />
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => window.location.href = `/customer/customer_info/${customer.id}`}
-                                                            className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
-                                                        >
-                                                            <Eye className="w-4 h-4 text-blue-600" />
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => handleDelete(customer.id)}
+                                                            onClick={() => handleDelete(customer.id, `${customer.firstName} ${customer.lastName}`)}
                                                             className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
+                                                            disabled={customersLoading}
                                                         >
                                                             <Trash2 className="w-4 h-4 text-red-600" />
                                                         </Button>
@@ -604,10 +686,14 @@ export default function CustomerListPage() {
                 <div className="px-4 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="text-sm text-muted-foreground">
-                            Showing {(page - 1) * entries + 1} to {Math.min(page * entries, sortedCustomers.length)} of {sortedCustomers.length} entries
+                            {customersLoading ? (
+                                "Loading..."
+                            ) : (
+                                `Showing ${(page - 1) * entries + 1} to ${Math.min(page * entries, totalCustomers)} of ${totalCustomers} entries`
+                            )}
                         </div>
 
-                        {totalPages > 1 && (
+                        {totalPages > 1 && !customersLoading && (
                             <Pagination>
                                 <PaginationContent className="flex justify-center">
                                     <PaginationItem>
@@ -682,7 +768,11 @@ export default function CustomerListPage() {
                             <Label htmlFor="paymentType" className="text-sm font-medium">
                                 Payment Type
                             </Label>
-                            <Select value={paymentType} onValueChange={setPaymentType}>
+                            <Select
+                                value={paymentType || ""}
+                                onValueChange={setPaymentType}
+                                disabled={isSubmitting}
+                            >
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Select payment type" />
                                 </SelectTrigger>
@@ -707,10 +797,11 @@ export default function CustomerListPage() {
                                         role="combobox"
                                         aria-expanded={bookingOpen}
                                         className="w-full justify-between"
+                                        disabled={isSubmitting || bookingsLoading}
                                     >
                                         {selectedBooking
                                             ? (() => {
-                                                const booking = mockBookings.find(b => b.id === selectedBooking);
+                                                const booking = bookings.find(b => b.id === selectedBooking);
                                                 return booking ? `${booking.bookingNumber} - ${booking.customerName}` : "Select Booking Number";
                                             })()
                                             : "Select Booking Number"}
@@ -721,10 +812,12 @@ export default function CustomerListPage() {
                                     <Command>
                                         <CommandInput
                                             placeholder="Search booking number..."
-                                            value={searchBooking}
+                                            value={searchBooking || ""}
                                             onValueChange={setSearchBooking}
                                         />
-                                        <CommandEmpty>No booking found.</CommandEmpty>
+                                        <CommandEmpty>
+                                            {bookingsLoading ? "Loading bookings..." : "No booking found."}
+                                        </CommandEmpty>
                                         <CommandList>
                                             <CommandGroup>
                                                 {filteredBookings.map((booking) => (
@@ -763,9 +856,10 @@ export default function CustomerListPage() {
                             <Textarea
                                 id="remarks"
                                 placeholder="Enter any additional remarks or notes..."
-                                value={remarks}
+                                value={remarks || ""}
                                 onChange={(e) => setRemarks(e.target.value)}
                                 className="min-h-[80px] rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent resize-none"
+                                disabled={isSubmitting}
                             />
                         </div>
 
@@ -773,7 +867,7 @@ export default function CustomerListPage() {
                         {selectedBooking && (
                             <div className="p-3 bg-gray-50 rounded-lg">
                                 {(() => {
-                                    const booking = mockBookings.find(b => b.id === selectedBooking);
+                                    const booking = bookings.find(b => b.id === selectedBooking);
                                     return booking ? (
                                         <div className="space-y-1">
                                             <p className="text-sm font-medium">Booking: {booking.bookingNumber}</p>
@@ -798,15 +892,23 @@ export default function CustomerListPage() {
                                     setRemarks("");
                                 }}
                                 className="px-4"
+                                disabled={isSubmitting}
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={handlePaymentSubmit}
-                                disabled={!selectedBooking || !paymentType}
+                                disabled={!selectedBooking || !paymentType || isSubmitting}
                                 className="px-4"
                             >
-                                Process Payment
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    "Process Payment"
+                                )}
                             </Button>
                         </div>
                     </div>

@@ -273,7 +273,7 @@ export default function POSInvoicePage() {
 
         {/* Right Panel - Order Form */}
         <div className="lg:col-span-1 flex flex-col space-y-2 min-h-0 max-h-full overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-lg border bg-gray-200/60">
+          <div className="bg-white rounded-xl shadow-lg border">
             <div className="p-5">
               <h2 className="text-base font-medium text-foreground mb-4">Order Details</h2>
               

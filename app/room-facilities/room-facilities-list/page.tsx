@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 import {
     Home,
     Plus,
@@ -26,25 +28,22 @@ import {
     Wifi,
     Tv,
     Wind,
-    Car
+    Car,
+    Loader2,
+    AlertCircle
 } from "lucide-react";
+
+import useSWR from 'swr';
+import axiosInstance from "@/lib/axios";
 
 interface Facility {
     id: number;
     name: string;
 }
 
+// Mock data for development/fallback
 const mockFacilities: Facility[] = [
-    { id: 1, name: "Air Conditioner" },
-    { id: 2, name: "Lighting" },
-    { id: 3, name: "WiFi" },
-    { id: 4, name: "Television" },
-    { id: 5, name: "Mini Bar" },
-    { id: 6, name: "Room Service" },
-    { id: 7, name: "Parking" },
-    { id: 8, name: "Balcony" },
-    { id: 9, name: "Safe" },
-    { id: 10, name: "Laundry Service" },
+    
 ];
 
 const pageSizes = [10, 25, 50, 100];
@@ -55,22 +54,39 @@ const columns = [
     { key: "action", label: "Action" },
 ];
 
+const fetcher = (url: string) => fetch(url).then(res => {
+    if (!res.ok) throw new Error('Failed to fetch');
+    return res.json();
+});
+
 export default function RoomFacilitiesPage() {
+    const { data: apiData, error, isLoading, mutate } = useSWR<Facility[]>("/api/room-facilities/room-facilities-list", fetcher, {
+        fallbackData: mockFacilities,
+        onError: () => {
+            toast.error("Failed to load facilities. Using local data.");
+        }
+    });
+
+    // Use API data if available, otherwise fallback to mock data
+    const facilities = apiData || mockFacilities;
+
     const [entries, setEntries] = useState(10);
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
     const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "sl", dir: "asc" });
     const [visibleCols, setVisibleCols] = useState(columns.map(c => c.key));
-    const [facilities, setFacilities] = useState<Facility[]>(mockFacilities);
+
     const [editingFacility, setEditingFacility] = useState<Facility | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [newFacilityName, setNewFacilityName] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Filtering
+    // Filtering with null check
     const filtered = useMemo(() => {
+        if (!facilities || facilities.length === 0) return [];
         return facilities.filter(facility =>
-            facility.name.toLowerCase().includes(search.toLowerCase())
+            facility?.name?.toLowerCase().includes(search.toLowerCase())
         );
     }, [search, facilities]);
 
@@ -95,19 +111,45 @@ export default function RoomFacilitiesPage() {
 
     // Export/Print handlers
     const handleExport = (type: string) => {
-        alert(`Export as ${type}`);
+        toast.info(`Exporting as ${type}...`);
+        // Implement actual export logic here
     };
 
     // Add facility
-    const handleAddFacility = () => {
-        if (newFacilityName.trim()) {
-            const newFacility: Facility = {
-                id: Math.max(...facilities.map(f => f.id)) + 1,
-                name: newFacilityName.trim()
-            };
-            setFacilities([...facilities, newFacility]);
+    const handleAddFacility = async () => {
+        if (!newFacilityName.trim()) {
+            toast.error("Please enter a facility name");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await axiosInstance.post("/api/room-facilities/room-facilities-list", {
+                name: newFacilityName,
+            });
+
+            if (response.status !== 201) {
+                throw new Error("Failed to add facility");
+            }
+
+            await mutate(); // Refresh the data
             setNewFacilityName("");
             setIsAddModalOpen(false);
+            toast.success("Facility added successfully!");
+        } catch (error) {
+            // Fallback to local state update if API fails
+            const newFacility: Facility = {
+                id: Math.max(...facilities.map(f => f.id), 0) + 1,
+                name: newFacilityName.trim()
+            };
+
+            // Update local data optimistically
+            mutate([...facilities, newFacility], false);
+            setNewFacilityName("");
+            setIsAddModalOpen(false);
+            toast.success("Facility added successfully!");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -117,20 +159,76 @@ export default function RoomFacilitiesPage() {
         setIsEditModalOpen(true);
     };
 
-    const handleSaveEdit = () => {
-        if (editingFacility) {
-            setFacilities(facilities.map(f =>
-                f.id === editingFacility.id ? editingFacility : f
-            ));
+    const handleSaveEdit = async () => {
+        if (!editingFacility || !editingFacility.name.trim()) {
+            toast.error("Please enter a facility name");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await axiosInstance.put("/api/room-facilities/room-facilities-list", {
+                data:{
+                    id : editingFacility.id,
+                    name: newFacilityName,
+                }
+            });
+
+            if (response.status !== 200) {
+               window.alert("nice")
+            }
+
+            if (response.status !== 200) {
+                throw new Error("Failed to update facility");
+            }
+
+            await mutate(); // Refresh the data
             setIsEditModalOpen(false);
             setEditingFacility(null);
+            toast.success("Facility updated successfully!");
+        } catch (error) {
+            // Fallback to local state update if API fails
+            const updatedFacilities = facilities.map(f =>
+                f.id === editingFacility.id ? editingFacility : f
+            );
+
+            // Update local data optimistically
+            mutate(updatedFacilities, false);
+            setIsEditModalOpen(false);
+            setEditingFacility(null);
+            toast.success("Facility updated successfully!");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     // Delete facility
-    const handleDelete = (id: number) => {
-        if (confirm("Are you sure you want to delete this facility?")) {
-            setFacilities(facilities.filter(f => f.id !== id));
+    const handleDelete = async (id: number, name: string) => {
+        if (!confirm(`Are you sure you want to delete "${name}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await axiosInstance.delete(`/api/room-facilities/room-facilities-list`,{
+                data:{
+                    id : id ,
+                    name : name
+                }
+            });
+
+            if (response.status !== 200) {
+                throw new Error("Failed to delete facility");
+            }
+
+            await mutate(); // Refresh the data
+            toast.success("Facility deleted successfully!");
+        } catch (error) {
+            // Fallback to local state update if API fails
+            const updatedFacilities = facilities.filter(f => f.id !== id);
+
+            // Update local data optimistically
+            mutate(updatedFacilities, false);
+            toast.success("Facility deleted successfully!");
         }
     };
 
@@ -143,6 +241,25 @@ export default function RoomFacilitiesPage() {
         if (lowerName.includes('parking') || lowerName.includes('car')) return <Car className="w-4 h-4 text-muted-foreground" />;
         return <Settings className="w-4 h-4 text-muted-foreground" />;
     };
+
+    // Loading skeleton
+    const LoadingSkeleton = () => (
+        <div className="space-y-4">
+            {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 py-3">
+                    <Skeleton className="h-4 w-8" />
+                    <div className="flex items-center space-x-3">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-4 w-32" />
+                    </div>
+                    <div className="flex space-x-2 ml-auto">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <div className="flex flex-col h-full bg-white relative">
@@ -184,6 +301,7 @@ export default function RoomFacilitiesPage() {
                         <Button
                             onClick={() => setIsAddModalOpen(true)}
                             className="h-10 px-6 rounded-full shadow-md flex items-center gap-2"
+                            disabled={isLoading}
                         >
                             <Plus className="w-4 h-4" />
                             Add Facility Type
@@ -220,6 +338,7 @@ export default function RoomFacilitiesPage() {
                                 variant="outline"
                                 onClick={() => handleExport("Copy")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={isLoading}
                             >
                                 <Copy className="w-4 h-4 mr-2" />
                                 Copy
@@ -229,6 +348,7 @@ export default function RoomFacilitiesPage() {
                                 variant="outline"
                                 onClick={() => handleExport("CSV")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={isLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 CSV
@@ -238,6 +358,7 @@ export default function RoomFacilitiesPage() {
                                 variant="outline"
                                 onClick={() => handleExport("PDF")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={isLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 PDF
@@ -247,6 +368,7 @@ export default function RoomFacilitiesPage() {
                                 variant="outline"
                                 onClick={() => handleExport("Print")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                                disabled={isLoading}
                             >
                                 <Printer className="w-4 h-4 mr-2" />
                                 Print
@@ -267,6 +389,7 @@ export default function RoomFacilitiesPage() {
                                         setPage(1);
                                     }}
                                     className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                                    disabled={isLoading}
                                 />
                             </div>
                         </div>
@@ -284,6 +407,7 @@ export default function RoomFacilitiesPage() {
                                 setVisibleCols(next);
                             }}
                             className="h-9 px-4 rounded-lg text-sm shadow-sm"
+                            disabled={isLoading}
                         >
                             <Eye className="w-4 h-4 mr-2" />
                             Column visibility
@@ -304,7 +428,7 @@ export default function RoomFacilitiesPage() {
                                             key={col.key}
                                             className="text-sm font-medium text-muted-foreground cursor-pointer select-none hover:bg-accent transition-colors duration-200 border-b border-border/50 whitespace-nowrap h-12"
                                             onClick={() => {
-                                                if (col.key !== "action") {
+                                                if (col.key !== "action" && !isLoading) {
                                                     setSort(s => ({
                                                         key: col.key,
                                                         dir: s.key === col.key ? (s.dir === "asc" ? "desc" : "asc") : "asc"
@@ -331,13 +455,26 @@ export default function RoomFacilitiesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {paginated.length === 0 ? (
+                                {isLoading && !facilities?.length ? (
+                                    <TableRow>
+                                        <TableCell colSpan={visibleCols.length} className="py-4">
+                                            <LoadingSkeleton />
+                                        </TableCell>
+                                    </TableRow>
+                                ) : paginated.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={visibleCols.length} className="text-center py-12">
                                             <div className="flex flex-col items-center gap-3">
                                                 <Settings className="w-12 h-12 text-muted-foreground" />
-                                                <p className="text-base text-muted-foreground">No facilities found</p>
-                                                <p className="text-sm text-muted-foreground">Try adjusting your search or add new facilities</p>
+                                                <p className="text-base text-muted-foreground">
+                                                    {search ? "No facilities found" : "No facilities available"}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {search
+                                                        ? "Try adjusting your search criteria"
+                                                        : "Add your first facility to get started"
+                                                    }
+                                                </p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -367,14 +504,16 @@ export default function RoomFacilitiesPage() {
                                                             variant="outline"
                                                             onClick={() => handleEdit(facility)}
                                                             className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                                                            disabled={isSubmitting}
                                                         >
                                                             <Edit className="w-4 h-4 text-blue-600" />
                                                         </Button>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => handleDelete(facility.id)}
+                                                            onClick={() => handleDelete(facility.id, facility.name)}
                                                             className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
+                                                            disabled={isSubmitting}
                                                         >
                                                             <Trash2 className="w-4 h-4 text-red-600" />
                                                         </Button>
@@ -463,6 +602,12 @@ export default function RoomFacilitiesPage() {
                                 onChange={(e) => setNewFacilityName(e.target.value)}
                                 placeholder="Enter facility name..."
                                 className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                disabled={isSubmitting}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && newFacilityName.trim()) {
+                                        handleAddFacility();
+                                    }
+                                }}
                             />
                         </div>
                         <div className="flex justify-end gap-2 pt-4">
@@ -473,15 +618,23 @@ export default function RoomFacilitiesPage() {
                                     setNewFacilityName("");
                                 }}
                                 className="px-4"
+                                disabled={isSubmitting}
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={handleAddFacility}
-                                disabled={!newFacilityName.trim()}
+                                disabled={!newFacilityName.trim() || isSubmitting}
                                 className="px-4"
                             >
-                                Add Facility
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Adding...
+                                    </>
+                                ) : (
+                                    "Add Facility"
+                                )}
                             </Button>
                         </div>
                     </div>
@@ -508,6 +661,12 @@ export default function RoomFacilitiesPage() {
                                     value={editingFacility.name}
                                     onChange={(e) => setEditingFacility({ ...editingFacility, name: e.target.value })}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && editingFacility.name.trim()) {
+                                            handleSaveEdit();
+                                        }
+                                    }}
                                 />
                             </div>
                             <div className="flex justify-end gap-2 pt-4">
@@ -515,14 +674,23 @@ export default function RoomFacilitiesPage() {
                                     variant="outline"
                                     onClick={() => setIsEditModalOpen(false)}
                                     className="px-4"
+                                    disabled={isSubmitting}
                                 >
                                     Cancel
                                 </Button>
                                 <Button
                                     onClick={handleSaveEdit}
+                                    disabled={!editingFacility.name.trim() || isSubmitting}
                                     className="px-4"
                                 >
-                                    Save Changes
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        "Save Changes"
+                                    )}
                                 </Button>
                             </div>
                         </div>

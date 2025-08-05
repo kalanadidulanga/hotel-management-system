@@ -15,6 +15,7 @@ import {
     Save
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface CustomerFormData {
     firstName: string;
@@ -89,17 +90,51 @@ export default function AddCustomerPage() {
 
         setIsLoading(true);
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/customer/customer-list`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    firstName : formData.firstName,
+                    lastName : formData.lastName,
+                    email : formData.email,
+                    phone : formData.phone,
+                    dateOfBirth : formData.dateOfBirth,
+                    profession : formData.profession,
+                    nationality : formData.nationality,
+                    nationalId : formData.nationalId,
+                    address : formData.address,
+                }),
+            });
 
-            console.log("Customer data:", formData);
-            alert("Customer added successfully!");
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to add new customer");
+            }
+            // alert("Customer added successfully!");
+            toast.success("Customer added successfully!");
 
-            // Redirect to customer list
-            window.location.href = "/customer/customer-list";
+            setFormData(
+                {
+                firstName: "",
+                lastName: "",
+                email: "",
+                phone: "",
+                dateOfBirth: "",
+                profession: "",
+                nationality: "native",
+                nationalId: "",
+                address: ""
+                }
+            )
+
+            
         } catch (error) {
-            console.error("Error adding customer:", error);
-            alert("Error adding customer. Please try again.");
+            // console.error("Error adding customer:", error);
+            toast.error((error as Error).message);
+
+            // alert("Error adding customer. Please try again.");
         } finally {
             setIsLoading(false);
         }
