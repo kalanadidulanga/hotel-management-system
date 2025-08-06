@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     Home,
     Plus,
@@ -26,10 +28,18 @@ import {
     DollarSign,
     Building,
     Zap,
-    Gift
+    Gift,
+    Loader2,
+    Settings
 } from "lucide-react";
 import { useState, useMemo } from "react";
-import Link from "next/link";
+import useSWR from "swr";
+import { toast } from "sonner";
+
+interface BedType {
+    id: number;
+    name: string;
+}
 
 interface Room {
     id: number;
@@ -41,83 +51,13 @@ interface Room {
     extraCapability: boolean;
     roomSize: string;
     bedNo: number;
-    bedType: string;
-    status: "Available" | "Occupied" | "Maintenance" | "Reserved";
+    bedType: BedType;
+    bedTypeId: number;
+    roomDescription?: string;
+    reserveCondition?: string;
+    status?: "Available" | "Occupied" | "Maintenance" | "Reserved";
     createdAt: string;
 }
-
-const mockRooms: Room[] = [
-    {
-        id: 1,
-        roomType: "Deluxe",
-        rate: 40000.00,
-        bedCharge: 5000.00,
-        personCharge: 2000.00,
-        capacity: 4,
-        extraCapability: true,
-        roomSize: "500 Double",
-        bedNo: 2,
-        bedType: "Queen Bed",
-        status: "Available",
-        createdAt: "2025-01-15"
-    },
-    {
-        id: 2,
-        roomType: "VIP",
-        rate: 75000.00,
-        bedCharge: 8000.00,
-        personCharge: 3500.00,
-        capacity: 6,
-        extraCapability: true,
-        roomSize: "750 Triple",
-        bedNo: 3,
-        bedType: "King Bed",
-        status: "Occupied",
-        createdAt: "2025-01-16"
-    },
-    {
-        id: 3,
-        roomType: "Standard",
-        rate: 25000.00,
-        bedCharge: 3000.00,
-        personCharge: 1500.00,
-        capacity: 2,
-        extraCapability: false,
-        roomSize: "300 Single",
-        bedNo: 1,
-        bedType: "Single Bed",
-        status: "Available",
-        createdAt: "2025-01-17"
-    },
-    {
-        id: 4,
-        roomType: "Suite",
-        rate: 100000.00,
-        bedCharge: 10000.00,
-        personCharge: 5000.00,
-        capacity: 8,
-        extraCapability: true,
-        roomSize: "1000 Master Suite",
-        bedNo: 4,
-        bedType: "King Bed",
-        status: "Reserved",
-        createdAt: "2025-01-18"
-    },
-    {
-        id: 5,
-        roomType: "Economy",
-        rate: 15000.00,
-        bedCharge: 2000.00,
-        personCharge: 1000.00,
-        capacity: 1,
-        extraCapability: false,
-        roomSize: "200 Single",
-        bedNo: 1,
-        bedType: "Single Bed",
-        status: "Maintenance",
-        createdAt: "2025-01-19"
-    }
-];
 
 const pageSizes = [10, 25, 50, 100];
 
@@ -135,18 +75,24 @@ const columns = [
     { key: "action", label: "Action" }
 ];
 
+// Fetcher function
+const fetcher = (url: string) => fetch(url).then(res => {
+    if (!res.ok) throw new Error('Failed to fetch');
+    return res.json();
+});
+
 export default function RoomListPage() {
     const [entries, setEntries] = useState(10);
     const [page, setPage] = useState(1);
     const [searchQuery, setSearchQuery] = useState("");
     const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "sl", dir: "asc" });
     const [visibleCols, setVisibleCols] = useState(columns.map(c => c.key));
-    const [rooms, setRooms] = useState<Room[]>(mockRooms);
 
     // Modal states
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         roomType: "",
         rate: "",
@@ -156,41 +102,46 @@ export default function RoomListPage() {
         extraCapability: false,
         roomSize: "",
         bedNo: "",
-        bedType: ""
+        bedTypeId: "",
+        roomDescription: "",
+        reserveCondition: ""
     });
 
+    // Fetch bed types using SWR
+    const { data: bedTypes = [], error: bedTypesError, isLoading: bedTypesLoading } = useSWR<BedType[]>(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/bed-list`,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+        }
+    );
+
+    // Fetch rooms using SWR
+    const { data: rooms = [], error: roomsError, isLoading: roomsLoading, mutate: mutateRooms } = useSWR<Room[]>(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/room-list`,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+        }
+    );
+
     // Handle form submission for add
-    const handleAddSubmit = () => {
-        if (!formData.roomType || !formData.rate || !formData.capacity) return;
+    const handleAddSubmit = async () => {
+        if (!formData.roomType || !formData.rate || !formData.capacity || !formData.bedTypeId) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
 
-        const newRoom: Room = {
-            id: Math.max(...rooms.map(r => r.id)) + 1,
-            roomType: formData.roomType,
-            rate: parseFloat(formData.rate),
-            bedCharge: parseFloat(formData.bedCharge) || 0,
-            personCharge: parseFloat(formData.personCharge) || 0,
-            capacity: parseInt(formData.capacity),
-            extraCapability: formData.extraCapability,
-            roomSize: formData.roomSize,
-            bedNo: parseInt(formData.bedNo) || 1,
-            bedType: formData.bedType,
-            status: "Available",
-            createdAt: new Date().toISOString().split('T')[0]
-        };
-
-        setRooms([...rooms, newRoom]);
-        setShowAddModal(false);
-        resetFormData();
-    };
-
-    // Handle form submission for edit
-    const handleEditSubmit = () => {
-        if (!selectedRoom || !formData.roomType || !formData.rate || !formData.capacity) return;
-
-        setRooms(rooms.map(r =>
-            r.id === selectedRoom.id
-                ? {
-                    ...r,
+        setIsSubmitting(true);
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/room-list`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
                     roomType: formData.roomType,
                     rate: parseFloat(formData.rate),
                     bedCharge: parseFloat(formData.bedCharge) || 0,
@@ -199,14 +150,77 @@ export default function RoomListPage() {
                     extraCapability: formData.extraCapability,
                     roomSize: formData.roomSize,
                     bedNo: parseInt(formData.bedNo) || 1,
-                    bedType: formData.bedType
-                }
-                : r
-        ));
+                    bedTypeId: parseInt(formData.bedTypeId),
+                    roomDescription: formData.roomDescription,
+                    reserveCondition: formData.reserveCondition
+                }),
+            });
 
-        setShowEditModal(false);
-        setSelectedRoom(null);
-        resetFormData();
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to add room");
+            }
+
+            // Refresh the rooms data
+            await mutateRooms();
+            setShowAddModal(false);
+            resetFormData();
+            toast.success("Room added successfully!");
+        } catch (error) {
+            console.error("Add room error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to add room. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Handle form submission for edit
+    const handleEditSubmit = async () => {
+        if (!selectedRoom || !formData.roomType || !formData.rate || !formData.capacity || !formData.bedTypeId) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/room-list`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    id: selectedRoom.id,
+                    roomType: formData.roomType,
+                    rate: parseFloat(formData.rate),
+                    bedCharge: parseFloat(formData.bedCharge) || 0,
+                    personCharge: parseFloat(formData.personCharge) || 0,
+                    capacity: parseInt(formData.capacity),
+                    extraCapability: formData.extraCapability,
+                    roomSize: formData.roomSize,
+                    bedNo: parseInt(formData.bedNo) || 1,
+                    bedTypeId: parseInt(formData.bedTypeId),
+                    roomDescription: formData.roomDescription,
+                    reserveCondition: formData.reserveCondition
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to update room");
+            }
+
+            // Refresh the rooms data
+            await mutateRooms();
+            setShowEditModal(false);
+            setSelectedRoom(null);
+            resetFormData();
+            toast.success("Room updated successfully!");
+        } catch (error) {
+            console.error("Update room error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to update room. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     // Reset form data
@@ -220,7 +234,9 @@ export default function RoomListPage() {
             extraCapability: false,
             roomSize: "",
             bedNo: "",
-            bedType: ""
+            bedTypeId: "",
+            roomDescription: "",
+            reserveCondition: ""
         });
     };
 
@@ -236,18 +252,21 @@ export default function RoomListPage() {
             extraCapability: room.extraCapability,
             roomSize: room.roomSize,
             bedNo: room.bedNo.toString(),
-            bedType: room.bedType
+            bedTypeId: room.bedTypeId.toString(),
+            roomDescription: room.roomDescription || "",
+            reserveCondition: room.reserveCondition || ""
         });
         setShowEditModal(true);
     };
 
     // Filtering
     const filteredRooms = useMemo(() => {
+        if (!rooms?.length) return [];
         return rooms.filter(room =>
-            room.roomType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            room.bedType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            room.roomSize.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            room.rate.toString().includes(searchQuery.toLowerCase())
+            room?.roomType?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+            room?.bedType?.name?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+            room?.roomSize?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+            room?.rate?.toString()?.includes(searchQuery.toLowerCase())
         );
     }, [searchQuery, rooms]);
 
@@ -271,6 +290,11 @@ export default function RoomListPage() {
                 const result = a.capacity - b.capacity;
                 return sort.dir === "asc" ? result : -result;
             });
+        } else if (sort.key === "bedType") {
+            sorted.sort((a, b) => {
+                const result = a.bedType.name.localeCompare(b.bedType.name);
+                return sort.dir === "asc" ? result : -result;
+            });
         }
         return sorted;
     }, [filteredRooms, sort]);
@@ -281,13 +305,33 @@ export default function RoomListPage() {
 
     // Export handlers
     const handleExport = (type: string) => {
-        alert(`Export as ${type}`);
+        toast.info(`Exporting as ${type}...`);
     };
 
     // Delete room
-    const handleDelete = (id: number) => {
-        if (confirm("Are you sure you want to delete this room?")) {
-            setRooms(rooms.filter(r => r.id !== id));
+    const handleDelete = async (id: number, roomType: string) => {
+        if (!confirm(`Are you sure you want to delete "${roomType}" room?`)) return;
+
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/room-list`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ id }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to delete room");
+            }
+
+            // Refresh the rooms data
+            await mutateRooms();
+            toast.success("Room deleted successfully!");
+        } catch (error) {
+            console.error("Delete room error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to delete room. Please try again.");
         }
     };
 
@@ -296,21 +340,51 @@ export default function RoomListPage() {
         return `${amount.toFixed(2)}`;
     };
 
-    // Get status badge
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'Available':
-                return <Badge className="bg-green-100 text-green-800 border-green-200">Available</Badge>;
-            case 'Occupied':
-                return <Badge className="bg-red-100 text-red-800 border-red-200">Occupied</Badge>;
-            case 'Reserved':
-                return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Reserved</Badge>;
-            case 'Maintenance':
-                return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Maintenance</Badge>;
-            default:
-                return <Badge variant="outline">{status}</Badge>;
-        }
-    };
+    // Loading skeleton
+    const LoadingSkeleton = () => (
+        <div className="space-y-4 p-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 py-3">
+                    <Skeleton className="h-4 w-8" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-12" />
+                    <Skeleton className="h-4 w-20" />
+                    <div className="flex space-x-2 ml-auto">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
+    // Error state
+    if (roomsError || bedTypesError) {
+        return (
+            <div className="flex flex-col h-full bg-white relative">
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                        <Settings className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-foreground mb-2">Error Loading Data</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            {roomsError ? "Failed to load rooms" : "Failed to load bed types"}
+                        </p>
+                        <Button onClick={() => {
+                            mutateRooms();
+                        }} variant="outline">
+                            Try Again
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full bg-white relative">
@@ -327,6 +401,12 @@ export default function RoomListPage() {
                             </BreadcrumbItem>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>
+                                <BreadcrumbLink href="/room-setting" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                    Room Setting
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>
                                 <BreadcrumbLink href="/room-setting/room-list" className="text-sm font-medium">
                                     Room List
                                 </BreadcrumbLink>
@@ -338,12 +418,16 @@ export default function RoomListPage() {
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                             <Building className="w-6 h-6 text-primary" />
-                            <h1 className="text-xl font-semibold text-foreground">Room List</h1>
+                            <div>
+                                <h1 className="text-xl font-semibold text-foreground">Room List</h1>
+                                <p className="text-sm text-muted-foreground">Manage hotel rooms and their configurations</p>
+                            </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
                             <Button
                                 onClick={() => setShowAddModal(true)}
                                 className="h-10 px-4 rounded-full shadow-md flex items-center gap-2"
+                                disabled={bedTypesLoading || roomsLoading}
                             >
                                 <Plus className="w-4 h-4" />
                                 Add New
@@ -402,6 +486,7 @@ export default function RoomListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("Copy")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                disabled={roomsLoading}
                             >
                                 <Copy className="w-4 h-4 mr-2" />
                                 Copy
@@ -411,6 +496,7 @@ export default function RoomListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("CSV")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                disabled={roomsLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 CSV
@@ -420,6 +506,7 @@ export default function RoomListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("PDF")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                disabled={roomsLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
                                 PDF
@@ -429,6 +516,7 @@ export default function RoomListPage() {
                                 variant="outline"
                                 onClick={() => handleExport("Print")}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                disabled={roomsLoading}
                             >
                                 <Printer className="w-4 h-4 mr-2" />
                                 Print
@@ -443,6 +531,7 @@ export default function RoomListPage() {
                                     setVisibleCols(next);
                                 }}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                disabled={roomsLoading}
                             >
                                 <Eye className="w-4 h-4 mr-2" />
                                 Column visibility
@@ -463,6 +552,7 @@ export default function RoomListPage() {
                                         setPage(1);
                                     }}
                                     className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                                    disabled={roomsLoading}
                                 />
                             </div>
                         </div>
@@ -482,7 +572,7 @@ export default function RoomListPage() {
                                             key={col.key}
                                             className="text-sm font-medium text-muted-foreground cursor-pointer select-none hover:bg-accent transition-colors duration-200 border-b border-border/50 whitespace-nowrap h-12"
                                             onClick={() => {
-                                                if (col.key !== "action") {
+                                                if (col.key !== "action" && !roomsLoading) {
                                                     setSort(s => ({
                                                         key: col.key,
                                                         dir: s.key === col.key ? (s.dir === "asc" ? "desc" : "asc") : "asc"
@@ -509,12 +599,26 @@ export default function RoomListPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {paginatedRooms.length === 0 ? (
+                                {roomsLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={visibleCols.length} className="p-0">
+                                            <LoadingSkeleton />
+                                        </TableCell>
+                                    </TableRow>
+                                ) : paginatedRooms.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={visibleCols.length} className="text-center py-12">
                                             <div className="flex flex-col items-center gap-3">
                                                 <Building className="w-12 h-12 text-muted-foreground" />
-                                                <p className="text-base text-muted-foreground">No rooms found</p>
+                                                <p className="text-base text-muted-foreground">
+                                                    {searchQuery ? "No rooms found" : "No rooms available"}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {searchQuery
+                                                        ? "Try adjusting your search criteria"
+                                                        : "Add your first room to get started"
+                                                    }
+                                                </p>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -579,7 +683,7 @@ export default function RoomListPage() {
                                             )}
                                             {visibleCols.includes("bedType") && (
                                                 <TableCell className="text-sm text-foreground py-3">
-                                                    {room.bedType}
+                                                    {room.bedType?.name}
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("action") && (
@@ -590,14 +694,16 @@ export default function RoomListPage() {
                                                             variant="outline"
                                                             onClick={() => handleEditClick(room)}
                                                             className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                                                            disabled={isSubmitting}
                                                         >
                                                             <Edit className="w-4 h-4 text-blue-600" />
                                                         </Button>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => handleDelete(room.id)}
+                                                            onClick={() => handleDelete(room.id, room.roomType)}
                                                             className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
+                                                            disabled={isSubmitting}
                                                         >
                                                             <Trash2 className="w-4 h-4 text-red-600" />
                                                         </Button>
@@ -618,7 +724,7 @@ export default function RoomListPage() {
                 <div className="px-4 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="text-sm text-muted-foreground">
-                            Showing {(page - 1) * entries + 1} to {Math.min(page * entries, sortedRooms.length)} of {sortedRooms.length} entries
+                            Showing {Math.min((page - 1) * entries + 1, sortedRooms.length)} to {Math.min(page * entries, sortedRooms.length)} of {sortedRooms.length} entries
                         </div>
 
                         {totalPages > 1 && (
@@ -668,7 +774,7 @@ export default function RoomListPage() {
 
             {/* Add Room Modal */}
             <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="sm:max-w-4xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Plus className="w-5 h-5" />
@@ -679,25 +785,21 @@ export default function RoomListPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="roomType" className="text-sm font-medium">
-                                    Room Type
+                                    Room Type *
                                 </Label>
-                                <Select value={formData.roomType} onValueChange={(value) => setFormData(prev => ({ ...prev, roomType: value }))}>
-                                    <SelectTrigger className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent">
-                                        <SelectValue placeholder="Select room type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Standard">Standard</SelectItem>
-                                        <SelectItem value="Deluxe">Deluxe</SelectItem>
-                                        <SelectItem value="VIP">VIP</SelectItem>
-                                        <SelectItem value="Suite">Suite</SelectItem>
-                                        <SelectItem value="Economy">Economy</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Input
+                                    id="roomType"
+                                    placeholder="Enter room type"
+                                    value={formData.roomType}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, roomType: e.target.value }))}
+                                    className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
+                                />
                             </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="rate" className="text-sm font-medium">
-                                    Rate
+                                    Rate *
                                 </Label>
                                 <Input
                                     id="rate"
@@ -706,6 +808,7 @@ export default function RoomListPage() {
                                     value={formData.rate}
                                     onChange={(e) => setFormData(prev => ({ ...prev, rate: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -720,6 +823,7 @@ export default function RoomListPage() {
                                     value={formData.bedCharge}
                                     onChange={(e) => setFormData(prev => ({ ...prev, bedCharge: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -734,12 +838,13 @@ export default function RoomListPage() {
                                     value={formData.personCharge}
                                     onChange={(e) => setFormData(prev => ({ ...prev, personCharge: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="capacity" className="text-sm font-medium">
-                                    Capacity
+                                    Capacity *
                                 </Label>
                                 <Input
                                     id="capacity"
@@ -748,6 +853,7 @@ export default function RoomListPage() {
                                     value={formData.capacity}
                                     onChange={(e) => setFormData(prev => ({ ...prev, capacity: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -761,6 +867,7 @@ export default function RoomListPage() {
                                     value={formData.roomSize}
                                     onChange={(e) => setFormData(prev => ({ ...prev, roomSize: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -775,24 +882,60 @@ export default function RoomListPage() {
                                     value={formData.bedNo}
                                     onChange={(e) => setFormData(prev => ({ ...prev, bedNo: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="bedType" className="text-sm font-medium">
-                                    Bed Type
+                                    Bed Type *
                                 </Label>
-                                <Select value={formData.bedType} onValueChange={(value) => setFormData(prev => ({ ...prev, bedType: value }))}>
+                                <Select value={formData.bedTypeId} onValueChange={(value) => setFormData(prev => ({ ...prev, bedTypeId: value }))}>
                                     <SelectTrigger className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent">
                                         <SelectValue placeholder="Select bed type" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Single Bed">Single Bed</SelectItem>
-                                        <SelectItem value="Queen Bed">Queen Bed</SelectItem>
-                                        <SelectItem value="King Bed">King Bed</SelectItem>
-                                        <SelectItem value="Bunk Bed">Bunk Bed</SelectItem>
+                                        {bedTypesLoading ? (
+                                            <SelectItem value="" disabled>Loading...</SelectItem>
+                                        ) : (
+                                            bedTypes.map((type) => (
+                                                <SelectItem key={type.id} value={type.id.toString()}>
+                                                    {type.name}
+                                                </SelectItem>
+                                            ))
+                                        )}
                                     </SelectContent>
                                 </Select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="roomDescription" className="text-sm font-medium">
+                                    Room Description
+                                </Label>
+                                <Textarea
+                                    id="roomDescription"
+                                    placeholder="Enter room description..."
+                                    value={formData.roomDescription}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, roomDescription: e.target.value }))}
+                                    className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent min-h-[80px]"
+                                    disabled={isSubmitting}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="reserveCondition" className="text-sm font-medium">
+                                    Reserve Condition
+                                </Label>
+                                <Textarea
+                                    id="reserveCondition"
+                                    placeholder="Enter reserve conditions..."
+                                    value={formData.reserveCondition}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, reserveCondition: e.target.value }))}
+                                    className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent min-h-[80px]"
+                                    disabled={isSubmitting}
+                                />
                             </div>
                         </div>
 
@@ -803,6 +946,7 @@ export default function RoomListPage() {
                                 checked={formData.extraCapability}
                                 onChange={(e) => setFormData(prev => ({ ...prev, extraCapability: e.target.checked }))}
                                 className="rounded border-border/50"
+                                disabled={isSubmitting}
                             />
                             <Label htmlFor="extraCapability" className="text-sm font-medium">
                                 Extra Capability Available
@@ -817,15 +961,23 @@ export default function RoomListPage() {
                                     resetFormData();
                                 }}
                                 className="px-4"
+                                disabled={isSubmitting}
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={handleAddSubmit}
-                                disabled={!formData.roomType || !formData.rate || !formData.capacity}
+                                disabled={!formData.roomType || !formData.rate || !formData.capacity || !formData.bedTypeId || isSubmitting}
                                 className="px-4"
                             >
-                                Add Room
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Adding...
+                                    </>
+                                ) : (
+                                    "Add Room"
+                                )}
                             </Button>
                         </div>
                     </div>
@@ -834,7 +986,7 @@ export default function RoomListPage() {
 
             {/* Edit Room Modal */}
             <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="sm:max-w-4xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Edit className="w-5 h-5" />
@@ -845,25 +997,21 @@ export default function RoomListPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="editRoomType" className="text-sm font-medium">
-                                    Room Type
+                                    Room Type *
                                 </Label>
-                                <Select value={formData.roomType} onValueChange={(value) => setFormData(prev => ({ ...prev, roomType: value }))}>
-                                    <SelectTrigger className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent">
-                                        <SelectValue placeholder="Select room type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Standard">Standard</SelectItem>
-                                        <SelectItem value="Deluxe">Deluxe</SelectItem>
-                                        <SelectItem value="VIP">VIP</SelectItem>
-                                        <SelectItem value="Suite">Suite</SelectItem>
-                                        <SelectItem value="Economy">Economy</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <Input
+                                    id="editRoomType"
+                                    placeholder="Enter room type"
+                                    value={formData.roomType}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, roomType: e.target.value }))}
+                                    className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
+                                />
                             </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="editRate" className="text-sm font-medium">
-                                    Rate
+                                    Rate *
                                 </Label>
                                 <Input
                                     id="editRate"
@@ -872,6 +1020,7 @@ export default function RoomListPage() {
                                     value={formData.rate}
                                     onChange={(e) => setFormData(prev => ({ ...prev, rate: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -886,6 +1035,7 @@ export default function RoomListPage() {
                                     value={formData.bedCharge}
                                     onChange={(e) => setFormData(prev => ({ ...prev, bedCharge: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -900,12 +1050,13 @@ export default function RoomListPage() {
                                     value={formData.personCharge}
                                     onChange={(e) => setFormData(prev => ({ ...prev, personCharge: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="editCapacity" className="text-sm font-medium">
-                                    Capacity
+                                    Capacity *
                                 </Label>
                                 <Input
                                     id="editCapacity"
@@ -914,6 +1065,7 @@ export default function RoomListPage() {
                                     value={formData.capacity}
                                     onChange={(e) => setFormData(prev => ({ ...prev, capacity: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -927,6 +1079,7 @@ export default function RoomListPage() {
                                     value={formData.roomSize}
                                     onChange={(e) => setFormData(prev => ({ ...prev, roomSize: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
@@ -941,24 +1094,60 @@ export default function RoomListPage() {
                                     value={formData.bedNo}
                                     onChange={(e) => setFormData(prev => ({ ...prev, bedNo: e.target.value }))}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
                                 />
                             </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="editBedType" className="text-sm font-medium">
-                                    Bed Type
+                                    Bed Type *
                                 </Label>
-                                <Select value={formData.bedType} onValueChange={(value) => setFormData(prev => ({ ...prev, bedType: value }))}>
+                                <Select value={formData.bedTypeId} onValueChange={(value) => setFormData(prev => ({ ...prev, bedTypeId: value }))}>
                                     <SelectTrigger className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent">
                                         <SelectValue placeholder="Select bed type" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Single Bed">Single Bed</SelectItem>
-                                        <SelectItem value="Queen Bed">Queen Bed</SelectItem>
-                                        <SelectItem value="King Bed">King Bed</SelectItem>
-                                        <SelectItem value="Bunk Bed">Bunk Bed</SelectItem>
+                                        {bedTypesLoading ? (
+                                            <SelectItem value="" disabled>Loading...</SelectItem>
+                                        ) : (
+                                            bedTypes.map((type) => (
+                                                <SelectItem key={type.id} value={type.id.toString()}>
+                                                    {type.name}
+                                                </SelectItem>
+                                            ))
+                                        )}
                                     </SelectContent>
                                 </Select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="editRoomDescription" className="text-sm font-medium">
+                                    Room Description
+                                </Label>
+                                <Textarea
+                                    id="editRoomDescription"
+                                    placeholder="Enter room description..."
+                                    value={formData.roomDescription}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, roomDescription: e.target.value }))}
+                                    className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent min-h-[80px]"
+                                    disabled={isSubmitting}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="editReserveCondition" className="text-sm font-medium">
+                                    Reserve Condition
+                                </Label>
+                                <Textarea
+                                    id="editReserveCondition"
+                                    placeholder="Enter reserve conditions..."
+                                    value={formData.reserveCondition}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, reserveCondition: e.target.value }))}
+                                    className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent min-h-[80px]"
+                                    disabled={isSubmitting}
+                                />
                             </div>
                         </div>
 
@@ -969,6 +1158,7 @@ export default function RoomListPage() {
                                 checked={formData.extraCapability}
                                 onChange={(e) => setFormData(prev => ({ ...prev, extraCapability: e.target.checked }))}
                                 className="rounded border-border/50"
+                                disabled={isSubmitting}
                             />
                             <Label htmlFor="editExtraCapability" className="text-sm font-medium">
                                 Extra Capability Available
@@ -984,15 +1174,23 @@ export default function RoomListPage() {
                                     resetFormData();
                                 }}
                                 className="px-4"
+                                disabled={isSubmitting}
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={handleEditSubmit}
-                                disabled={!formData.roomType || !formData.rate || !formData.capacity}
+                                disabled={!formData.roomType || !formData.rate || !formData.capacity || !formData.bedTypeId || isSubmitting}
                                 className="px-4"
                             >
-                                Update Room
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Updating...
+                                    </>
+                                ) : (
+                                    "Update Room"
+                                )}
                             </Button>
                         </div>
                     </div>

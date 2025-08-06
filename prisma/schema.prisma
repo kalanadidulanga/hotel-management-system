@@ -75,6 +75,7 @@ model Customer {
   guestImageUrl    String?
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
+    reservations    Reservation[]
 }
 
 
@@ -85,3 +86,114 @@ enum Nationality {
   foreigner
 }
 
+
+model ComplementaryItem {
+  id            Int     @id @default(autoincrement())
+  roomType      String
+  complementary String
+  rate          Int
+
+  reservations  Reservation[] @relation("ReservationToComplementary")
+}
+
+
+model Reservation {
+  id                 Int       @id @default(autoincrement())
+  checkInDate        DateTime
+  checkOutDate       DateTime
+  checkInTime        String
+  checkOutTime       String
+  arrivalFrom        String?
+  bookingType        String?
+  purposeOfVisit     String
+  remarks            String?
+
+  roomType           String
+  roomNumber         String
+  adults             Int?
+  children           Int?
+  roomPrice          Int
+  billingType        String     // "nightly" or "hourly"
+
+  // RELATION to ComplementaryItem
+  complementaryItems ComplementaryItem[] @relation("ReservationToComplementary")
+
+  customerId         Int
+  customer           Customer   @relation(fields: [customerId], references: [id])
+
+  discountReason     String?
+  discountAmount     Int        @default(0)
+
+  commissionPercent  Int        @default(0)
+  commissionAmount   Int        @default(0)
+
+  bookingCharge      Int        @default(0)
+  tax                Int        @default(0)
+  serviceCharge      Int        @default(0)
+
+  paymentMode        String
+  advanceRemarks     String?
+  advanceAmount      Int        @default(0)
+
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+}
+
+
+
+model BedType {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+rooms     RoomList[]  // Relation to RoomList
+
+}
+
+model BookingType {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  bookingSources BookingSource[]
+}
+
+model BookingSource {
+  id              Int          @id @default(autoincrement())
+  bookingType     BookingType  @relation(fields: [bookingTypeId], references: [id])
+  bookingTypeId   Int
+
+  bookingSource   String
+  commissionRate  Float @default(0.0)
+  totalBalance    Float @default(0.0)
+  paidAmount      Float @default(0.0)
+  dueAmount       Float @default(0.0)
+}
+  
+
+ 
+model RoomList {
+  id               Int      @id @default(autoincrement())
+  roomType         String   @unique
+  rate             Float
+  bedCharge        Float
+  personCharge     Float
+  capacity         Int
+  extraCapability  Boolean
+  roomSize         String
+  bedNo            Int
+
+  bedTypeId        Int
+  bedType          BedType   @relation(fields: [bedTypeId], references: [id])
+  roomDescription  String?
+  reserveCondition String?
+
+  createdAt        DateTime  @default(now())
+
+  roomImages       RoomImage[]
+}
+
+model RoomImage {
+  id          Int      @id @default(autoincrement())
+  roomType    String
+  imageUrl    String
+  createdAt   DateTime @default(now())
+
+  room        RoomList @relation(fields: [roomType], references: [roomType])
+}

@@ -1,45 +1,41 @@
 "use client";
-
-import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format, differenceInHours, differenceInDays } from "date-fns";
+import { countries } from "@/data/countries";
+import { differenceInDays, differenceInHours, format } from "date-fns";
 import {
-    Home,
-    Plus,
-    CalendarIcon,
     Building,
-    User,
+    CalendarIcon,
+    Camera,
     CreditCard,
-    Receipt,
     DollarSign,
     Edit,
-    Trash2,
-    Upload,
-    Users,
-    Clock,
+    Gift,
+    IdCard,
+    List,
+    Mail,
     MapPin,
     Phone,
-    Mail,
-    IdCard,
-    Camera,
-    MessageCircle,
-    List,
+    Plus,
+    Receipt,
     Search,
+    Trash2,
+    Upload,
+    User,
     UserCheck,
-    Gift
+    Users
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface Customer {
     id: number;
@@ -47,13 +43,13 @@ interface Customer {
     mobile: string;
     checkIn: string;
     checkOut: string;
-    rent: number;
+  
 }
 
 interface ExistingCustomer {
     id: number;
-    name: string;
-    mobile: string;
+    firstName: string;
+    phone: string;
     email: string;
     address: string;
     nationality: string;
@@ -94,65 +90,19 @@ interface NewCustomer {
 
 interface Complimentary {
     id: string;
-    name: string;
-    price: number;
+    roomType: string;
+    complementary : string;
+    rate: number;
 }
 
 const mockCustomers: Customer[] = [
-    {
-        id: 1,
-        name: "John Doe",
-        mobile: "+1234567890",
-        checkIn: "2025-07-17 15:00",
-        checkOut: "2025-07-17 03:00",
-        rent: 35000
-    }
+   
 ];
 
 // Mock existing customers database
 const mockExistingCustomers: ExistingCustomer[] = [
-    {
-        id: 1,
-        name: "Alice Johnson",
-        mobile: "9876543210",
-        email: "alice@example.com",
-        address: "123 Main St, New York, NY",
-        nationality: "American",
-        identityType: "Passport",
-        identityNumber: "A12345678",
-        isVip: true,
-        dateOfBirth: "1985-05-15",
-        gender: "Female",
-        occupation: "Software Engineer"
-    },
-    {
-        id: 2,
-        name: "Bob Wilson",
-        mobile: "8765432109",
-        email: "bob@example.com",
-        address: "456 Oak Ave, Los Angeles, CA",
-        nationality: "American",
-        identityType: "Driver's License",
-        identityNumber: "DL987654321",
-        isVip: false,
-        dateOfBirth: "1990-08-22",
-        gender: "Male",
-        occupation: "Doctor"
-    },
-    {
-        id: 3,
-        name: "Charlie Brown",
-        mobile: "7654321098",
-        email: "charlie@example.com",
-        address: "789 Pine Rd, Chicago, IL",
-        nationality: "American",
-        identityType: "National ID",
-        identityNumber: "N123456789",
-        isVip: false,
-        dateOfBirth: "1988-12-10",
-        gender: "Male",
-        occupation: "Teacher"
-    }
+   
+   
 ];
 
 // Room data with hourly rates
@@ -179,11 +129,12 @@ const roomTypes = {
 
 // Complimentary items
 const complimentaryItems: Complimentary[] = [
-    { id: "welcome-drink", name: "Welcome Drink", price: 500 },
-    { id: "breakfast", name: "Breakfast", price: 1200 },
-    { id: "wifi", name: "WiFi", price: 300 },
-    { id: "spa", name: "Spa Access", price: 2000 },
-    { id: "parking", name: "Parking", price: 800 }
+    { id: "welcome-drink", roomType: "single", complementary: "Welcome Drink", rate: 500 },
+    { id: "breakfast", roomType: "double", complementary: "Breakfast", rate: 1200 },
+    { id: "airport-transfer", roomType: "suite", complementary: "Airport Transfer", rate: 3000 },
+    { id: "late-checkout", roomType: "single", complementary: "Late Checkout", rate: 1500 },
+    { id: "early-checkin", roomType: "double", complementary: "Early Check-in", rate: 2000 },
+
 ];
 
 export default function NewReservationPage() {
@@ -236,9 +187,11 @@ export default function NewReservationPage() {
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState("");
 
+
+
     // New customer form state
     const [newCustomer, setNewCustomer] = useState<NewCustomer>({
-        countryCode: "+1",
+        countryCode: "+94",
         mobile: "",
         title: "Mr",
         firstName: "",
@@ -309,6 +262,8 @@ export default function NewReservationPage() {
 
     // Handle complimentary selection
     const handleComplimentaryChange = (itemId: string, checked: boolean) => {
+        if (!roomType) return; // Prevent selection if no room type is selected
+
         if (checked) {
             setSelectedComplimentary([...selectedComplimentary, itemId]);
         } else {
@@ -319,11 +274,11 @@ export default function NewReservationPage() {
     // Calculate complimentary total
     const complimentaryTotal = selectedComplimentary.reduce((sum, itemId) => {
         const item = complimentaryItems.find(c => c.id === itemId);
-        return sum + (item ? item.price : 0);
+        return sum + (item ? item.rate : 0);
     }, 0);
 
     // Calculate totals
-    const subtotal = customers.reduce((sum, customer) => sum + customer.rent, 0) + roomPrice + complimentaryTotal;
+    const subtotal = customers.reduce((sum, customer) => sum + 0 , 0) + roomPrice + complimentaryTotal;
     const total = subtotal + tax + serviceCharge - discountAmount - commissionAmount;
 
     // Get duration info for display
@@ -354,7 +309,7 @@ export default function NewReservationPage() {
     };
 
     // Handle search customer by mobile
-    const handleSearchCustomer = () => {
+    const handleSearchCustomer = async () => {
         if (!searchMobile.trim()) {
             setSearchError("Please enter a mobile number");
             return;
@@ -363,30 +318,35 @@ export default function NewReservationPage() {
         setIsSearching(true);
         setSearchError("");
 
-        // Simulate API call delay
-        setTimeout(() => {
-            const customer = mockExistingCustomers.find(c => c.mobile === searchMobile.trim());
-            if (customer) {
-                setFoundCustomer(customer);
-                setSearchError("");
+        try {
+            const response = await fetch(`/api/room-reservation/new-customer?mobile=${searchMobile.trim()}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                setFoundCustomer(data.customer);
             } else {
                 setFoundCustomer(null);
-                setSearchError("Customer not found with this mobile number");
+                setSearchError(data.error || "Customer not found");
             }
+        } catch (err) {
+            console.error(err);
+            setSearchError("Something went wrong");
+        } finally {
             setIsSearching(false);
-        }, 500);
+        }
     };
+
 
     // Handle add existing customer to booking
     const handleAddExistingCustomer = () => {
         if (foundCustomer) {
             const customer: Customer = {
                 id: customers.length + 1,
-                name: foundCustomer.name,
-                mobile: foundCustomer.mobile,
+                name: foundCustomer.firstName,
+                mobile: foundCustomer.phone,
                 checkIn: checkInDate ? format(checkInDate, "yyyy-MM-dd") + " " + checkInTime : "",
                 checkOut: checkOutDate ? format(checkOutDate, "yyyy-MM-dd") + " " + checkOutTime : "",
-                rent: roomPrice
+                
             };
             setCustomers([...customers, customer]);
             setIsOldCustomerModalOpen(false);
@@ -398,18 +358,73 @@ export default function NewReservationPage() {
     };
 
     // Handle new customer save
-    const handleSaveNewCustomer = () => {
-        if (newCustomer.firstName && newCustomer.mobile) {
+    const handleSaveNewCustomer = async () => {
+        if (!newCustomer.firstName || !newCustomer.mobile) {
+            alert("First name and mobile are required.");
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+
+            formData.append("countryCode", newCustomer.countryCode);
+            formData.append("mobile", newCustomer.mobile);
+            formData.append("title", newCustomer.title);
+            formData.append("firstName", newCustomer.firstName);
+            formData.append("lastName", newCustomer.lastName || "");
+            formData.append("gender", newCustomer.gender);
+            formData.append("occupation", newCustomer.occupation || "");
+            if (newCustomer.dateOfBirth) {
+                formData.append("dateOfBirth", newCustomer.dateOfBirth.toISOString());
+            }
+            if (newCustomer.anniversary) {
+                formData.append("anniversary", newCustomer.anniversary.toISOString());
+            }
+            formData.append("nationality", newCustomer.nationality);
+            formData.append("isVip", newCustomer.isVip.toString());
+            formData.append("contactType", newCustomer.contactType);
+            formData.append("email", newCustomer.email);
+            formData.append("country", newCustomer.country);
+            formData.append("state", newCustomer.state);
+            formData.append("city", newCustomer.city);
+            formData.append("zipcode", newCustomer.zipcode);
+            formData.append("address", newCustomer.address);
+            formData.append("identityType", newCustomer.identityType);
+            formData.append("identityNumber", newCustomer.identityNumber);
+
+            if (newCustomer.frontSideImage) {
+                formData.append("frontSideImage", newCustomer.frontSideImage);
+            }
+            if (newCustomer.backSideImage) {
+                formData.append("backSideImage", newCustomer.backSideImage);
+            }
+            if (newCustomer.guestImage) {
+                formData.append("guestImage", newCustomer.guestImage);
+            }
+
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-reservation/new-customer`, {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!res.ok) throw new Error("Failed to save customer.");
+
+            const result = await res.json();
+            console.log("Customer saved:", result);
+
+            // You may update UI with result.customer if needed
             const customer: Customer = {
-                id: customers.length + 1,
+                id: result.customer.id,
                 name: `${newCustomer.firstName} ${newCustomer.lastName}`,
                 mobile: newCustomer.mobile,
                 checkIn: checkInDate ? format(checkInDate, "yyyy-MM-dd") + " " + checkInTime : "",
                 checkOut: checkOutDate ? format(checkOutDate, "yyyy-MM-dd") + " " + checkOutTime : "",
-                rent: roomPrice
+                
             };
+
             setCustomers([...customers, customer]);
             setIsNewCustomerModalOpen(false);
+
             // Reset form
             setNewCustomer({
                 countryCode: "+1",
@@ -435,10 +450,18 @@ export default function NewReservationPage() {
                 frontSideImage: null,
                 backSideImage: null,
                 guestImage: null,
-                comments: ""
+                comments: "",
             });
+        } catch (error) {
+            console.error("Error saving customer:", error);
+            alert("Failed to save customer. See console for details.");
         }
     };
+
+
+    const handleSaveNewResvation = async () => {
+    }
+
 
     // Handle delete customer
     const handleDeleteCustomer = (id: number) => {
@@ -674,35 +697,48 @@ export default function NewReservationPage() {
                             <CardTitle className="flex items-center gap-2">
                                 <Gift className="w-5 h-5" />
                                 Complimentary Services
+                                {!roomType && (
+                                    <span className="text-sm text-muted-foreground ml-2">(Select room type first)</span>
+                                )}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {complimentaryItems.map(item => (
-                                    <div key={item.id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                                        <Checkbox
-                                            id={item.id}
-                                            checked={selectedComplimentary.includes(item.id)}
-                                            onCheckedChange={(checked) => handleComplimentaryChange(item.id, checked as boolean)}
-                                        />
-                                        <div className="flex-1">
-                                            <Label htmlFor={item.id} className="font-medium cursor-pointer">
-                                                {item.name}
-                                            </Label>
-                                            <p className="text-sm text-muted-foreground">Rs. {item.price}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            {selectedComplimentary.length > 0 && (
-                                <div className="mt-4 p-4 bg-green-50 rounded-lg">
-                                    <p className="text-sm text-green-800">
-                                        <strong>Complimentary Total:</strong> Rs. {complimentaryTotal.toLocaleString()}
-                                    </p>
+                            {!roomType ? (
+                                <div className="text-center py-8">
+                                    <Gift className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                                    <p className="text-muted-foreground">Please select a room type to view available complimentary services</p>
                                 </div>
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {complimentaryItems.filter(item => item.roomType === roomType).map(item => (
+                                            <div key={item.id} className="flex items-center space-x-3 p-3 border rounded-lg">
+                                                <Checkbox
+                                                    id={item.id}
+                                                    checked={selectedComplimentary.includes(item.id)}
+                                                    onCheckedChange={(checked) => handleComplimentaryChange(item.id, checked as boolean)}
+                                                />
+                                                <div className="flex-1">
+                                                    <Label htmlFor={item.id} className="font-medium cursor-pointer">
+                                                        {item.complementary}
+                                                    </Label>
+                                                    <p className="text-sm text-muted-foreground">Rs. {item.rate}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {selectedComplimentary.length > 0 && (
+                                        <div className="mt-4 p-4 bg-green-50 rounded-lg">
+                                            <p className="text-sm text-green-800">
+                                                <strong>Complimentary Total:</strong> Rs. {complimentaryTotal.toLocaleString()}
+                                            </p>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </CardContent>
                     </Card>
+                   
 
                     {/* Customer Info */}
                     <Card>
@@ -740,7 +776,7 @@ export default function NewReservationPage() {
                                         <TableHead>Mobile No</TableHead>
                                         <TableHead>Check In</TableHead>
                                         <TableHead>Check Out</TableHead>
-                                        <TableHead>Rent</TableHead>
+                                        
                                         <TableHead>Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -750,9 +786,9 @@ export default function NewReservationPage() {
                                             <TableCell>{index + 1}</TableCell>
                                             <TableCell>{customer.name}</TableCell>
                                             <TableCell>{customer.mobile}</TableCell>
-                                            <TableCell>{customer.checkIn}</TableCell>
-                                            <TableCell>{customer.checkOut}</TableCell>
-                                            <TableCell>{customer.rent.toLocaleString()}</TableCell>
+                                            <TableCell>{checkInDate ? format(checkInDate, "PPP p") : ""}</TableCell>
+                                            <TableCell>{checkOutDate ? format(checkOutDate, "PPP p") : ""}</TableCell>
+
                                             <TableCell>
                                                 <div className="flex gap-2">
                                                     <Button size="sm" variant="outline">
@@ -879,7 +915,7 @@ export default function NewReservationPage() {
 
                     {/* Save Button */}
                     <div className="flex justify-end">
-                        <Button className="px-8">
+                        <Button onClick={handleSaveNewResvation} className="px-8">
                             Save Reservation
                         </Button>
                     </div>
@@ -959,14 +995,14 @@ export default function NewReservationPage() {
                                                 <User className="w-4 h-4 text-muted-foreground" />
                                                 <div>
                                                     <p className="text-sm text-muted-foreground">Name</p>
-                                                    <p className="font-medium">{foundCustomer.name}</p>
+                                                    <p className="font-medium">{foundCustomer.firstName}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Phone className="w-4 h-4 text-muted-foreground" />
                                                 <div>
-                                                    <p className="text-sm text-muted-foreground">Mobile</p>
-                                                    <p className="font-medium">{foundCustomer.mobile}</p>
+                                                    <p className="text-sm text-muted-foreground">Phone</p>
+                                                    <p className="font-medium">{foundCustomer.phone}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -1062,9 +1098,10 @@ export default function NewReservationPage() {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
+                                                
                                                 <SelectItem value="+1">+1 (US)</SelectItem>
                                                 <SelectItem value="+91">+91 (India)</SelectItem>
-                                                <SelectItem value="+44">+44 (UK)</SelectItem>
+                                                <SelectItem value="+94">+44 (UK)</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
