@@ -33,14 +33,20 @@ import {
 import useSWR from "swr";
 import { toast } from "sonner";
 
+interface BookingType {
+    id: number;
+    name: string;
+}
+
 interface BookingSource {
     id: number;
-    booking_type: string;
-    booking_source: string;
-    commission_rate: number;
-    total_balance: number;
-    paid_amount: number;
-    due_amount: number;
+    bookingType: BookingType;
+    bookingTypeId: number;
+    bookingSource: string;
+    commissionRate: number;
+    totalBalance: number;
+    paidAmount: number;
+    dueAmount: number;
 }
 
 const pageSizes = [10, 25, 50, 100];
@@ -79,12 +85,20 @@ export default function BookingSourcePage() {
 
     // Form states
     const [formData, setFormData] = useState({
-        booking_type: "",
-        booking_source: "",
-        commission_rate: ""
+        bookingTypeId: "",
+        bookingSource: "",
+        commissionRate: ""
     });
 
-    // Use SWR to fetch data
+    // Use SWR to fetch booking types
+    const { data: bookingTypes = [], error: bookingTypesError, isLoading: bookingTypesLoading } = useSWR<BookingType[]>(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/booking-type-list`,
+        fetcher,
+        
+        
+    );
+
+    // Use SWR to fetch booking sources
     const { data: bookingSources = [], error, isLoading, mutate } = useSWR<BookingSource[]>(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/booking-source`,
         fetcher,
@@ -94,14 +108,15 @@ export default function BookingSourcePage() {
         }
     );
 
+    console.log("Booking Types:", bookingTypes);
     console.log("Booking Sources:", bookingSources);
 
     // Filtering with null safety
     const filtered = useMemo(() => {
         if (!bookingSources?.length) return [];
         return bookingSources.filter(source =>
-            source?.booking_type?.toLowerCase()?.includes(search.toLowerCase()) ||
-            source?.booking_source?.toLowerCase()?.includes(search.toLowerCase())
+            source?.bookingType?.name?.toLowerCase()?.includes(search.toLowerCase()) ||
+            source?.bookingSource?.toLowerCase()?.includes(search.toLowerCase())
         );
     }, [search, bookingSources]);
 
@@ -113,17 +128,17 @@ export default function BookingSourcePage() {
         } else if (sort.key === "bookingType") {
             sortedSources.sort((a, b) => {
                 return sort.dir === "asc"
-                    ? a.booking_type.localeCompare(b.booking_type)
-                    : b.booking_type.localeCompare(a.booking_type);
+                    ? a.bookingType.name.localeCompare(b.bookingType.name)
+                    : b.bookingType.name.localeCompare(a.bookingType.name);
             });
         } else if (sort.key === "bookingSource") {
             sortedSources.sort((a, b) => {
                 return sort.dir === "asc"
-                    ? a.booking_source.localeCompare(b.booking_source)
-                    : b.booking_source.localeCompare(a.booking_source);
+                    ? a.bookingSource.localeCompare(b.bookingSource)
+                    : b.bookingSource.localeCompare(a.bookingSource);
             });
         } else if (sort.key === "commissionRate") {
-            sortedSources.sort((a, b) => sort.dir === "asc" ? a.commission_rate - b.commission_rate : b.commission_rate - a.commission_rate);
+            sortedSources.sort((a, b) => sort.dir === "asc" ? a.commissionRate - b.commissionRate : b.commissionRate - a.commissionRate);
         }
         return sortedSources;
     }, [filtered, sort]);
@@ -139,7 +154,7 @@ export default function BookingSourcePage() {
 
     // Add booking source
     const handleAddSource = async () => {
-        if (!formData.booking_type.trim() || !formData.booking_source.trim() || !formData.commission_rate.trim()) {
+        if (!formData.bookingTypeId.trim() || !formData.bookingSource.trim() || !formData.commissionRate.trim()) {
             toast.error("Please fill in all fields");
             return;
         }
@@ -151,7 +166,14 @@ export default function BookingSourcePage() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({
+                    bookingTypeId: parseInt(formData.bookingTypeId),
+                    bookingSource: formData.bookingSource,
+                    commissionRate: parseFloat(formData.commissionRate),
+                    totalBalance: 0,
+                    paidAmount: 0,
+                    dueAmount: 0
+                }),
             });
 
             if (!response.ok) {
@@ -161,7 +183,7 @@ export default function BookingSourcePage() {
 
             // Refresh the data
             await mutate();
-            setFormData({ booking_type: "", booking_source: "", commission_rate: "" });
+            setFormData({ bookingTypeId: "", bookingSource: "", commissionRate: "" });
             setIsAddModalOpen(false);
             toast.success("Booking source added successfully!");
         } catch (error) {
@@ -176,15 +198,15 @@ export default function BookingSourcePage() {
     const handleEdit = (source: BookingSource) => {
         setEditingSource({ ...source });
         setFormData({
-            booking_type: source.booking_type,
-            booking_source: source.booking_source,
-            commission_rate: source.commission_rate.toString()
+            bookingTypeId: source.bookingTypeId.toString(),
+            bookingSource: source.bookingSource,
+            commissionRate: source.commissionRate.toString()
         });
         setIsEditModalOpen(true);
     };
 
     const handleSaveEdit = async () => {
-        if (!formData.booking_type.trim() || !formData.booking_source.trim() || !formData.commission_rate.trim()) {
+        if (!formData.bookingTypeId.trim() || !formData.bookingSource.trim() || !formData.commissionRate.trim()) {
             toast.error("Please fill in all fields");
             return;
         }
@@ -198,7 +220,9 @@ export default function BookingSourcePage() {
                 },
                 body: JSON.stringify({
                     id: editingSource?.id,
-                    ...formData
+                    bookingTypeId: parseInt(formData.bookingTypeId),
+                    bookingSource: formData.bookingSource,
+                    commissionRate: parseFloat(formData.commissionRate),
                 }),
             });
 
@@ -211,7 +235,7 @@ export default function BookingSourcePage() {
             await mutate();
             setIsEditModalOpen(false);
             setEditingSource(null);
-            setFormData({ booking_type: "", booking_source: "", commission_rate: "" });
+            setFormData({ bookingTypeId: "", bookingSource: "", commissionRate: "" });
             toast.success("Booking source updated successfully!");
         } catch (error) {
             console.error("Update booking source error:", error);
@@ -243,7 +267,7 @@ export default function BookingSourcePage() {
                 },
                 body: JSON.stringify({
                     id: payingSource?.id,
-                    payment_amount: Number(paymentAmount)
+                    paymentAmount: Number(paymentAmount)
                 }),
             });
 
@@ -327,7 +351,7 @@ export default function BookingSourcePage() {
     );
 
     // Error state
-    if (error) {
+    if (error || bookingTypesError) {
         return (
             <div className="flex flex-col h-full bg-white relative">
                 <div className="flex-1 flex items-center justify-center">
@@ -571,37 +595,37 @@ export default function BookingSourcePage() {
                                             )}
                                             {visibleCols.includes("bookingType") && (
                                                 <TableCell className="text-sm py-3">
-                                                    <span className="text-foreground font-medium">{source.booking_type}</span>
+                                                    <span className="text-foreground font-medium">{source.bookingType.name}</span>
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("bookingSource") && (
                                                 <TableCell className="text-sm py-3">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                                                            {getSourceIcon(source.booking_source)}
+                                                            {getSourceIcon(source.bookingSource)}
                                                         </div>
-                                                        <span className="text-foreground font-medium">{source.booking_source}</span>
+                                                        <span className="text-foreground font-medium">{source.bookingSource}</span>
                                                     </div>
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("commissionRate") && (
                                                 <TableCell className="text-sm py-3">
-                                                    <span className="text-foreground font-medium">{source.commission_rate}%</span>
+                                                    <span className="text-foreground font-medium">{source.commissionRate}%</span>
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("totalBalance") && (
                                                 <TableCell className="text-sm py-3">
-                                                    <span className="text-foreground font-medium">₹{source.total_balance.toLocaleString()}</span>
+                                                    <span className="text-foreground font-medium">₹{source.totalBalance.toLocaleString()}</span>
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("paidAmount") && (
                                                 <TableCell className="text-sm py-3">
-                                                    <span className="text-foreground font-medium">₹{source.paid_amount.toLocaleString()}</span>
+                                                    <span className="text-foreground font-medium">₹{source.paidAmount.toLocaleString()}</span>
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("dueAmount") && (
                                                 <TableCell className="text-sm py-3">
-                                                    <span className="text-foreground font-medium">₹{source.due_amount.toLocaleString()}</span>
+                                                    <span className="text-foreground font-medium">₹{source.dueAmount.toLocaleString()}</span>
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("action") && (
@@ -628,7 +652,7 @@ export default function BookingSourcePage() {
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => handleDelete(source.id, source.booking_source)}
+                                                            onClick={() => handleDelete(source.id, source.bookingSource)}
                                                             className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
                                                             disabled={isSubmitting}
                                                         >
@@ -713,14 +737,18 @@ export default function BookingSourcePage() {
                             <Label htmlFor="bookingType" className="text-sm font-medium">
                                 Booking Type
                             </Label>
-                            <Input
-                                id="bookingType"
-                                value={formData.booking_type}
-                                onChange={(e) => setFormData({ ...formData, booking_type: e.target.value })}
-                                placeholder="Enter booking type..."
-                                className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
-                                disabled={isSubmitting}
-                            />
+                            <Select value={formData.bookingTypeId} onValueChange={(value) => setFormData({ ...formData, bookingTypeId: value })}>
+                                <SelectTrigger className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent">
+                                    <SelectValue placeholder="Select booking type..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {bookingTypes.map((type) => (
+                                        <SelectItem key={type.id} value={type.id.toString()}>
+                                            {type.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="bookingSource" className="text-sm font-medium">
@@ -728,8 +756,8 @@ export default function BookingSourcePage() {
                             </Label>
                             <Input
                                 id="bookingSource"
-                                value={formData.booking_source}
-                                onChange={(e) => setFormData({ ...formData, booking_source: e.target.value })}
+                                value={formData.bookingSource}
+                                onChange={(e) => setFormData({ ...formData, bookingSource: e.target.value })}
                                 placeholder="Enter booking source..."
                                 className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
                                 disabled={isSubmitting}
@@ -742,8 +770,8 @@ export default function BookingSourcePage() {
                             <Input
                                 id="commissionRate"
                                 type="number"
-                                value={formData.commission_rate}
-                                onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })}
+                                value={formData.commissionRate}
+                                onChange={(e) => setFormData({ ...formData, commissionRate: e.target.value })}
                                 placeholder="Enter commission rate..."
                                 className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
                                 disabled={isSubmitting}
@@ -754,7 +782,7 @@ export default function BookingSourcePage() {
                                 variant="outline"
                                 onClick={() => {
                                     setIsAddModalOpen(false);
-                                    setFormData({ booking_type: "", booking_source: "", commission_rate: "" });
+                                    setFormData({ bookingTypeId: "", bookingSource: "", commissionRate: "" });
                                 }}
                                 className="px-4"
                                 disabled={isSubmitting}
@@ -763,7 +791,7 @@ export default function BookingSourcePage() {
                             </Button>
                             <Button
                                 onClick={handleAddSource}
-                                disabled={!formData.booking_type.trim() || !formData.booking_source.trim() || !formData.commission_rate.trim() || isSubmitting}
+                                disabled={!formData.bookingTypeId.trim() || !formData.bookingSource.trim() || !formData.commissionRate.trim() || isSubmitting}
                                 className="px-4"
                             >
                                 {isSubmitting ? (
@@ -794,13 +822,18 @@ export default function BookingSourcePage() {
                             <Label htmlFor="editBookingType" className="text-sm font-medium">
                                 Booking Type
                             </Label>
-                            <Input
-                                id="editBookingType"
-                                value={formData.booking_type}
-                                onChange={(e) => setFormData({ ...formData, booking_type: e.target.value })}
-                                className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
-                                disabled={isSubmitting}
-                            />
+                            <Select value={formData.bookingTypeId} onValueChange={(value) => setFormData({ ...formData, bookingTypeId: value })}>
+                                <SelectTrigger className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent">
+                                    <SelectValue placeholder="Select booking type..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {bookingTypes.map((type) => (
+                                        <SelectItem key={type.id} value={type.id.toString()}>
+                                            {type.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="editBookingSource" className="text-sm font-medium">
@@ -808,8 +841,8 @@ export default function BookingSourcePage() {
                             </Label>
                             <Input
                                 id="editBookingSource"
-                                value={formData.booking_source}
-                                onChange={(e) => setFormData({ ...formData, booking_source: e.target.value })}
+                                value={formData.bookingSource}
+                                onChange={(e) => setFormData({ ...formData, bookingSource: e.target.value })}
                                 className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
                                 disabled={isSubmitting}
                             />
@@ -821,8 +854,8 @@ export default function BookingSourcePage() {
                             <Input
                                 id="editCommissionRate"
                                 type="number"
-                                value={formData.commission_rate}
-                                onChange={(e) => setFormData({ ...formData, commission_rate: e.target.value })}
+                                value={formData.commissionRate}
+                                onChange={(e) => setFormData({ ...formData, commissionRate: e.target.value })}
                                 className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
                                 disabled={isSubmitting}
                             />
@@ -832,7 +865,7 @@ export default function BookingSourcePage() {
                                 variant="outline"
                                 onClick={() => {
                                     setIsEditModalOpen(false);
-                                    setFormData({ booking_type: "", booking_source: "", commission_rate: "" });
+                                    setFormData({ bookingTypeId: "", bookingSource: "", commissionRate: "" });
                                 }}
                                 className="px-4"
                                 disabled={isSubmitting}
@@ -841,7 +874,7 @@ export default function BookingSourcePage() {
                             </Button>
                             <Button
                                 onClick={handleSaveEdit}
-                                disabled={!formData.booking_type.trim() || !formData.booking_source.trim() || !formData.commission_rate.trim() || isSubmitting}
+                                disabled={!formData.bookingTypeId.trim() || !formData.bookingSource.trim() || !formData.commissionRate.trim() || isSubmitting}
                                 className="px-4"
                             >
                                 {isSubmitting ? (
@@ -871,9 +904,9 @@ export default function BookingSourcePage() {
                         <div className="space-y-4">
                             <div className="p-4 bg-muted rounded-lg">
                                 <p className="text-sm text-muted-foreground">Booking Source</p>
-                                <p className="font-medium">{payingSource.booking_source}</p>
+                                <p className="font-medium">{payingSource.bookingSource}</p>
                                 <p className="text-sm text-muted-foreground mt-2">Due Amount</p>
-                                <p className="font-medium text-red-600">₹{payingSource.due_amount.toLocaleString()}</p>
+                                <p className="font-medium text-red-600">₹{payingSource.dueAmount.toLocaleString()}</p>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="paymentAmount" className="text-sm font-medium">

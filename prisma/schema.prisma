@@ -197,3 +197,19 @@ model RoomImage {
 
   room        RoomList @relation(fields: [roomType], references: [roomType])
 }
+
+
+model Floor {
+  id           Int          @id @default(autoincrement())
+  name         String       @unique
+  floorLists   FloorList[]  // one-to-many relation
+}
+
+model FloorList {
+  id           Int        @id @default(autoincrement())
+  floorName    String     // foreign key to Floor
+  floor       Floor      @relation(fields: [floorName], references: [name])
+  noOfRoom     Int
+  startRoomNo  Int
+  createdAt    DateTime   @default(now())
+}

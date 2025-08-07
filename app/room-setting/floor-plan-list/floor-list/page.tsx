@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,37 +24,23 @@ import {
     Settings,
     ChevronUp,
     ChevronDown,
-    Building2,
-    MapPin,
-    Users,
-    Hash
+    Building2
 } from "lucide-react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import Link from "next/link";
 
-// Interface for floor data
-interface Floor {
-    id: number;
-    floorName: string;
-    noOfRoom: number;
-    startRoomNo: number;
-    createdAt: string;
-}
-
-// Interface for floor names from API (for assign floor dropdown)
+// Interface for floor names data
 interface FloorName {
     id: number;
     name: string;
+    createdAt: string;
 }
 
 const pageSizes = [10, 25, 50, 100];
 
 const columns = [
     { key: "sl", label: "SL" },
-    { key: "floorName", label: "Floor Name" },
-    { key: "noOfRoom", label: "No of Room" },
-    { key: "startRoomNo", label: "Start Room No" },
+    { key: "name", label: "Floor Name" },
     { key: "action", label: "Action" },
 ];
 
@@ -64,34 +50,24 @@ const fetcher = (url: string) => fetch(url).then(res => {
     return res.json();
 });
 
-export default function FloorPlanListPage() {
+export default function FloorListPage() {
     const [entries, setEntries] = useState(10);
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
     const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "sl", dir: "asc" });
     const [visibleCols, setVisibleCols] = useState(columns.map(c => c.key));
 
-    const [editingFloor, setEditingFloor] = useState<Floor | null>(null);
+    const [editingFloor, setEditingFloor] = useState<FloorName | null>(null);
     const [isAddFloorModalOpen, setIsAddFloorModalOpen] = useState(false);
-    const [isAssignFloorModalOpen, setIsAssignFloorModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [isFloorListModalOpen, setIsFloorListModalOpen] = useState(false);
 
-    // Form states for Add Floor
+    // Form states
     const [newFloorName, setNewFloorName] = useState("");
-    const [newNoOfRoom, setNewNoOfRoom] = useState("");
-    const [newStartRoomNo, setNewStartRoomNo] = useState("");
-
-    // Form states for Assign Floor
-    const [selectedFloorName, setSelectedFloorName] = useState("");
-    const [assignNoOfRoom, setAssignNoOfRoom] = useState("");
-    const [assignStartRoomNo, setAssignStartRoomNo] = useState("");
-
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Use SWR to fetch floor data
-    const { data: floors = [], error, isLoading, mutate } = useSWR<Floor[]>(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/floor-plan-list`,
+    // Use SWR to fetch floor names data
+    const { data: floorNames = [], error, isLoading, mutate } = useSWR<FloorName[]>(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/floor-plan-list/floor`,
         fetcher,
         {
             revalidateOnFocus: false,
@@ -99,41 +75,27 @@ export default function FloorPlanListPage() {
         }
     );
 
-    // Use SWR to fetch floor names for assign dropdown
-    const { data: floorNames = [], isLoading: isLoadingFloorNames , mutate: mutateFloorNames } = useSWR<FloorName[]>(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/floor-plan-list/floor`,
-        fetcher,
-        
-    );
-
-    console.log("Floors Data:", floors);
     console.log("Floor Names Data:", floorNames);
 
     // Filtering
     const filtered = useMemo(() => {
-        if (!floors?.length) return [];
-        return floors.filter(floor =>
-            floor?.floorName?.toLowerCase()?.includes(search.toLowerCase()) ||
-            floor?.noOfRoom?.toString()?.includes(search) ||
-            floor?.startRoomNo?.toString()?.includes(search)
+        if (!floorNames?.length) return [];
+        return floorNames.filter(floor =>
+            floor?.name?.toLowerCase()?.includes(search.toLowerCase())
         );
-    }, [search, floors]);
+    }, [search, floorNames]);
 
     // Sorting
     const sorted = useMemo(() => {
         const sortedFloors = [...filtered];
         if (sort.key === "sl") {
             sortedFloors.sort((a, b) => sort.dir === "asc" ? a.id - b.id : b.id - a.id);
-        } else if (sort.key === "floorName") {
+        } else if (sort.key === "name") {
             sortedFloors.sort((a, b) => {
                 return sort.dir === "asc"
-                    ? a.floorName.localeCompare(b.floorName)
-                    : b.floorName.localeCompare(a.floorName);
+                    ? a.name.localeCompare(b.name)
+                    : b.name.localeCompare(a.name);
             });
-        } else if (sort.key === "noOfRoom") {
-            sortedFloors.sort((a, b) => sort.dir === "asc" ? a.noOfRoom - b.noOfRoom : b.noOfRoom - a.noOfRoom);
-        } else if (sort.key === "startRoomNo") {
-            sortedFloors.sort((a, b) => sort.dir === "asc" ? a.startRoomNo - b.startRoomNo : b.startRoomNo - a.startRoomNo);
         }
         return sortedFloors;
     }, [filtered, sort]);
@@ -150,14 +112,6 @@ export default function FloorPlanListPage() {
     // Reset form states
     const resetAddFloorForm = () => {
         setNewFloorName("");
-        setNewNoOfRoom("");
-        setNewStartRoomNo("");
-    };
-
-    const resetAssignFloorForm = () => {
-        setSelectedFloorName("");
-        setAssignNoOfRoom("");
-        setAssignStartRoomNo("");
     };
 
     // Add floor
@@ -166,7 +120,6 @@ export default function FloorPlanListPage() {
             toast.error("Please enter floor name");
             return;
         }
-      
 
         setIsSubmitting(true);
         try {
@@ -177,7 +130,6 @@ export default function FloorPlanListPage() {
                 },
                 body: JSON.stringify({
                     name: newFloorName,
-                   
                 }),
             });
 
@@ -187,7 +139,6 @@ export default function FloorPlanListPage() {
             }
 
             await mutate();
-            await mutateFloorNames(); // Refresh floor names for assign dropdown
             resetAddFloorForm();
             setIsAddFloorModalOpen(false);
             toast.success("Floor added successfully!");
@@ -199,77 +150,29 @@ export default function FloorPlanListPage() {
         }
     };
 
-    // Assign floor
-    const handleAssignFloor = async () => {
-        if (!selectedFloorName.trim()) {
-            toast.error("Please select a floor name");
-            return;
-        }
-        if (!assignNoOfRoom.trim()) {
-            toast.error("Please enter number of rooms");
-            return;
-        }
-        if (!assignStartRoomNo.trim()) {
-            toast.error("Please enter start room number");
-            return;
-        }
-
-        setIsSubmitting(true);
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/floor-plan-list`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    floorName: selectedFloorName,
-                    noOfRoom: parseInt(assignNoOfRoom),
-                    startRoomNo: parseInt(assignStartRoomNo),
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || "Failed to assign floor");
-            }
-
-            await mutate();
-            resetAssignFloorForm();
-            setIsAssignFloorModalOpen(false);
-            toast.success("Floor assigned successfully!");
-        } catch (error) {
-            console.error("Assign floor error:", error);
-            toast.error(error instanceof Error ? error.message : "Failed to assign floor. Please try again.");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
     // Edit floor
-    const handleEdit = (floor: Floor) => {
+    const handleEdit = (floor: FloorName) => {
         setEditingFloor({ ...floor });
         setIsEditModalOpen(true);
     };
 
     // Save edit
     const handleSaveEdit = async () => {
-        if (!editingFloor?.floorName?.trim()) {
+        if (!editingFloor?.name?.trim()) {
             toast.error("Please provide floor name");
             return;
         }
 
         setIsSubmitting(true);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/floor-plan-list`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/floor-plan-list/floor`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
                     id: editingFloor.id,
-                    floorName: editingFloor.floorName,
-                    noOfRoom: editingFloor.noOfRoom,
-                    startRoomNo: editingFloor.startRoomNo,
+                    name: editingFloor.name,
                 }),
             });
 
@@ -295,7 +198,7 @@ export default function FloorPlanListPage() {
         if (!confirm(`Are you sure you want to delete "${floorName}" floor?`)) return;
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/floor-plan-list`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/floor-plan-list/floor`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -334,8 +237,6 @@ export default function FloorPlanListPage() {
                         <Skeleton className="h-8 w-8 rounded-full" />
                         <Skeleton className="h-4 w-32" />
                     </div>
-                    <Skeleton className="h-4 w-16" />
-                    <Skeleton className="h-4 w-20" />
                     <div className="flex space-x-2 ml-auto">
                         <Skeleton className="h-8 w-8 rounded-full" />
                         <Skeleton className="h-8 w-8 rounded-full" />
@@ -353,7 +254,7 @@ export default function FloorPlanListPage() {
                     <div className="text-center">
                         <Settings className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-foreground mb-2">Error Loading Data</h3>
-                        <p className="text-sm text-muted-foreground mb-4">Failed to load floor plan list</p>
+                        <p className="text-sm text-muted-foreground mb-4">Failed to load floor list</p>
                         <Button onClick={() => mutate()} variant="outline">
                             Try Again
                         </Button>
@@ -384,53 +285,36 @@ export default function FloorPlanListPage() {
                             </BreadcrumbItem>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>
-                                <BreadcrumbLink href="/room-setting/floor-plan-list" className="text-sm font-medium">
+                                <BreadcrumbLink href="/room-setting/floor-plan-list" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                                     Floor Plan List
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>
+                                <BreadcrumbLink href="/room-setting/floor-plan-list/floor-list" className="text-sm font-medium">
+                                    Floor List
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
 
-                    {/* Title & Action Buttons */}
+                    {/* Title & Add Button */}
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                             <Building2 className="w-6 h-6 text-primary" />
                             <div>
-                                <h1 className="text-xl font-semibold text-foreground">Floor Plan List</h1>
-                                <p className="text-sm text-muted-foreground">Manage building floors and room assignments</p>
+                                <h1 className="text-xl font-semibold text-foreground">Floor List</h1>
+                                <p className="text-sm text-muted-foreground">Manage floor names in the building</p>
                             </div>
                         </div>
-                        <div className="flex gap-2">
-                            <Button
-                                onClick={() => setIsAssignFloorModalOpen(true)}
-                                
-                                className="h-10 px-4 rounded-full shadow-md flex items-center gap-2"
-                                disabled={isLoading}
-                            >
-                                <MapPin className="w-4 h-4" />
-                                Assign Floor
-                            </Button>
-                            <Button
-                                onClick={() => setIsAddFloorModalOpen(true)}
-                                variant="outline"
-                                className="h-10 px-4 rounded-full shadow-md flex items-center gap-2"
-                                disabled={isLoading}
-                            >
-                                <Plus className="w-4 h-4" />
-                                Add Floor
-                            </Button>
-                            <Link href="/room-setting/floor-plan-list/floor-list" passHref>
-                            <Button
-                                onClick={() => setIsFloorListModalOpen(true)}
-                                variant="outline"
-                                className="h-10 px-4 rounded-full shadow-md flex items-center gap-2"
-                                disabled={isLoading}
-                            >
-                                <Building2 className="w-4 h-4" />
-                                Floor List
-                            </Button>
-                            </Link>
-                        </div>
+                        <Button
+                            onClick={() => setIsAddFloorModalOpen(true)}
+                            className="h-10 px-6 rounded-full shadow-md flex items-center gap-2"
+                            disabled={isLoading}
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Floor
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -527,7 +411,7 @@ export default function FloorPlanListPage() {
                             variant="outline"
                             onClick={() => {
                                 const next = visibleCols.length === columns.length ?
-                                    ["sl", "floorName", "noOfRoom", "startRoomNo"] :
+                                    ["sl", "name"] :
                                     columns.map(c => c.key);
                                 setVisibleCols(next);
                             }}
@@ -611,29 +495,13 @@ export default function FloorPlanListPage() {
                                                     {(page - 1) * entries + idx + 1}
                                                 </TableCell>
                                             )}
-                                            {visibleCols.includes("floorName") && (
+                                            {visibleCols.includes("name") && (
                                                 <TableCell className="text-sm py-3">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                                                            {getFloorIcon(floor.floorName)}
+                                                            {getFloorIcon(floor.name)}
                                                         </div>
-                                                        <span className="text-foreground font-medium">{floor.floorName}</span>
-                                                    </div>
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("noOfRoom") && (
-                                                <TableCell className="text-sm py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Users className="w-4 h-4 text-muted-foreground" />
-                                                        <span className="text-foreground font-medium">{floor.noOfRoom}</span>
-                                                    </div>
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("startRoomNo") && (
-                                                <TableCell className="text-sm py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Hash className="w-4 h-4 text-muted-foreground" />
-                                                        <span className="text-foreground font-medium">{floor.startRoomNo}</span>
+                                                        <span className="text-foreground font-medium">{floor.name}</span>
                                                     </div>
                                                 </TableCell>
                                             )}
@@ -652,7 +520,7 @@ export default function FloorPlanListPage() {
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => handleDelete(floor.id, floor.floorName)}
+                                                            onClick={() => handleDelete(floor.id, floor.name)}
                                                             className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
                                                             disabled={isSubmitting}
                                                         >
@@ -747,10 +615,6 @@ export default function FloorPlanListPage() {
                             />
                         </div>
 
-                     
-
-                      
-
                         <div className="flex justify-end gap-2 pt-4">
                             <Button
                                 variant="outline"
@@ -765,7 +629,7 @@ export default function FloorPlanListPage() {
                             </Button>
                             <Button
                                 onClick={handleAddFloor}
-                                disabled={!newFloorName.trim()  || isSubmitting}
+                                disabled={!newFloorName.trim() || isSubmitting}
                                 className="px-4"
                             >
                                 {isSubmitting ? (
@@ -775,102 +639,6 @@ export default function FloorPlanListPage() {
                                     </>
                                 ) : (
                                     "Add Floor"
-                                )}
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* Assign Floor Modal */}
-            <Dialog open={isAssignFloorModalOpen} onOpenChange={setIsAssignFloorModalOpen}>
-                <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <MapPin className="w-5 h-5" />
-                            Assign Floor
-                        </DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="assignFloorName" className="text-sm font-medium">
-                                Floor Name *
-                            </Label>
-                            <Select
-                                value={selectedFloorName}
-                                onValueChange={setSelectedFloorName}
-                                disabled={isSubmitting || isLoadingFloorNames}
-                            >
-                                <SelectTrigger className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent">
-                                    <SelectValue placeholder={isLoadingFloorNames ? "Loading floor names..." : "Select a floor name"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {floorNames.map((floorName) => (
-                                        <SelectItem key={floorName.id} value={floorName.name}>
-                                            <div className="flex items-center gap-2">
-                                                {getFloorIcon(floorName.name)}
-                                                <span>{floorName.name}</span>
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="assignNoOfRoom" className="text-sm font-medium">
-                                Number of Rooms *
-                            </Label>
-                            <Input
-                                id="assignNoOfRoom"
-                                type="number"
-                                value={assignNoOfRoom}
-                                onChange={(e) => setAssignNoOfRoom(e.target.value)}
-                                placeholder="Enter number of rooms..."
-                                className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
-                                disabled={isSubmitting}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="assignStartRoomNo" className="text-sm font-medium">
-                                Start Room Number *
-                            </Label>
-                            <Input
-                                id="assignStartRoomNo"
-                                type="number"
-                                value={assignStartRoomNo}
-                                onChange={(e) => setAssignStartRoomNo(e.target.value)}
-                                placeholder="Enter start room number..."
-                                className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
-                                disabled={isSubmitting}
-                            />
-                        </div>
-
-                        <div className="flex justify-end gap-2 pt-4">
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    setIsAssignFloorModalOpen(false);
-                                    resetAssignFloorForm();
-                                }}
-                                className="px-4"
-                                disabled={isSubmitting}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleAssignFloor}
-                                disabled={!selectedFloorName.trim() || !assignNoOfRoom.trim() || !assignStartRoomNo.trim() || isSubmitting}
-                                className="px-4"
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Assigning...
-                                    </>
-                                ) : (
-                                    "Assign Floor"
                                 )}
                             </Button>
                         </div>
@@ -895,44 +663,10 @@ export default function FloorPlanListPage() {
                                 </Label>
                                 <Input
                                     id="editFloorName"
-                                    value={editingFloor.floorName}
+                                    value={editingFloor.name}
                                     onChange={(e) => setEditingFloor({
                                         ...editingFloor,
-                                        floorName: e.target.value
-                                    })}
-                                    className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="editNoOfRoom" className="text-sm font-medium">
-                                    Number of Rooms *
-                                </Label>
-                                <Input
-                                    id="editNoOfRoom"
-                                    type="number"
-                                    value={editingFloor.noOfRoom}
-                                    onChange={(e) => setEditingFloor({
-                                        ...editingFloor,
-                                        noOfRoom: parseInt(e.target.value) || 0
-                                    })}
-                                    className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
-                                    disabled={isSubmitting}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="editStartRoomNo" className="text-sm font-medium">
-                                    Start Room Number *
-                                </Label>
-                                <Input
-                                    id="editStartRoomNo"
-                                    type="number"
-                                    value={editingFloor.startRoomNo}
-                                    onChange={(e) => setEditingFloor({
-                                        ...editingFloor,
-                                        startRoomNo: parseInt(e.target.value) || 0
+                                        name: e.target.value
                                     })}
                                     className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
                                     disabled={isSubmitting}
@@ -953,7 +687,7 @@ export default function FloorPlanListPage() {
                                 </Button>
                                 <Button
                                     onClick={handleSaveEdit}
-                                    disabled={!editingFloor.floorName.trim() || isSubmitting}
+                                    disabled={!editingFloor.name.trim() || isSubmitting}
                                     className="px-4"
                                 >
                                     {isSubmitting ? (
@@ -970,9 +704,6 @@ export default function FloorPlanListPage() {
                     )}
                 </DialogContent>
             </Dialog>
-
-            
-     
         </div>
     );
 }
