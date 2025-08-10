@@ -50,7 +50,7 @@ model Room_Size_List{
 
 model Customer {
   id               Int          @id @default(autoincrement())
-  title            String
+  title            String?
   firstName        String
   lastName         String?
   gender           String
@@ -62,13 +62,13 @@ model Customer {
   email            String       @unique
   countryCode      String
   phone            String       @unique             // ✅ matches 'mobile' in UI
-  contactType      String
-  country          String
-  state            String
-  city             String
-  zipcode          String
+  contactType      String?
+  country          String?
+  state            String?
+  city             String?
+  zipcode          String?
   address          String
-  identityType     String
+  identityType     String?
   identityNumber   String       @unique             // ✅ was 'nationalId'
   frontIdUrl       String?
   backIdUrl        String?
@@ -92,7 +92,7 @@ model ComplementaryItem {
   roomType      String
   complementary String
   rate          Int
-
+  room_type     RoomList @relation(fields: [roomType], references: [roomType])
   reservations  Reservation[] @relation("ReservationToComplementary")
 }
 
@@ -173,20 +173,20 @@ model RoomList {
   roomType         String   @unique
   rate             Float
   bedCharge        Float
+  hourlyCharge     Float
   personCharge     Float
   capacity         Int
-  extraCapability  Boolean
-  roomSize         String
+  extraCapability  Boolean  
+  roomSize         String   
   bedNo            Int
-
-  bedTypeId        Int
+  bedTypeId        Int       
   bedType          BedType   @relation(fields: [bedTypeId], references: [id])
   roomDescription  String?
   reserveCondition String?
-
   createdAt        DateTime  @default(now())
-
-  roomImages       RoomImage[]
+  roomImages       RoomImage[] 
+  promocodes       Promocode[] 
+  complementaryItems ComplementaryItem[] 
 }
 
 model RoomImage {
@@ -212,4 +212,17 @@ model FloorList {
   noOfRoom     Int
   startRoomNo  Int
   createdAt    DateTime   @default(now())
+}
+
+
+model Promocode {
+  id         Int       @id @default(autoincrement())
+  roomType   String
+  room       RoomList  @relation(fields: [roomType], references: [roomType])
+  fromDate   DateTime
+  toDate     DateTime
+  discount   Int
+  promocode  String    @unique
+  status     String
+  createdAt  DateTime  @default(now())
 }

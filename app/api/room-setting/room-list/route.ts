@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
       roomType,
       rate,
       bedCharge,
+      hourlyCharge,
       personCharge,
       capacity,
       extraCapability,
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
       typeof roomType !== "string" ||
       typeof rate !== "number" ||
       typeof bedCharge !== "number" ||
+      typeof hourlyCharge !== "number" ||
       typeof personCharge !== "number" ||
       typeof capacity !== "number" ||
       typeof extraCapability !== "boolean" ||
@@ -61,6 +63,7 @@ export async function POST(req: NextRequest) {
         roomType,
         rate,
         bedCharge,
+        hourlyCharge,
         personCharge,
         capacity,
         extraCapability,
@@ -91,6 +94,7 @@ export async function PUT(req: NextRequest) {
       roomType,
       rate,
       bedCharge,
+      hourlyCharge,
       personCharge,
       capacity,
       extraCapability,
@@ -114,6 +118,7 @@ export async function PUT(req: NextRequest) {
         roomType,
         rate,
         bedCharge,
+        hourlyCharge,
         personCharge,
         capacity,
         extraCapability,

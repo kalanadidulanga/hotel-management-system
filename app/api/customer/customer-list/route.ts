@@ -1,360 +1,380 @@
-// import prisma from "@/lib/db";
-// import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/db";
 
-// // GET: Fetch customers with server-side filtering, pagination, and sorting
-// export async function GET(req: NextRequest) {
-//   try {
-//     const { searchParams } = new URL(req.url);
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const sortBy = searchParams.get("sortBy") || "id";
+    const sortOrder = searchParams.get("sortOrder") || "asc";
+    const search = searchParams.get("search") || "";
 
-//     // Extract query parameters
-//     const page = parseInt(searchParams.get("page") || "1");
-//     const limit = parseInt(searchParams.get("limit") || "10");
-//     const sortBy = searchParams.get("sortBy") || "id";
-//     const sortOrder = searchParams.get("sortOrder") || "asc";
-//     const search = searchParams.get("search") || "";
+    
 
-//     // Debug logging
-//     console.log("Search parameters:", {
-//       page,
-//       limit,
-//       sortBy,
-//       sortOrder,
-//       search,
-//     });
+    const skip = (page - 1) * limit;
 
-//     // Calculate offset for pagination
-//     const offset = (page - 1) * limit;
+    // Build where clause for search
+  const trimmedSearch = search.trim();
 
-//     // Build where clause for search - Fixed the search logic
-//     const whereClause = search.trim()
-//       ? {
-//           OR: [
-//             {
-//               firstName: {
-//                 contains: search.trim(),
-//                 mode: "insensitive" as const,
-//               },
-//             },
-//             {
-//               lastName: {
-//                 contains: search.trim(),
-//                 mode: "insensitive" as const,
-//               },
-//             },
-//             {
-//               email: { contains: search.trim(), mode: "insensitive" as const },
-//             },
-//             {
-//               phone: { contains: search.trim(), mode: "insensitive" as const },
-//             },
-//             {
-//               nationalId: {
-//                 contains: search.trim(),
-//                 mode: "insensitive" as const,
-//               },
-//             },
-//             {
-//               profession: {
-//                 contains: search.trim(),
-//                 mode: "insensitive" as const,
-//               },
-//             },
-//           ],
-//         }
-//       : {};
+  const whereClause = trimmedSearch
+    ? {
+        OR: [
+          { firstName: { contains: trimmedSearch } },
+          { lastName: { contains: trimmedSearch } },
+          { email: { contains: trimmedSearch } },
+          { phone: { contains: trimmedSearch } },
+          { occupation: { contains: trimmedSearch } },
+          { city: { contains: trimmedSearch } },
+        ],
+      }
+    : {};
 
-//     console.log("Where clause:", JSON.stringify(whereClause, null, 2));
 
-//     // Build orderBy clause
-//     let orderBy: any = { id: "asc" };
+    // Build orderBy clause
+    let orderBy: any = {};
 
-//     if (sortBy === "sl" || sortBy === "id") {
-//       orderBy = { id: sortOrder };
-//     } else if (sortBy === "firstName") {
-//       orderBy = { firstName: sortOrder };
-//     } else if (sortBy === "lastName") {
-//       orderBy = { lastName: sortOrder };
-//     } else if (sortBy === "email") {
-//       orderBy = { email: sortOrder };
-//     } else if (sortBy === "phone") {
-//       orderBy = { phone: sortOrder };
-//     }
+    // Map frontend sort keys to database fields
+    switch (sortBy) {
+      case "sl":
+        orderBy = { id: sortOrder };
+        break;
+      case "firstName":
+        orderBy = { firstName: sortOrder };
+        break;
+      case "lastName":
+        orderBy = { lastName: sortOrder };
+        break;
+      case "email":
+        orderBy = { email: sortOrder };
+        break;
+      case "phone":
+        orderBy = { phone: sortOrder };
+        break;
+      case "balance":
+        orderBy = { id: sortOrder }; // Since we don't have balance field in schema, use id
+        break;
+      default:
+        orderBy = { id: sortOrder };
+    }
 
-//     // Fetch customers with pagination
-//     const [customers, total] = await Promise.all([
-//       prisma.customer.findMany({
-//         where: whereClause,
-//         orderBy,
-//         skip: offset,
-//         take: limit,
-//         select: {
-//           id: true,
-//           firstName: true,
-//           lastName: true,
-//           email: true,
-//           phone: true,
-//           nationality: true,
-//           occupation: true,
-//           nationalId: true, // Add this field for debugging
-//           createdAt: true,
-//         },
-//       }),
-//       prisma.customer.count({
-//         where: whereClause,
-//       }),
-//     ]);
+    // Get customers with pagination
+    const [customers, total] = await Promise.all([
+      prisma.customer.findMany({
+        where: whereClause,
+        orderBy,
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          title: true,
+          gender: true,
+          dateOfBirth: true,
+          nationality: true,
+          isVip: true,
+          occupation: true,
+          countryCode: true,
+          contactType: true,
+          country: true,
+          state: true,
+          city: true,
+          zipcode: true,
+          address: true,
+          identityType: true,
+          identityNumber: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      prisma.customer.count({ where: whereClause }),
+    ]);
 
-//     console.log(`Found ${customers.length} customers out of ${total} total`);
+    // Transform data to match frontend interface
+    const transformedCustomers = customers.map((customer) => ({
+      id: customer.id,
+      firstName: customer.firstName,
+      lastName: customer.lastName || "",
+      email: customer.email,
+      phone: customer.phone,
+      balance: 0, // Since balance isn't in your schema, defaulting to 0
+      status: customer.isVip ? "Active" : "Active", // Map based on your business logic
+      createdAt: customer.createdAt.toISOString(),
+      // Include additional fields for detailed view
+      title: customer.title,
+      gender: customer.gender,
+      dateOfBirth: customer.dateOfBirth.toISOString(),
+      nationality: customer.nationality,
+      isVip: customer.isVip,
+      occupation: customer.occupation,
+      countryCode: customer.countryCode,
+      contactType: customer.contactType,
+      country: customer.country,
+      state: customer.state,
+      city: customer.city,
+      zipcode: customer.zipcode,
+      address: customer.address,
+      identityType: customer.identityType,
+      identityNumber: customer.identityNumber,
+    }));
 
-//     // Calculate total pages
-//     const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / limit);
 
-//     // Format response to match frontend expectations
-//     const response = {
-//       customers: customers.map((customer) => ({
-//         ...customer,
-//         balance: 0, // Default balance since it's not in schema
-//         status: "Active" as const, // Default status since it's not in schema
-//       })),
-//       total,
-//       totalPages,
-//       currentPage: page,
-//       limit,
-//     };
+    return NextResponse.json({
+      customers: transformedCustomers,
+      total,
+      totalPages,
+      currentPage: page,
+      limit,
+      search,
+    });
+  } catch (error: any) {
+    console.error("Error fetching customers:", error);
+    return NextResponse.json(
+      { message: "Failed to fetch customers", error: error.message },
+      { status: 500 }
+    );
+  }
+}
 
-//     return NextResponse.json(response, { status: 200 });
-//   } catch (error: any) {
-//     console.error("Error fetching customers:", error);
-//     return NextResponse.json(
-//       { message: "Internal Server Error", error: error.message },
-//       { status: 500 }
-//     );
-//   }
-// }
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const {
+      title,
+      firstName,
+      lastName,
+      gender,
+      dateOfBirth,
+      anniversary,
+      nationality,
+      isVip,
+      occupation,
+      email,
+      countryCode,
+      phone,
+      contactType,
+      country,
+      state,
+      city,
+      zipcode,
+      address,
+      identityType,
+      identityNumber,
+      frontIdUrl,
+      backIdUrl,
+      guestImageUrl,
+    } = body;
 
-// // POST: Create a new customer
-// export async function POST(req: NextRequest) {
-//   try {
-//     const body = await req.json();
-//     const {
-//       firstName,
-//       lastName,
-//       email,
-//       phone,
-//       dateOfBirth,
-//       profession,
-//       nationality,
-//       nationalId,
-//       address,
-//     } = body;
-
-//     // Basic validation
-//     if (
-//       !firstName ||
-//       !lastName ||
-//       !email ||
-//       !phone ||
-//       !dateOfBirth ||
   
-//       !nationality ||
-//       !nationalId ||
-//       !address
-//     ) {
-//       return NextResponse.json(
-//         { message: "All fields are required" },
-//         { status: 400 }
-//       );
-//     }
 
-//     // Validate nationality enum
-//     if (nationality !== "native" && nationality !== "foreigner") {
-//       return NextResponse.json(
-//         { message: "Nationality must be either 'native' or 'foreigner'" },
-//         { status: 400 }
-//       );
-//     }
+    if (!firstName || typeof firstName !== "string") {
+      return NextResponse.json(
+        { message: "Valid 'firstName' is required" },
+        { status: 400 }
+      );
+    }
 
-//     // Check for existing email, phone, or national ID
-//     const existing = await prisma.customer.findFirst({
-//       where: {
-//         OR: [{ email }, { phone }, { nationalId }],
-//       },
-//     });
 
-//     if (existing) {
-//       let conflictField = "";
-//       if (existing.email === email) conflictField = "email";
-//       else if (existing.phone === phone) conflictField = "phone";
-//       else if (existing.nationalId === nationalId)
-//         conflictField = "national ID";
+    if (!dateOfBirth) {
+      return NextResponse.json(
+        { message: "Valid 'dateOfBirth' is required" },
+        { status: 400 }
+      );
+    }
 
-//       return NextResponse.json(
-//         { message: `Customer with this ${conflictField} already exists` },
-//         { status: 409 }
-//       );
-//     }
+    if (!nationality || !["native", "foreigner"].includes(nationality)) {
+      return NextResponse.json(
+        { message: "Valid 'nationality' (native/foreigner) is required" },
+        { status: 400 }
+      );
+    }
 
-//     const created = await prisma.customer.create({
-//       data: {
-//         firstName,
-//         lastName,
-//         email,
-//         phone,
-//         dateOfBirth: new Date(dateOfBirth),
-//         profession,
-//         nationality,
-//         nationalId,
-//         address,
-//       },
-//     });
+    if (!email || typeof email !== "string") {
+      return NextResponse.json(
+        { message: "Valid 'email' is required" },
+        { status: 400 }
+      );
+    }
 
-//     return NextResponse.json(created, { status: 201 });
-//   } catch (error: any) {
-//     console.error("Error creating customer:", error);
-//     return NextResponse.json(
-//       { message: "Internal Server Error", error: error.message },
-//       { status: 500 }
-//     );
-//   }
-// }
+    if (!phone || typeof phone !== "string") {
+      return NextResponse.json(
+        { message: "Valid 'phone' is required" },
+        { status: 400 }
+      );
+    }
 
-// // PUT: Update customer
-// export async function PUT(req: NextRequest) {
-//   try {
-//     const body = await req.json();
-//     const {
-//       id,
-//       firstName,
-//       lastName,
-//       email,
-//       phone,
-//       dateOfBirth,
-//       profession,
-//       nationality,
-//       nationalId,
-//       address,
-//     } = body;
 
-//     if (!id || typeof id !== "number") {
-//       return NextResponse.json(
-//         { message: "Valid 'id' (number) is required" },
-//         { status: 400 }
-//       );
-//     }
 
-//     // Validate nationality enum if provided
-//     if (
-//       nationality &&
-//       nationality !== "native" &&
-//       nationality !== "foreigner"
-//     ) {
-//       return NextResponse.json(
-//         { message: "Nationality must be either 'native' or 'foreigner'" },
-//         { status: 400 }
-//       );
-//     }
 
-//     const existing = await prisma.customer.findUnique({ where: { id } });
-//     if (!existing) {
-//       return NextResponse.json(
-//         { message: "Customer not found" },
-//         { status: 404 }
-//       );
-//     }
+  
 
-//     // Check for conflicts with email, phone, or nationalId (excluding current customer)
-//     if (email || phone || nationalId) {
-//       const conflicts = await prisma.customer.findFirst({
-//         where: {
-//           AND: [
-//             { id: { not: id } },
-//             {
-//               OR: [
-//                 email ? { email } : {},
-//                 phone ? { phone } : {},
-//                 nationalId ? { nationalId } : {},
-//               ].filter((condition) => Object.keys(condition).length > 0),
-//             },
-//           ],
-//         },
-//       });
+    if (!address || typeof address !== "string") {
+      return NextResponse.json(
+        { message: "Valid 'address' is required" },
+        { status: 400 }
+      );
+    }
 
-//       if (conflicts) {
-//         let conflictField = "";
-//         if (email && conflicts.email === email) conflictField = "email";
-//         else if (phone && conflicts.phone === phone) conflictField = "phone";
-//         else if (nationalId && conflicts.nationalId === nationalId)
-//           conflictField = "national ID";
+ 
 
-//         return NextResponse.json(
-//           {
-//             message: `Another customer with this ${conflictField} already exists`,
-//           },
-//           { status: 409 }
-//         );
-//       }
-//     }
+    if (!identityNumber || typeof identityNumber !== "string") {
+      return NextResponse.json(
+        { message: "Valid 'identityNumber' is required" },
+        { status: 400 }
+      );
+    }
 
-//     // Build update data object with only provided fields
-//     const updateData: any = {};
-//     if (firstName !== undefined) updateData.firstName = firstName;
-//     if (lastName !== undefined) updateData.lastName = lastName;
-//     if (email !== undefined) updateData.email = email;
-//     if (phone !== undefined) updateData.phone = phone;
-//     if (dateOfBirth !== undefined)
-//       updateData.dateOfBirth = new Date(dateOfBirth);
-//     if (profession !== undefined) updateData.profession = profession;
-//     if (nationality !== undefined) updateData.nationality = nationality;
-//     if (nationalId !== undefined) updateData.nationalId = nationalId;
-//     if (address !== undefined) updateData.address = address;
+    // Create customer
+    const created = await prisma.customer.create({
+      data: {
+        title,
+        firstName,
+        lastName: lastName || null,
+        gender,
+        dateOfBirth: new Date(dateOfBirth),
+        anniversary: anniversary ? new Date(anniversary) : null,
+        nationality,
+        isVip: isVip || false,
+        occupation: occupation || null,
+        email,
+        countryCode,
+        phone,
+        contactType,
+        country,
+        state,
+        city,
+        zipcode,
+        address,
+        identityType,
+        identityNumber,
+        frontIdUrl: frontIdUrl || null,
+        backIdUrl: backIdUrl || null,
+        guestImageUrl: guestImageUrl || null,
+      },
+    });
 
-//     const updated = await prisma.customer.update({
-//       where: { id },
-//       data: updateData,
-//     });
+    return NextResponse.json(created, { status: 201 });
+  } catch (error: any) {
+    console.error("Error creating customer:", error);
 
-//     return NextResponse.json(updated, { status: 200 });
-//   } catch (error: any) {
-//     console.error("Error updating customer:", error);
-//     return NextResponse.json(
-//       { message: "Internal Server Error", error: error.message },
-//       { status: 500 }
-//     );
-//   }
-// }
+    // Handle unique constraint errors
+    if (error.code === "P2002") {
+      const field = error.meta?.target?.[0];
+      return NextResponse.json(
+        { message: `${field} already exists` },
+        { status: 400 }
+      );
+    }
 
-// // DELETE: Remove a customer
-// export async function DELETE(req: NextRequest) {
-//   try {
-//     const body = await req.json();
-//     const { id } = body;
+    return NextResponse.json(
+      { message: "Internal Server Error", error: error.message },
+      { status: 500 }
+    );
+  }
+}
 
-//     if (typeof id !== "number" || isNaN(id)) {
-//       return NextResponse.json(
-//         { message: "Valid 'id' is required" },
-//         { status: 400 }
-//       );
-//     }
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { id, ...updateData } = body;
 
-//     const existing = await prisma.customer.findUnique({ where: { id } });
-//     if (!existing) {
-//       return NextResponse.json(
-//         { message: "Customer not found" },
-//         { status: 404 }
-//       );
-//     }
+    if (!id || typeof id !== "number") {
+      return NextResponse.json(
+        { message: "Valid 'id' is required" },
+        { status: 400 }
+      );
+    }
 
-//     await prisma.customer.delete({ where: { id } });
+    // Process dates if provided
+    if (updateData.dateOfBirth) {
+      updateData.dateOfBirth = new Date(updateData.dateOfBirth);
+    }
+    if (updateData.anniversary) {
+      updateData.anniversary = new Date(updateData.anniversary);
+    }
 
-//     return NextResponse.json(
-//       { message: "Customer deleted successfully" },
-//       { status: 200 }
-//     );
-//   } catch (error: any) {
-//     console.error("Error deleting customer:", error);
-//     return NextResponse.json(
-//       { message: "Internal Server Error", error: error.message },
-//       { status: 500 }
-//     );
-//   }
-// }
+    // Update customer
+    const updated = await prisma.customer.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return NextResponse.json(updated, { status: 200 });
+  } catch (error: any) {
+    console.error("Error updating customer:", error);
+
+    // Handle unique constraint errors
+    if (error.code === "P2002") {
+      const field = error.meta?.target?.[0];
+      return NextResponse.json(
+        { message: `${field} already exists` },
+        { status: 400 }
+      );
+    }
+
+    // Handle record not found
+    if (error.code === "P2025") {
+      return NextResponse.json(
+        { message: "Customer not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { message: "Internal Server Error", error: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { id } = body;
+
+    if (!id || typeof id !== "number") {
+      return NextResponse.json(
+        { message: "Valid 'id' is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if customer has reservations
+    const reservationCount = await prisma.reservation.count({
+      where: { customerId: id },
+    });
+
+    if (reservationCount > 0) {
+      return NextResponse.json(
+        { message: "Cannot delete customer with existing reservations" },
+        { status: 400 }
+      );
+    }
+
+    // Delete customer
+    const deleted = await prisma.customer.delete({
+      where: { id },
+    });
+
+    return NextResponse.json(deleted, { status: 200 });
+  } catch (error: any) {
+    console.error("Error deleting customer:", error);
+
+    // Handle record not found
+    if (error.code === "P2025") {
+      return NextResponse.json(
+        { message: "Customer not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { message: "Internal Server Error", error: error.message },
+      { status: 500 }
+    );
+  }
+}

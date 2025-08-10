@@ -139,6 +139,62 @@ export const sidebarConfig: SidebarItem[] = [
     ],
   },
   {
+    label: "Room Settings",
+    icon: Bed,
+    addon: true,
+    roles: ["superadmin", "manager"],
+    children: [
+      {
+        label: "Bed List",
+        icon: FileText,
+        route: "/room-setting/bed-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Booking Type List",
+        icon: List,
+        route: "/room-setting/booking-type-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Booking Source",
+        icon: List,
+        route: "/room-setting/booking-source",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Complementary",
+        icon: List,
+        route: "/room-setting/complementary-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Floor Plan List",
+        icon: List,
+        route: "/room-setting/floor-plan-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Room List",
+        icon: List,
+        route: "/room-setting/room-list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Room Images",
+        icon: List,
+        route: "/room-setting/room-images",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Promocode",
+        icon: List,
+        route: "/room-setting/promo-code",
+        roles: ["superadmin", "manager"],
+      },
+    ],
+  },
+  {
     label: "Human Resource",
     icon: Users,
     addon: true,

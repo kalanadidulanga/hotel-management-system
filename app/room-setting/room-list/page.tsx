@@ -35,6 +35,7 @@ import {
 import { useState, useMemo } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
+import Link from "next/link";
 
 interface BedType {
     id: number;
@@ -46,6 +47,7 @@ interface Room {
     roomType: string;
     rate: number;
     bedCharge: number;
+    hourlyCharge : number;
     personCharge: number;
     capacity: number;
     extraCapability: boolean;
@@ -64,8 +66,9 @@ const pageSizes = [10, 25, 50, 100];
 const columns = [
     { key: "sl", label: "SL" },
     { key: "roomType", label: "Room Type" },
-    { key: "rate", label: "Rate" },
+    { key: "rate", label: "Rate (per night)" },
     { key: "bedCharge", label: "Bed Charge" },
+    { key: "hourlyCharge", label: "Hourly Charge" },
     { key: "personCharge", label: "Person Charge" },
     { key: "capacity", label: "Capacity" },
     { key: "extraCapability", label: "Extra Capability" },
@@ -97,6 +100,7 @@ export default function RoomListPage() {
         roomType: "",
         rate: "",
         bedCharge: "",
+        hourlyCharge:"",
         personCharge: "",
         capacity: "",
         extraCapability: false,
@@ -145,6 +149,7 @@ export default function RoomListPage() {
                     roomType: formData.roomType,
                     rate: parseFloat(formData.rate),
                     bedCharge: parseFloat(formData.bedCharge) || 0,
+                    hourlyCharge: parseFloat(formData.hourlyCharge) || 0,
                     personCharge: parseFloat(formData.personCharge) || 0,
                     capacity: parseInt(formData.capacity),
                     extraCapability: formData.extraCapability,
@@ -193,6 +198,7 @@ export default function RoomListPage() {
                     roomType: formData.roomType,
                     rate: parseFloat(formData.rate),
                     bedCharge: parseFloat(formData.bedCharge) || 0,
+                    hourlyCharge: parseFloat(formData.hourlyCharge) || 0,
                     personCharge: parseFloat(formData.personCharge) || 0,
                     capacity: parseInt(formData.capacity),
                     extraCapability: formData.extraCapability,
@@ -229,6 +235,7 @@ export default function RoomListPage() {
             roomType: "",
             rate: "",
             bedCharge: "",
+            hourlyCharge:"",
             personCharge: "",
             capacity: "",
             extraCapability: false,
@@ -247,6 +254,7 @@ export default function RoomListPage() {
             roomType: room.roomType,
             rate: room.rate.toString(),
             bedCharge: room.bedCharge.toString(),
+            hourlyCharge:room.hourlyCharge.toString(),
             personCharge: room.personCharge.toString(),
             capacity: room.capacity.toString(),
             extraCapability: room.extraCapability,
@@ -641,18 +649,20 @@ export default function RoomListPage() {
                                             {visibleCols.includes("rate") && (
                                                 <TableCell className="text-sm text-foreground py-3">
                                                     <div className="flex items-center gap-1">
-                                                        <DollarSign className="w-4 h-4 text-muted-foreground" />
+                                                       Rs.
                                                         {formatCurrency(room.rate)}
                                                     </div>
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("bedCharge") && (
                                                 <TableCell className="text-sm text-foreground py-3">
+                                                    Rs.
                                                     {formatCurrency(room.bedCharge)}
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("personCharge") && (
                                                 <TableCell className="text-sm text-foreground py-3">
+                                                    Rs.
                                                     {formatCurrency(room.personCharge)}
                                                 </TableCell>
                                             )}
@@ -799,7 +809,7 @@ export default function RoomListPage() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="rate" className="text-sm font-medium">
-                                    Rate *
+                                    Rate * (Rs.) per night
                                 </Label>
                                 <Input
                                     id="rate"
@@ -814,7 +824,7 @@ export default function RoomListPage() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="bedCharge" className="text-sm font-medium">
-                                    Bed Charge
+                                    Bed Charge (Rs.)
                                 </Label>
                                 <Input
                                     id="bedCharge"
@@ -826,10 +836,24 @@ export default function RoomListPage() {
                                     disabled={isSubmitting}
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="bedCharge" className="text-sm font-medium">
+                                    Hourly Charge (Rs.)
+                                </Label>
+                                <Input
+                                    id="bedCharge"
+                                    type="number"
+                                    placeholder="Enter bed charge"
+                                    value={formData.hourlyCharge}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, hourlyCharge: e.target.value }))}
+                                    className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                    disabled={isSubmitting}
+                                />
+                            </div>
 
                             <div className="space-y-2">
                                 <Label htmlFor="personCharge" className="text-sm font-medium">
-                                    Person Charge
+                                    Person Charge (Rs.)
                                 </Label>
                                 <Input
                                     id="personCharge"
@@ -888,7 +912,9 @@ export default function RoomListPage() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="bedType" className="text-sm font-medium">
-                                    Bed Type *
+                                    Bed Type * <span className="text-red-500">{
+                                        bedTypes.length === 0 ? <Link href="/room-setting/bed-list">Click here to add bed types first</Link> : ""
+                                        }</span>
                                 </Label>
                                 <Select value={formData.bedTypeId} onValueChange={(value) => setFormData(prev => ({ ...prev, bedTypeId: value }))}>
                                     <SelectTrigger className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent">
@@ -904,6 +930,7 @@ export default function RoomListPage() {
                                                 </SelectItem>
                                             ))
                                         )}
+                                       
                                     </SelectContent>
                                 </Select>
                             </div>
