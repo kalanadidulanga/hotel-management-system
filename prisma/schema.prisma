@@ -40,6 +40,7 @@ model Room_Facilities_Details_List {
   facility_type  Room_Facility_List @relation(fields: [facilityType], references: [name])
   facility_name  String  @unique
   description    String
+   roomAssignments RoomFacilityAssignment[]
 
 }
 
@@ -187,6 +188,20 @@ model RoomList {
   roomImages       RoomImage[] 
   promocodes       Promocode[] 
   complementaryItems ComplementaryItem[] 
+  rooms            Room[] 
+  
+  facilityAssignments RoomFacilityAssignment[]
+}
+
+model RoomFacilityAssignment {
+  id         Int                          @id @default(autoincrement())
+  roomId     Int
+  facilityId Int
+
+  room       RoomList                     @relation(fields: [roomId], references: [id])
+  facility   Room_Facilities_Details_List @relation(fields: [facilityId], references: [id])
+
+  @@unique([roomId, facilityId]) // Prevent duplicate assignments
 }
 
 model RoomImage {
@@ -212,8 +227,19 @@ model FloorList {
   noOfRoom     Int
   startRoomNo  Int
   createdAt    DateTime   @default(now())
+    rooms       Room[] 
 }
 
+model Room {
+  id          Int        @id @default(autoincrement())
+  roomNumber  Int      @unique  // actual room number (e.g., 101, 102, etc.)
+  floorListId Int
+  floorList   FloorList  @relation(fields: [floorListId], references: [id])
+  isAvailable Boolean    @default(true)
+  roomType    String?    // optional link to RoomList.roomType if needed
+  roomList   RoomList?  @relation(fields: [roomType], references: [roomType])
+  
+}
 
 model Promocode {
   id         Int       @id @default(autoincrement())

@@ -11,7 +11,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { countries } from "@/data/countries";
 import { differenceInDays, differenceInHours, format } from "date-fns";
 import {
   Building,
@@ -37,6 +36,58 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import useSWR from 'swr';
+
+interface AvailableRoom {
+  id: number;
+  roomNumber: number;
+  floorListId: number;
+  isAvailable: boolean;
+  roomType?: string;
+  floorList: {
+    id: number;
+    floorName: string;
+    floor: {
+      id: number;
+      name: string;
+    };
+  };
+  roomList?: {
+    roomType: string;
+    rate: number;
+    hourlyCharge: number;
+  };
+}
+
+interface FormData {
+  bookingTypes: {
+    id: number;
+    name: string;
+    sources: {
+      id: number;
+      bookingSource: string;
+      commissionRate: number;
+      totalBalance: number;
+      paidAmount: number;
+      dueAmount: number;
+    }[];
+  }[];
+  roomTypes: {
+    id: number;
+    roomType: string;
+    rate: number;
+    hourlyCharge: number;
+    capacity: number;
+    bedNo: number;
+    bedType: string;
+  }[];
+  complementaryItems: {
+    id: number;
+    roomType: string;
+    complementary: string;
+    rate: number;
+  }[];
+  availableRooms: AvailableRoom[];
+}
 
 interface Customer {
   id: number;
@@ -95,34 +146,10 @@ interface Complimentary {
   rate: number;
 }
 
-interface BookingType {
-  id: number;
-  name: string;
-}
-
-interface BookingSource {
-  id: number;
-  bookingTypeId: number;
-  bookingSource: string;
-  commissionRate: number;
-  totalBalance: number;
-  paidAmount: number;
-  dueAmount: number;
-}
-
-interface RoomType {
-  id: number;
-  roomType: string;
-  rate: number;
-  hourlyCharge: number;
-}
-
 const mockCustomers: Customer[] = [];
-
-// Mock existing customers database
 const mockExistingCustomers: ExistingCustomer[] = [];
 
-// Room data with hourly rates (fallback)
+// Fallback room types
 const roomTypes = {
   "single": {
     name: "Single Room",
@@ -144,13 +171,13 @@ const roomTypes = {
   }
 };
 
-// Complimentary items (fallback)
+// Fallback complimentary items
 const complimentaryItems: Complimentary[] = [
-  { id: "welcome-drink", roomType: "single", complementary: "Welcome Drink", rate: 500 },
-  { id: "breakfast", roomType: "double", complementary: "Breakfast", rate: 1200 },
-  { id: "airport-transfer", roomType: "suite", complementary: "Airport Transfer", rate: 3000 },
-  { id: "late-checkout", roomType: "single", complementary: "Late Checkout", rate: 1500 },
-  { id: "early-checkin", roomType: "double", complementary: "Early Check-in", rate: 2000 },
+  { id: "welcome-drink", roomType: "Single Room", complementary: "Welcome Drink", rate: 500 },
+  { id: "breakfast", roomType: "Double Room", complementary: "Breakfast", rate: 1200 },
+  { id: "airport-transfer", roomType: "Suite", complementary: "Airport Transfer", rate: 3000 },
+  { id: "late-checkout", roomType: "Single Room", complementary: "Late Checkout", rate: 1500 },
+  { id: "early-checkin", roomType: "Double Room", complementary: "Early Check-in", rate: 2000 },
 ];
 
 const fetcher = (url: string) => fetch(url).then(res => {
@@ -179,7 +206,7 @@ export default function NewReservationPage() {
   const [roomPrice, setRoomPrice] = useState(0);
 
   // Billing options
-  const [billingType, setBillingType] = useState("nightly"); // "nightly" or "hourly"
+  const [billingType, setBillingType] = useState("nightly");
 
   // Complimentary
   const [selectedComplimentary, setSelectedComplimentary] = useState<string[]>([]);
@@ -209,66 +236,122 @@ export default function NewReservationPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
 
-  // Fetch booking types
-  const { data: bookingTypes = [], isLoading: isLoadingBookingTypes } = useSWR<BookingType[]>(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/booking-type-list`,
+  // Available rooms state
+  const [availableRooms, setAvailableRooms] = useState<AvailableRoom[]>([]);
+  const [isLoadingRooms, setIsLoadingRooms] = useState(false);
+
+  // Fetch form data
+  const { data: formData, isLoading: isLoadingFormData } = useSWR<FormData>(
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-reservation/room-booking`,
     fetcher,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       onError: (error) => {
-        console.error("Failed to load booking types:", error);
+        console.error("Failed to load form data:", error);
       }
     }
   );
 
-  // Fetch booking sources based on selected booking type
-  const { data: bookingSources = [], isLoading: isLoadingBookingSources } = useSWR<BookingSource[]>(
-    bookingType ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-reservation/booking-sources?bookingType=${bookingType}` : null,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      onError: (error) => {
-        console.error("Failed to load booking sources:", error);
-      }
-    }
-  );
+  // Use form data with fallbacks
+  const bookingTypes = formData?.bookingTypes || [];
+  const roomTypesData = formData?.roomTypes || [];
+  const apiComplimentaryItems = formData?.complementaryItems || [];
 
-  // Fetch room types
-  const { data: roomTypesData = [], isLoading: isLoadingRoomTypes } = useSWR<RoomType[]>(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/room-list`,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      onError: (error) => {
-        console.error("Failed to load room types:", error);
-      }
-    }
-  );
-
-  // Fetch complimentary items from API
-  const { data: apiComplimentaryItems = [], isLoading: isLoadingComplimentary } = useSWR<Complimentary[]>(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/complementary-list`,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      onError: (error) => {
-        console.error("Failed to load complementary items:", error);
-      }
-    }
-  );
+  // Get booking sources for selected booking type
+  const bookingSources = bookingTypes.find(bt => bt.name === bookingType)?.sources || [];
 
   // Use API data if available, otherwise fallback to mock/default data
-  const availableComplimentaryItems = apiComplimentaryItems.length > 0 ? apiComplimentaryItems : complimentaryItems;
+  const availableComplimentaryItems = apiComplimentaryItems.length > 0 
+    ? apiComplimentaryItems.map(item => ({
+        id: item.id.toString(),
+        roomType: item.roomType,
+        complementary: item.complementary,
+        rate: item.rate
+      })) 
+    : complimentaryItems;
+
   const availableRoomTypes = roomTypesData.length > 0 ? roomTypesData : Object.entries(roomTypes).map(([key, value]) => ({
     id: key,
     roomType: value.name,
     rate: value.nightlyRate,
-    hourlyCharge: value.hourlyRate
+    hourlyCharge: value.hourlyRate,
+    capacity: 2,
+    bedNo: 1,
+    bedType: "Single"
   }));
+
+  // Fetch available rooms when room type or dates change
+  useEffect(() => {
+    const fetchAvailableRooms = async () => {
+      if (!roomType) {
+        setAvailableRooms([]);
+        return;
+      }
+
+      setIsLoadingRooms(true);
+      try {
+        const params = new URLSearchParams({
+          roomType: roomType
+        });
+
+        if (checkInDate && checkOutDate) {
+          params.append('checkIn', checkInDate.toISOString());
+          params.append('checkOut', checkOutDate.toISOString());
+        }
+
+        const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-reservation/room-booking?${params}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableRooms(data.availableRooms || []);
+        } else {
+          // Fallback to mock data
+          const mockRooms = getAvailableRooms(roomType);
+          setAvailableRooms(mockRooms.map((room, index) => ({
+            id: index + 1,
+            roomNumber: parseInt(room),
+            floorListId: 1,
+            isAvailable: true,
+            roomType: roomType,
+            floorList: {
+              id: 1,
+              floorName: `Floor ${Math.floor(parseInt(room) / 100)}`,
+              floor: {
+                id: 1,
+                name: `Floor ${Math.floor(parseInt(room) / 100)}`
+              }
+            }
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching available rooms:', error);
+        // Fallback to mock data on error
+        const mockRooms = getAvailableRooms(roomType);
+        setAvailableRooms(mockRooms.map((room, index) => ({
+          id: index + 1,
+          roomNumber: parseInt(room),
+          floorListId: 1,
+          isAvailable: true,
+          roomType: roomType,
+          floorList: {
+            id: 1,
+            floorName: `Floor ${Math.floor(parseInt(room) / 100)}`,
+            floor: {
+              id: 1,
+              name: `Floor ${Math.floor(parseInt(room) / 100)}`
+            }
+          }
+        })));
+      } finally {
+        setIsLoadingRooms(false);
+      }
+    };
+
+    fetchAvailableRooms();
+  }, [roomType, checkInDate, checkOutDate]);
 
   // New customer form state
   const [newCustomer, setNewCustomer] = useState<NewCustomer>({
@@ -298,10 +381,10 @@ export default function NewReservationPage() {
     comments: ""
   });
 
-  // Handle booking type change - reset booking source when booking type changes
+  // Handle booking type change
   const handleBookingTypeChange = (value: string) => {
     setBookingType(value);
-    setBookingSource(""); // Reset booking source when booking type changes
+    setBookingSource("");
   };
 
   // Calculate room price based on billing type and duration
@@ -327,7 +410,6 @@ export default function NewReservationPage() {
 
     if (!roomInfo) return 0;
 
-    // Create full datetime objects
     const checkIn = new Date(checkInDate);
     const [checkInHour, checkInMinute] = checkInTime.split(':');
     checkIn.setHours(parseInt(checkInHour), parseInt(checkInMinute));
@@ -338,10 +420,10 @@ export default function NewReservationPage() {
 
     if (billingType === "hourly") {
       const totalHours = differenceInHours(checkOut, checkIn);
-      return Math.max(1, totalHours) * roomInfo.hourlyCharge; // Minimum 1 hour
+      return Math.max(1, totalHours) * roomInfo.hourlyCharge;
     } else {
       const totalNights = differenceInDays(checkOut, checkIn);
-      const nights = totalNights <= 0 ? 1 : totalNights; // Minimum 1 night
+      const nights = totalNights <= 0 ? 1 : totalNights;
       return nights * roomInfo.rate;
     }
   };
@@ -349,7 +431,7 @@ export default function NewReservationPage() {
   // Handle room type change
   const handleRoomTypeChange = (type: string) => {
     setRoomType(type);
-    setRoomNumber(""); // Reset room number when type changes
+    setRoomNumber("");
   };
 
   // Update room price when dependencies change
@@ -365,7 +447,7 @@ export default function NewReservationPage() {
 
   // Handle complimentary selection
   const handleComplimentaryChange = (itemId: string, checked: boolean) => {
-    if (!roomType) return; // Prevent selection if no room type is selected
+    if (!roomType) return;
 
     if (checked) {
       setSelectedComplimentary([...selectedComplimentary, itemId]);
@@ -381,7 +463,7 @@ export default function NewReservationPage() {
   }, 0);
 
   // Calculate totals
-  const subtotal = customers.reduce((sum, customer) => sum + 0, 0) + roomPrice + complimentaryTotal;
+  const subtotal = roomPrice + complimentaryTotal;
   const total = subtotal + tax + serviceCharge - discountAmount - commissionAmount;
 
   // Get duration info for display
@@ -406,9 +488,8 @@ export default function NewReservationPage() {
     }
   };
 
-  // Get available room numbers for selected room type
+  // Get available room numbers for selected room type (fallback)
   const getAvailableRooms = (selectedRoomType: string) => {
-    // Try to find in mock data first
     const mockRoomKey = Object.keys(roomTypes).find(key =>
       roomTypes[key as keyof typeof roomTypes].name === selectedRoomType
     );
@@ -417,7 +498,6 @@ export default function NewReservationPage() {
       return roomTypes[mockRoomKey as keyof typeof roomTypes].rooms;
     }
 
-    // If not found in mock data, return some default rooms based on room type
     const mockRooms = {
       "Standard Room": ["101", "102", "103", "201", "202", "203"],
       "Deluxe Room": ["301", "302", "303", "401", "402"],
@@ -444,7 +524,7 @@ export default function NewReservationPage() {
     setSearchError("");
 
     try {
-      const response = await fetch(`/api/room-reservation/new-customer?mobile=${searchMobile.trim()}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-reservation/new-customer?mobile=${searchMobile.trim()}`);
       const data = await response.json();
 
       if (response.ok) {
@@ -473,7 +553,6 @@ export default function NewReservationPage() {
       };
       setCustomers([...customers, customer]);
       setIsOldCustomerModalOpen(false);
-      // Reset search
       setSearchMobile("");
       setFoundCustomer(null);
       setSearchError("");
@@ -489,7 +568,6 @@ export default function NewReservationPage() {
 
     try {
       const formData = new FormData();
-
       formData.append("countryCode", newCustomer.countryCode);
       formData.append("mobile", newCustomer.mobile);
       formData.append("title", newCustomer.title);
@@ -497,12 +575,14 @@ export default function NewReservationPage() {
       formData.append("lastName", newCustomer.lastName || "");
       formData.append("gender", newCustomer.gender);
       formData.append("occupation", newCustomer.occupation || "");
+      
       if (newCustomer.dateOfBirth) {
         formData.append("dateOfBirth", newCustomer.dateOfBirth.toISOString());
       }
       if (newCustomer.anniversary) {
         formData.append("anniversary", newCustomer.anniversary.toISOString());
       }
+      
       formData.append("nationality", newCustomer.nationality);
       formData.append("isVip", newCustomer.isVip.toString());
       formData.append("contactType", newCustomer.contactType);
@@ -535,7 +615,6 @@ export default function NewReservationPage() {
       const result = await res.json();
       console.log("Customer saved:", result);
 
-      // You may update UI with result.customer if needed
       const customer: Customer = {
         id: result.customer.id,
         name: `${newCustomer.firstName} ${newCustomer.lastName}`,
@@ -549,7 +628,7 @@ export default function NewReservationPage() {
 
       // Reset form
       setNewCustomer({
-        countryCode: "+1",
+        countryCode: "+94",
         mobile: "",
         title: "Mr",
         firstName: "",
@@ -582,6 +661,7 @@ export default function NewReservationPage() {
 
   const handleSaveNewReservation = async () => {
     // Implementation for saving reservation
+    console.log("Saving reservation...");
   };
 
   // Handle delete customer
@@ -602,9 +682,8 @@ export default function NewReservationPage() {
       {/* Header Section */}
       <div className="flex-shrink-0 bg-white/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border/50">
         <div className="px-4 py-4 space-y-4">
-          {/* Back Button */}
           <button
-            onClick={() => history.back()}
+            onClick={() => window.history.back()}
             className="flex items-center text-sm font-medium text-secondary hover:text-primary gap-2"
           >
             <svg
@@ -619,7 +698,6 @@ export default function NewReservationPage() {
             Back
           </button>
 
-          {/* Title & Booking List Button */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <Building className="w-6 h-6 text-primary" />
@@ -652,7 +730,6 @@ export default function NewReservationPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {/* Check In Date & Time */}
                 <div className="space-y-2">
                   <Label>Check In Date</Label>
                   <Popover>
@@ -672,7 +749,6 @@ export default function NewReservationPage() {
                   <Input type="time" value={checkInTime} onChange={(e) => setCheckInTime(e.target.value)} />
                 </div>
 
-                {/* Check Out Date & Time */}
                 <div className="space-y-2">
                   <Label>Check Out Date</Label>
                   <Popover>
@@ -692,7 +768,6 @@ export default function NewReservationPage() {
                   <Input type="time" value={checkOutTime} onChange={(e) => setCheckOutTime(e.target.value)} />
                 </div>
 
-                {/* Billing Type */}
                 <div className="space-y-2">
                   <Label>Billing Type</Label>
                   <Select value={billingType} onValueChange={setBillingType}>
@@ -706,29 +781,26 @@ export default function NewReservationPage() {
                   </Select>
                 </div>
 
-                {/* Other fields */}
                 <div className="space-y-2">
                   <Label>Arrival From</Label>
                   <Input value={arrivalFrom} onChange={(e) => setArrivalFrom(e.target.value)} placeholder="Enter arrival location" />
                 </div>
 
-                {/* Booking Type */}
                 <div className="space-y-2">
                   <Label>Booking Type</Label>
                   <Select
                     value={bookingType}
                     onValueChange={handleBookingTypeChange}
-                    disabled={isLoadingBookingTypes}
+                    disabled={isLoadingFormData}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={isLoadingBookingTypes ? "Loading..." : "Select booking type"} />
+                      <SelectValue placeholder={isLoadingFormData ? "Loading..." : "Select booking type"} />
                     </SelectTrigger>
                     <SelectContent>
                       {bookingTypes.map(type => (
                         <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
                       ))}
-                      {/* Fallback options if API fails */}
-                      {bookingTypes.length === 0 && !isLoadingBookingTypes && (
+                      {bookingTypes.length === 0 && !isLoadingFormData && (
                         <>
                           <SelectItem value="online">Online</SelectItem>
                           <SelectItem value="walk-in">Walk-in</SelectItem>
@@ -739,22 +811,15 @@ export default function NewReservationPage() {
                   </Select>
                 </div>
 
-                {/* Booking Source - only show when booking type is selected */}
                 <div className="space-y-2">
                   <Label>Booking Source</Label>
                   <Select
                     value={bookingSource}
                     onValueChange={setBookingSource}
-                    disabled={!bookingType || isLoadingBookingSources}
+                    disabled={!bookingType}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={
-                        !bookingType
-                          ? "Select booking type first"
-                          : isLoadingBookingSources
-                            ? "Loading sources..."
-                            : "Select booking source"
-                      } />
+                      <SelectValue placeholder={!bookingType ? "Select booking type first" : "Select booking source"} />
                     </SelectTrigger>
                     <SelectContent>
                       {bookingSources.map(source => (
@@ -767,7 +832,7 @@ export default function NewReservationPage() {
                           )}
                         </SelectItem>
                       ))}
-                      {bookingSources.length === 0 && bookingType && !isLoadingBookingSources && (
+                      {bookingSources.length === 0 && bookingType && (
                         <SelectItem value="" disabled>No sources available for this booking type</SelectItem>
                       )}
                     </SelectContent>
@@ -802,10 +867,10 @@ export default function NewReservationPage() {
                   <Select
                     value={roomType}
                     onValueChange={handleRoomTypeChange}
-                    disabled={isLoadingRoomTypes}
+                    disabled={isLoadingFormData}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={isLoadingRoomTypes ? "Loading..." : "Select room type"} />
+                      <SelectValue placeholder={isLoadingFormData ? "Loading..." : "Select room type"} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableRoomTypes.map(type => (
@@ -819,14 +884,29 @@ export default function NewReservationPage() {
                   <Select
                     value={roomNumber}
                     onValueChange={handleRoomNumberChange}
-                    disabled={!roomType}
+                    disabled={!roomType || isLoadingRooms}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={roomType ? "Select room number" : "Select room type first"} />
+                      <SelectValue placeholder={
+                        !roomType
+                          ? "Select room type first"
+                          : isLoadingRooms
+                            ? "Loading rooms..."
+                            : availableRooms.length === 0
+                              ? "No rooms available"
+                              : "Select room number"
+                      } />
                     </SelectTrigger>
                     <SelectContent>
-                      {roomType && getAvailableRooms(roomType).map(room => (
-                        <SelectItem key={room} value={room}>{room}</SelectItem>
+                      {availableRooms.map(room => (
+                        <SelectItem key={room.id} value={room.roomNumber.toString()}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>Room {room.roomNumber}</span>
+                            <div className="flex items-center gap-2 ml-4 text-xs text-muted-foreground">
+                              <span>{room.floorList.floor.name}</span>
+                            </div>
+                          </div>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -957,8 +1037,8 @@ export default function NewReservationPage() {
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{customer.name}</TableCell>
                       <TableCell>{customer.mobile}</TableCell>
-                      <TableCell>{checkInDate ? format(checkInDate, "PPP p") : ""}</TableCell>
-                      <TableCell>{checkOutDate ? format(checkOutDate, "PPP p") : ""}</TableCell>
+                      <TableCell>{customer.checkIn}</TableCell>
+                      <TableCell>{customer.checkOut}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline">
@@ -1078,7 +1158,7 @@ export default function NewReservationPage() {
                 </div>
               </div>
               <div className="pt-4 border-t">
-                <div className="text-lg font-semibold">Total Amount: Rs.{total.toLocaleString()}</div>
+                <div className="text-lg font-semibold">Total Amount: Rs. {total.toLocaleString()}</div>
               </div>
             </CardContent>
           </Card>
@@ -1102,7 +1182,6 @@ export default function NewReservationPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
-            {/* Search Section */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -1149,7 +1228,6 @@ export default function NewReservationPage() {
               </CardContent>
             </Card>
 
-            {/* Customer Details Section */}
             {foundCustomer && (
               <Card>
                 <CardHeader>
@@ -1226,7 +1304,6 @@ export default function NewReservationPage() {
               </Card>
             )}
 
-            {/* Modal Actions */}
             <div className="flex justify-end gap-3 pt-4">
               <Button variant="outline" onClick={handleCloseOldCustomerModal}>
                 Cancel
@@ -1240,287 +1317,286 @@ export default function NewReservationPage() {
           </div>
         </DialogContent>
       </Dialog>
-       {/* New Customer Modal */}
-                  <Dialog open={isNewCustomerModalOpen} onOpenChange={setIsNewCustomerModalOpen}>
-                      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-                          <DialogHeader>
-                              <DialogTitle className="flex items-center gap-2">
-                                  <Plus className="w-5 h-5" />
-                                  New Customer
-                              </DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-6">
-                              {/* Guest Details */}
-                              <Card>
-                                  <CardHeader>
-                                      <CardTitle className="flex items-center gap-2 text-lg">
-                                          <User className="w-5 h-5" />
-                                          Guest Details
-                                      </CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-4">
-                                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                          <div className="space-y-2">
-                                              <Label>Country Code</Label>
-                                              <Select value={newCustomer.countryCode} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, countryCode: value }))}>
-                                                  <SelectTrigger>
-                                                      <SelectValue />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                      
-                                                      <SelectItem value="+1">+1 (US)</SelectItem>
-                                                      <SelectItem value="+91">+91 (India)</SelectItem>
-                                                      <SelectItem value="+94">+44 (UK)</SelectItem>
-                                                  </SelectContent>
-                                              </Select>
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>Mobile No</Label>
-                                              <Input value={newCustomer.mobile} onChange={(e) => setNewCustomer(prev => ({ ...prev, mobile: e.target.value }))} />
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>Title</Label>
-                                              <Select value={newCustomer.title} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, title: value }))}>
-                                                  <SelectTrigger>
-                                                      <SelectValue />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                      <SelectItem value="Mr">Mr</SelectItem>
-                                                      <SelectItem value="Mrs">Mrs</SelectItem>
-                                                      <SelectItem value="Ms">Ms</SelectItem>
-                                                      <SelectItem value="Dr">Dr</SelectItem>
-                                                  </SelectContent>
-                                              </Select>
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>First Name *</Label>
-                                              <Input value={newCustomer.firstName} onChange={(e) => setNewCustomer(prev => ({ ...prev, firstName: e.target.value }))} />
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>Last Name</Label>
-                                              <Input value={newCustomer.lastName} onChange={(e) => setNewCustomer(prev => ({ ...prev, lastName: e.target.value }))} />
-                                          </div>
-      
-                                          <div className="space-y-2">
-                                              <Label>Gender</Label>
-                                              <RadioGroup value={newCustomer.gender} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, gender: value }))}>
-                                                  <div className="flex items-center space-x-2">
-                                                      <RadioGroupItem className="border border-gray-500" value="male" id="male" />
-                                                      <Label htmlFor="male">Male</Label>
-                                                  </div>
-                                                  <div className="flex items-center space-x-2">
-                                                      <RadioGroupItem className="border border-gray-500" value="female" id="female" />
-                                                      <Label htmlFor="female">Female</Label>
-                                                  </div>
-                                              </RadioGroup>
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>Occupation</Label>
-                                              <Input value={newCustomer.occupation} onChange={(e) => setNewCustomer(prev => ({ ...prev, occupation: e.target.value }))} />
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>Date of Birth</Label>
-                                              <Popover>
-                                                  <PopoverTrigger asChild>
-                                                      <Button variant="outline" className="w-full justify-start">
-                                                          <CalendarIcon className="mr-2 h-4 w-4" />
-                                                          {newCustomer.dateOfBirth ? format(newCustomer.dateOfBirth, "PPP") : "Pick a date"}
-                                                      </Button>
-                                                  </PopoverTrigger>
-                                                  <PopoverContent className="w-auto p-0">
-                                                      <Calendar mode="single" selected={newCustomer.dateOfBirth} onSelect={(date) => setNewCustomer(prev => ({ ...prev, dateOfBirth: date }))} />
-                                                  </PopoverContent>
-                                              </Popover>
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>Anniversary</Label>
-                                              <Popover>
-                                                  <PopoverTrigger asChild>
-                                                      <Button variant="outline" className="w-full justify-start">
-                                                          <CalendarIcon className="mr-2 h-4 w-4" />
-                                                          {newCustomer.anniversary ? format(newCustomer.anniversary, "PPP") : "Pick a date"}
-                                                      </Button>
-                                                  </PopoverTrigger>
-                                                  <PopoverContent className="w-auto p-0">
-                                                      <Calendar mode="single" selected={newCustomer.anniversary} onSelect={(date) => setNewCustomer(prev => ({ ...prev, anniversary: date }))} />
-                                                  </PopoverContent>
-                                              </Popover>
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>Nationality</Label>
-      
-                                              <RadioGroup value={newCustomer.nationality} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, nationality: value }))}>
-                                                  <div className="flex items-center space-x-2">
-                                                      <RadioGroupItem className="border border-gray-500" value="native" id="native" />
-                                                      <Label htmlFor="native">Native</Label>
-                                                  </div>
-                                                  <div className="flex items-center space-x-2">
-                                                      <RadioGroupItem className="border border-gray-500" value="foreigner" id="foreigner" />
-                                                      <Label htmlFor="foreigner">Foreigner</Label>
-                                                  </div>
-                                              </RadioGroup>
-                                          </div>
-                                          <div className="space-y-2">
-                                              <div className="flex items-center space-x-2">
-                                                  <Checkbox
-                                                      id="vip"
-                                                      checked={newCustomer.isVip}
-                                                      onCheckedChange={(checked) => setNewCustomer(prev => ({ ...prev, isVip: checked as boolean }))}
-                                                  />
-                                                  <Label htmlFor="vip">VIP?</Label>
-                                              </div>
-                                          </div>
-                                      </div>
-                                  </CardContent>
-                              </Card>
-      
-                              {/* Contact Details */}
-                              <Card>
-                                  <CardHeader>
-                                      <CardTitle className="flex items-center gap-2 text-lg">
-                                          <Phone className="w-5 h-5" />
-                                          Contact Details
-                                      </CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-4">
-                                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                          <div className="space-y-2">
-                                              <Label>Contact Type</Label>
-                                              <Select value={newCustomer.contactType} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, contactType: value }))}>
-                                                  <SelectTrigger>
-                                                      <SelectValue placeholder="Select contact type" />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                      <SelectItem value="home">Home</SelectItem>
-                                                      <SelectItem value="work">Work</SelectItem>
-                                                      <SelectItem value="mobile">Mobile</SelectItem>
-                                                  </SelectContent>
-                                              </Select>
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>Email</Label>
-                                              <Input type="email" value={newCustomer.email} onChange={(e) => setNewCustomer(prev => ({ ...prev, email: e.target.value }))} />
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>Country</Label>
-                                              <Input value={newCustomer.country} onChange={(e) => setNewCustomer(prev => ({ ...prev, country: e.target.value }))} />
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>State</Label>
-                                              <Input value={newCustomer.state} onChange={(e) => setNewCustomer(prev => ({ ...prev, state: e.target.value }))} />
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>City</Label>
-                                              <Input value={newCustomer.city} onChange={(e) => setNewCustomer(prev => ({ ...prev, city: e.target.value }))} />
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>Zipcode</Label>
-                                              <Input value={newCustomer.zipcode} onChange={(e) => setNewCustomer(prev => ({ ...prev, zipcode: e.target.value }))} />
-                                          </div>
-                                          <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                                              <Label>Address</Label>
-                                              <Textarea className="border border-gray-200" value={newCustomer.address} onChange={(e) => setNewCustomer(prev => ({ ...prev, address: e.target.value }))} />
-                                          </div>
-                                      </div>
-                                  </CardContent>
-                              </Card>
-      
-                              {/* Identity Details */}
-                              <Card>
-                                  <CardHeader>
-                                      <CardTitle className="flex items-center gap-2 text-lg">
-                                          <IdCard className="w-5 h-5" />
-                                          Identity Details
-                                      </CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-4">
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                          <div className="space-y-2">
-                                              <Label>Identity Type</Label>
-                                              <Select value={newCustomer.identityType} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, identityType: value }))}>
-                                                  <SelectTrigger>
-                                                      <SelectValue placeholder="Select identity type" />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                      <SelectItem value="passport">Passport</SelectItem>
-                                                      <SelectItem value="driver-license">Driver's License</SelectItem>
-                                                      <SelectItem value="national-id">National ID</SelectItem>
-                                                      <SelectItem value="aadhar">Aadhar Card</SelectItem>
-                                                  </SelectContent>
-                                              </Select>
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>ID #</Label>
-                                              <Input value={newCustomer.identityNumber} onChange={(e) => setNewCustomer(prev => ({ ...prev, identityNumber: e.target.value }))} />
-                                          </div>
-                                      </div>
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                          <div className="space-y-2">
-                                              <Label>Front Side</Label>
-                                              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                                                  <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                                                  <p className="text-sm text-gray-600">Upload front side</p>
-                                                  <p className="text-xs text-gray-400">JPG, JPEG, PNG, SVG</p>
-                                                  <input
-                                                      type="file"
-                                                      accept="image/*"
-                                                      className="mt-2"
-                                                      onChange={(e) => handleFileUpload('frontSideImage', e.target.files?.[0] || null)}
-                                                  />
-                                              </div>
-                                          </div>
-                                          <div className="space-y-2">
-                                              <Label>Back Side</Label>
-                                              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                                                  <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                                                  <p className="text-sm text-gray-600">Upload back side</p>
-                                                  <p className="text-xs text-gray-400">JPG, JPEG, PNG, SVG</p>
-                                                  <input
-                                                      type="file"
-                                                      accept="image/*"
-                                                      className="mt-2"
-                                                      onChange={(e) => handleFileUpload('backSideImage', e.target.files?.[0] || null)}
-                                                  />
-                                              </div>
-                                          </div>
-                                      </div>
-                                  </CardContent>
-                              </Card>
-      
-                              {/* Guest Image */}
-                              <Card>
-                                  <CardHeader>
-                                      <CardTitle className="flex items-center gap-2 text-lg">
-                                          <Camera className="w-5 h-5" />
-                                          Guest Image
-                                      </CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                                          <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                                          <p className="text-lg font-medium text-gray-600 mb-2">Drag and Drop</p>
-                                          <p className="text-sm text-gray-400 mb-4">or click to upload guest photo</p>
-                                          <input
-                                              type="file"
-                                              accept="image/*"
-                                              onChange={(e) => handleFileUpload('guestImage', e.target.files?.[0] || null)}
-                                          />
-                                      </div>
-                                  </CardContent>
-                              </Card>
-      
-                              {/* Modal Actions */}
-                              <div className="flex justify-end gap-3 pt-4">
-                                  <Button variant="outline" onClick={() => setIsNewCustomerModalOpen(false)}>
-                                      Cancel
-                                  </Button>
-                                  <Button onClick={handleSaveNewCustomer}>
-                                      Save Customer
-                                  </Button>
-                              </div>
-                          </div>
-                      </DialogContent>
-                  </Dialog>
-              </div>
-          );
-      }
+
+      {/* New Customer Modal */}
+      <Dialog open={isNewCustomerModalOpen} onOpenChange={setIsNewCustomerModalOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              New Customer
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Guest Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <User className="w-5 h-5" />
+                  Guest Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Country Code</Label>
+                    <Select value={newCustomer.countryCode} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, countryCode: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="+1">+1 (US)</SelectItem>
+                        <SelectItem value="+91">+91 (India)</SelectItem>
+                        <SelectItem value="+94">+94 (Sri Lanka)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mobile No</Label>
+                    <Input value={newCustomer.mobile} onChange={(e) => setNewCustomer(prev => ({ ...prev, mobile: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Title</Label>
+                    <Select value={newCustomer.title} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, title: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Mr">Mr</SelectItem>
+                        <SelectItem value="Mrs">Mrs</SelectItem>
+                        <SelectItem value="Ms">Ms</SelectItem>
+                        <SelectItem value="Dr">Dr</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>First Name *</Label>
+                    <Input value={newCustomer.firstName} onChange={(e) => setNewCustomer(prev => ({ ...prev, firstName: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Last Name</Label>
+                    <Input value={newCustomer.lastName} onChange={(e) => setNewCustomer(prev => ({ ...prev, lastName: e.target.value }))} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Gender</Label>
+                    <RadioGroup value={newCustomer.gender} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, gender: value }))}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem className="border border-gray-500" value="male" id="male" />
+                        <Label htmlFor="male">Male</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem className="border border-gray-500" value="female" id="female" />
+                        <Label htmlFor="female">Female</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Occupation</Label>
+                    <Input value={newCustomer.occupation} onChange={(e) => setNewCustomer(prev => ({ ...prev, occupation: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date of Birth</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {newCustomer.dateOfBirth ? format(newCustomer.dateOfBirth, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar mode="single" selected={newCustomer.dateOfBirth} onSelect={(date) => setNewCustomer(prev => ({ ...prev, dateOfBirth: date }))} />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Anniversary</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {newCustomer.anniversary ? format(newCustomer.anniversary, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar mode="single" selected={newCustomer.anniversary} onSelect={(date) => setNewCustomer(prev => ({ ...prev, anniversary: date }))} />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nationality</Label>
+                    <RadioGroup value={newCustomer.nationality} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, nationality: value }))}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem className="border border-gray-500" value="native" id="native" />
+                        <Label htmlFor="native">Native</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem className="border border-gray-500" value="foreigner" id="foreigner" />
+                        <Label htmlFor="foreigner">Foreigner</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="vip"
+                        checked={newCustomer.isVip}
+                        onCheckedChange={(checked) => setNewCustomer(prev => ({ ...prev, isVip: checked as boolean }))}
+                      />
+                      <Label htmlFor="vip">VIP?</Label>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Contact Details */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <Phone className="w-5 h-5" />
+                                    Contact Details
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Contact Type</Label>
+                                        <Select value={newCustomer.contactType} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, contactType: value }))}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select contact type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="home">Home</SelectItem>
+                                                <SelectItem value="work">Work</SelectItem>
+                                                <SelectItem value="mobile">Mobile</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Email</Label>
+                                        <Input type="email" value={newCustomer.email} onChange={(e) => setNewCustomer(prev => ({ ...prev, email: e.target.value }))} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Country</Label>
+                                        <Input value={newCustomer.country} onChange={(e) => setNewCustomer(prev => ({ ...prev, country: e.target.value }))} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>State</Label>
+                                        <Input value={newCustomer.state} onChange={(e) => setNewCustomer(prev => ({ ...prev, state: e.target.value }))} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>City</Label>
+                                        <Input value={newCustomer.city} onChange={(e) => setNewCustomer(prev => ({ ...prev, city: e.target.value }))} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Zipcode</Label>
+                                        <Input value={newCustomer.zipcode} onChange={(e) => setNewCustomer(prev => ({ ...prev, zipcode: e.target.value }))} />
+                                    </div>
+                                    <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                                        <Label>Address</Label>
+                                        <Textarea className="border border-gray-200" value={newCustomer.address} onChange={(e) => setNewCustomer(prev => ({ ...prev, address: e.target.value }))} />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Identity Details */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <IdCard className="w-5 h-5" />
+                                    Identity Details
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Identity Type</Label>
+                                        <Select value={newCustomer.identityType} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, identityType: value }))}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select identity type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="passport">Passport</SelectItem>
+                                                <SelectItem value="driver-license">Driver's License</SelectItem>
+                                                <SelectItem value="national-id">National ID</SelectItem>
+                                                <SelectItem value="aadhar">Aadhar Card</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>ID #</Label>
+                                        <Input value={newCustomer.identityNumber} onChange={(e) => setNewCustomer(prev => ({ ...prev, identityNumber: e.target.value }))} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Front Side</Label>
+                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                                            <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                                            <p className="text-sm text-gray-600">Upload front side</p>
+                                            <p className="text-xs text-gray-400">JPG, JPEG, PNG, SVG</p>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="mt-2"
+                                                onChange={(e) => handleFileUpload('frontSideImage', e.target.files?.[0] || null)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Back Side</Label>
+                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                                            <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                                            <p className="text-sm text-gray-600">Upload back side</p>
+                                            <p className="text-xs text-gray-400">JPG, JPEG, PNG, SVG</p>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="mt-2"
+                                                onChange={(e) => handleFileUpload('backSideImage', e.target.files?.[0] || null)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Guest Image */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <Camera className="w-5 h-5" />
+                                    Guest Image
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                                    <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                                    <p className="text-lg font-medium text-gray-600 mb-2">Drag and Drop</p>
+                                    <p className="text-sm text-gray-400 mb-4">or click to upload guest photo</p>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => handleFileUpload('guestImage', e.target.files?.[0] || null)}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Modal Actions */}
+                        <div className="flex justify-end gap-3 pt-4">
+                            <Button variant="outline" onClick={() => setIsNewCustomerModalOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleSaveNewCustomer}>
+                                Save Customer
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+}

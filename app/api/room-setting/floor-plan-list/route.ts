@@ -1,24 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 
+function handlePrismaError(error: any) {
+  if (error.code === "P2002") {
+    return NextResponse.json(
+      { message: "Room number must be unique" },
+      { status: 400 }
+    );
+  }
+  return NextResponse.json(
+    { message: "Database error", error: error.message },
+    { status: 500 }
+  );
+}
+
 // GET all floorLists
 export async function GET() {
   try {
     const items = await prisma.floorList.findMany({
       orderBy: { id: "asc" },
-      include: { floor: true }, // include parent Floor
+      include: { floor: true },
     });
-
     return NextResponse.json(items);
-  } catch (error) {
-    return NextResponse.json(
-      { message: "Failed to fetch floor lists" },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    return handlePrismaError(error);
   }
 }
 
-// CREATE a floorList
+// CREATE floorList with rooms
 export async function POST(req: NextRequest) {
   try {
     const { floorName, noOfRoom, startRoomNo } = await req.json();
@@ -30,67 +39,121 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const created = await prisma.floorList.create({
-      data: {
-        floorName,
-        noOfRoom,
-        startRoomNo,
-      },
-    });
-
-    return NextResponse.json(created, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json(
-      { message: "Failed to create floor list", error: error.message },
-      { status: 500 }
+    const roomNumbers = Array.from(
+      { length: noOfRoom },
+      (_, i) => startRoomNo + i
     );
-  }
-}
 
-// UPDATE a floorList
-export async function PUT(req: NextRequest) {
-  try {
-    const { id, floorName, noOfRoom, startRoomNo } = await req.json();
-
-    if (!id) {
+    // Pre-check for duplicates
+    const existingRooms = await prisma.room.findMany({
+      where: { roomNumber: { in: roomNumbers } },
+      select: { roomNumber: true },
+    });
+    if (existingRooms.length > 0) {
       return NextResponse.json(
-        { message: "'id' is required for update" },
+        {
+          message: `The following room numbers already exist: ${existingRooms
+            .map((r) => r.roomNumber)
+            .join(", ")}`,
+        },
         { status: 400 }
       );
     }
 
-    const updated = await prisma.floorList.update({
-      where: { id },
+    const createdFloorList = await prisma.floorList.create({
       data: {
         floorName,
         noOfRoom,
         startRoomNo,
+        rooms: {
+          create: roomNumbers.map((num) => ({
+            roomNumber: num,
+          })),
+        },
       },
+      include: { rooms: true },
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json(createdFloorList, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json(
-      { message: "Failed to update floor list", error: error.message },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }
 
-// DELETE a floorList
+// UPDATE floorList and rooms
+export async function PUT(req: NextRequest) {
+  try {
+    const { id, floorName, noOfRoom, startRoomNo } = await req.json();
+
+    if (!id || !floorName || !noOfRoom || !startRoomNo) {
+      return NextResponse.json(
+        {
+          message:
+            "'id', 'floorName', 'noOfRoom', and 'startRoomNo' are required",
+        },
+        { status: 400 }
+      );
+    }
+
+    const newRoomNumbers = Array.from(
+      { length: noOfRoom },
+      (_, i) => startRoomNo + i
+    );
+
+    const existingRooms = await prisma.room.findMany({
+      where: {
+        roomNumber: { in: newRoomNumbers },
+        floorListId: { not: id },
+      },
+      select: { roomNumber: true },
+    });
+    if (existingRooms.length > 0) {
+      return NextResponse.json(
+        {
+          message: `The following room numbers already exist: ${existingRooms
+            .map((r) => r.roomNumber)
+            .join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const updatedFloorList = await prisma.floorList.update({
+      where: { id },
+      data: { floorName, noOfRoom, startRoomNo },
+    });
+
+    // Replace rooms atomically
+    await prisma.room.deleteMany({ where: { floorListId: id } });
+    await prisma.room.createMany({
+      data: newRoomNumbers.map((num) => ({
+        roomNumber: num,
+        floorListId: id,
+      })),
+    });
+
+    return NextResponse.json({ ...updatedFloorList, rooms: newRoomNumbers });
+  } catch (error: any) {
+    return handlePrismaError(error);
+  }
+}
+
+// DELETE floorList
 export async function DELETE(req: NextRequest) {
   try {
     const { id } = await req.json();
+    if (!id) {
+      return NextResponse.json(
+        { message: "'id' is required for deletion" },
+        { status: 400 }
+      );
+    }
 
-    const deleted = await prisma.floorList.delete({
-      where: { id },
-    });
+    await prisma.room.deleteMany({ where: { floorListId: id } });
+    const deletedFloorList = await prisma.floorList.delete({ where: { id } });
 
-    return NextResponse.json(deleted);
+    return NextResponse.json(deletedFloorList);
   } catch (error: any) {
-    return NextResponse.json(
-      { message: "Failed to delete floor list", error: error.message },
-      { status: 500 }
-    );
+    return handlePrismaError(error);
   }
 }
