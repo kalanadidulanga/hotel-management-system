@@ -213,7 +213,7 @@ export default function NewReservationPage() {
 
   // Customer data
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
-
+console.log("Customers:", customers[0]?.name);
   // Payment details
   const [discountReason, setDiscountReason] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -544,14 +544,33 @@ export default function NewReservationPage() {
   // Handle add existing customer to booking
   const handleAddExistingCustomer = () => {
     if (foundCustomer) {
+      // Check if customer already exists
+      const existingCustomer = customers.find(c => c.id === foundCustomer.id);
+      if (existingCustomer) {
+        alert("This customer is already added to the reservation.");
+        return;
+      }
+
+      // Check if we already have a customer (since we only allow one)
+      if (customers.length > 0) {
+        const replaceCustomer = window.confirm(
+          `A customer is already added to this reservation.\nDo you want to replace them with ${foundCustomer.firstName}?`
+        );
+        if (!replaceCustomer) {
+          return;
+        }
+      }
+
       const customer: Customer = {
-        id: customers.length + 1,
+        id: foundCustomer.id, // Use the actual database ID
         name: foundCustomer.firstName,
         mobile: foundCustomer.phone,
         checkIn: checkInDate ? format(checkInDate, "yyyy-MM-dd") + " " + checkInTime : "",
         checkOut: checkOutDate ? format(checkOutDate, "yyyy-MM-dd") + " " + checkOutTime : "",
       };
-      setCustomers([...customers, customer]);
+
+      // Replace existing customer or add new one
+      setCustomers([customer]);
       setIsOldCustomerModalOpen(false);
       setSearchMobile("");
       setFoundCustomer(null);
@@ -566,6 +585,23 @@ export default function NewReservationPage() {
       return;
     }
 
+    // Check if customer with same mobile already exists in current reservation
+    const existingCustomer = customers.find(c => c.mobile === newCustomer.mobile);
+    if (existingCustomer) {
+      alert("A customer with this mobile number is already added to the reservation.");
+      return;
+    }
+
+    // Check if we already have a customer (since we only allow one)
+    if (customers.length > 0) {
+      const replaceCustomer = window.confirm(
+        `A customer is already added to this reservation.\nDo you want to replace them with ${newCustomer.firstName} ${newCustomer.lastName}?`
+      );
+      if (!replaceCustomer) {
+        return;
+      }
+    }
+
     try {
       const formData = new FormData();
       formData.append("countryCode", newCustomer.countryCode);
@@ -575,14 +611,14 @@ export default function NewReservationPage() {
       formData.append("lastName", newCustomer.lastName || "");
       formData.append("gender", newCustomer.gender);
       formData.append("occupation", newCustomer.occupation || "");
-      
+
       if (newCustomer.dateOfBirth) {
         formData.append("dateOfBirth", newCustomer.dateOfBirth.toISOString());
       }
       if (newCustomer.anniversary) {
         formData.append("anniversary", newCustomer.anniversary.toISOString());
       }
-      
+
       formData.append("nationality", newCustomer.nationality);
       formData.append("isVip", newCustomer.isVip.toString());
       formData.append("contactType", newCustomer.contactType);
@@ -623,7 +659,8 @@ export default function NewReservationPage() {
         checkOut: checkOutDate ? format(checkOutDate, "yyyy-MM-dd") + " " + checkOutTime : "",
       };
 
-      setCustomers([...customers, customer]);
+      // Replace existing customer or add new one
+      setCustomers([customer]);
       setIsNewCustomerModalOpen(false);
 
       // Reset form
@@ -653,6 +690,8 @@ export default function NewReservationPage() {
         guestImage: null,
         comments: "",
       });
+
+      alert("Customer saved and added to reservation successfully!");
     } catch (error) {
       console.error("Error saving customer:", error);
       alert("Failed to save customer. See console for details.");
@@ -660,9 +699,235 @@ export default function NewReservationPage() {
   };
 
   const handleSaveNewReservation = async () => {
-    // Implementation for saving reservation
-    console.log("Saving reservation...");
+    try {
+      // Validation checks
+      const validationErrors: string[] = [];
+
+      // 1. Check In/Out Date validation
+      if (!checkInDate) {
+        validationErrors.push("Check-in date is required");
+      }
+      if (!checkOutDate) {
+        validationErrors.push("Check-out date is required");
+      }
+      if (checkInDate && checkOutDate && checkOutDate <= checkInDate) {
+        validationErrors.push("Check-out date must be after check-in date");
+      }
+
+      // 2. Room details validation
+      if (!roomType) {
+        validationErrors.push("Room type is required");
+      }
+      if (!roomNumber) {
+        validationErrors.push("Room number is required");
+      }
+
+      // 3. Booking details validation
+      if (!bookingType) {
+        validationErrors.push("Booking type is required");
+      }
+      if (!bookingSource) {
+        validationErrors.push("Booking source is required");
+      }
+
+      // 4. Customer validation
+      if (customers.length === 0) {
+        validationErrors.push("At least one customer is required");
+      }
+
+      // 5. Guest count validation
+      if (adults < 1) {
+        validationErrors.push("At least one adult is required");
+      }
+
+      // 6. Payment validation
+      if (advanceAmount > total) {
+        validationErrors.push("Advance amount cannot be greater than total amount");
+      }
+      if (advanceAmount > 0 && !paymentMode) {
+        validationErrors.push("Payment mode is required when advance amount is provided");
+      }
+
+      // 7. Date validation - ensure check-in is not in the past
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (checkInDate && checkInDate < today) {
+        validationErrors.push("Check-in date cannot be in the past");
+      }
+
+      // 8. Time validation for same day bookings
+      if (checkInDate && checkOutDate &&
+        checkInDate.toDateString() === checkOutDate.toDateString()) {
+        const checkInDateTime = new Date(checkInDate);
+        const [checkInHour, checkInMinute] = checkInTime.split(':');
+        checkInDateTime.setHours(parseInt(checkInHour), parseInt(checkInMinute));
+
+        const checkOutDateTime = new Date(checkOutDate);
+        const [checkOutHour, checkOutMinute] = checkOutTime.split(':');
+        checkOutDateTime.setHours(parseInt(checkOutHour), parseInt(checkOutMinute));
+
+        if (checkOutDateTime <= checkInDateTime) {
+          validationErrors.push("Check-out time must be after check-in time for same day bookings");
+        }
+      }
+
+      // 9. Room capacity validation
+      const selectedRoomType = availableRoomTypes.find(rt => rt.roomType === roomType);
+      if (selectedRoomType && (adults + children) > selectedRoomType.capacity) {
+        validationErrors.push(`Total guests (${adults + children}) exceeds room capacity (${selectedRoomType.capacity})`);
+      }
+
+      // 10. Commission validation
+      if (commissionPercent < 0 || commissionPercent > 100) {
+        validationErrors.push("Commission percentage must be between 0 and 100");
+      }
+
+      // 11. Discount validation
+      if (discountAmount > subtotal) {
+        validationErrors.push("Discount amount cannot be greater than subtotal");
+      }
+      if (discountAmount > 0 && !discountReason.trim()) {
+        validationErrors.push("Discount reason is required when discount amount is provided");
+      }
+
+      // Show validation errors if any
+      if (validationErrors.length > 0) {
+        alert("Please fix the following errors:\n\n" + validationErrors.join("\n"));
+        return;
+      }
+
+      // Show confirmation dialog
+      const confirmSave = window.confirm(
+        `Are you sure you want to save this reservation?\n\n` +
+        `Customer: ${customers[0]?.name || 'N/A'}\n` +
+        `Room: ${roomType} - ${roomNumber}\n` +
+        `Check-in: ${checkInDate ? format(checkInDate, "PPP") : 'N/A'} at ${checkInTime}\n` +
+        `Check-out: ${checkOutDate ? format(checkOutDate, "PPP") : 'N/A'} at ${checkOutTime}\n` +
+        `Total Amount: Rs. ${total.toLocaleString()}\n` +
+        `Advance: Rs. ${advanceAmount.toLocaleString()}`
+      );
+
+      if (!confirmSave) {
+        return;
+      }
+
+      // Prepare reservation data
+      const reservationData = {
+        // Reservation details
+        checkInDate: checkInDate?.toISOString(),
+        checkInTime,
+        checkOutDate: checkOutDate?.toISOString(),
+        checkOutTime,
+        arrivalFrom,
+        bookingType,
+        bookingSource,
+        purposeOfVisit,
+        remarks,
+
+        // Room details
+        roomType,
+        roomNumber: parseInt(roomNumber),
+        adults,
+        children,
+        billingType,
+
+        // Selected complimentary items
+        complimentaryItems: selectedComplimentary.map(id => {
+          const item = availableComplimentaryItems.find(c => c.id === id);
+          return {
+            id: parseInt(id),
+            name: item?.complementary,
+            rate: item?.rate
+          };
+        }),
+
+        // Customer information
+        customers: customers[0]?.id,
+
+        // Payment details
+        roomPrice,
+        complimentaryTotal,
+        subtotal,
+        tax,
+        serviceCharge,
+        discountReason,
+        discountAmount,
+        commissionPercent,
+        commissionAmount,
+        bookingCharge,
+        total,
+
+        // Advance details
+        paymentMode,
+        advanceAmount,
+        advanceRemarks,
+        balanceAmount: total - advanceAmount,
+
+        // Status
+        status: 'confirmed',
+        createdAt: new Date().toISOString()
+      };
+
+      // API call to save reservation
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-reservation/room-booking`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reservationData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save reservation');
+      }
+
+      const result = await response.json();
+
+      // Success notification
+      alert(`Reservation saved successfully!\nReservation ID: ${result.reservationId || 'N/A'}`);
+
+      // Optional: Reset form or redirect
+      const resetForm = window.confirm("Would you like to create another reservation?");
+
+      if (resetForm) {
+        // Reset all form fields
+        setCheckInDate(undefined);
+        setCheckOutDate(undefined);
+        setCheckInTime("15:00");
+        setCheckOutTime("12:00");
+        setArrivalFrom("");
+        setBookingType("");
+        setBookingSource("");
+        setPurposeOfVisit("");
+        setRemarks("");
+        setRoomType("");
+        setRoomNumber("");
+        setAdults(1);
+        setChildren(0);
+        setBillingType("nightly");
+        setSelectedComplimentary([]);
+        setCustomers([]);
+        setDiscountReason("");
+        setDiscountAmount(0);
+        setCommissionPercent(0);
+        setCommissionAmount(0);
+        setBookingCharge(0);
+        setPaymentMode("");
+        setAdvanceAmount(0);
+        setAdvanceRemarks("");
+      } else {
+        // Redirect to reservations list or dashboard
+        window.location.href = '/reservations';
+      }
+
+    } catch (error) {
+      console.error("Error saving reservation:", error);
+      alert(`Failed to save reservation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
+
+
 
   // Handle delete customer
   const handleDeleteCustomer = (id: number) => {
@@ -819,25 +1084,49 @@ export default function NewReservationPage() {
                     disabled={!bookingType}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={!bookingType ? "Select booking type first" : "Select booking source"} />
+                      <SelectValue
+                        placeholder={
+                          !bookingType
+                            ? "Select booking type first"
+                            : "Select booking source"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {bookingSources.map(source => (
-                        <SelectItem key={source.id} value={source.bookingSource}>
-                          {source.bookingSource}
-                          {source.commissionRate > 0 && (
-                            <span className="text-xs text-muted-foreground ml-2">
-                              ({source.commissionRate}% commission)
-                            </span>
-                          )}
-                        </SelectItem>
-                      ))}
-                      {bookingSources.length === 0 && bookingType && (
-                        <SelectItem value="" disabled>No sources available for this booking type</SelectItem>
-                      )}
+                      {/* Only show valid sources */}
+                      {bookingSources
+                        .filter(
+                          source =>
+                            source.bookingSource && source.bookingSource.trim() !== ""
+                        )
+                        .map(source => (
+                          <SelectItem
+                            key={source.id}
+                            value={source.bookingSource}
+                          >
+                            {source.bookingSource}
+                            {source.commissionRate > 0 && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                ({source.commissionRate}% commission)
+                              </span>
+                            )}
+                          </SelectItem>
+                        ))}
+
+                      {/* If no valid sources available */}
+                      {bookingSources.filter(
+                        source =>
+                          source.bookingSource && source.bookingSource.trim() !== ""
+                      ).length === 0 &&
+                        bookingType && (
+                          <SelectItem value="no-source" disabled>
+                            No sources available for this booking type
+                          </SelectItem>
+                        )}
                     </SelectContent>
                   </Select>
                 </div>
+
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -993,68 +1282,137 @@ export default function NewReservationPage() {
           </Card>
 
           {/* Customer Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+         <Card>
+  <CardHeader>
+    <CardTitle className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <User className="w-5 h-5" />
+        Customer Info
+      </div>
+      {customers.length === 0 && (
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setIsNewCustomerModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New Customer
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setIsOldCustomerModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Users className="w-4 h-4" />
+            Old Customer
+          </Button>
+        </div>
+      )}
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    {customers.length === 0 ? (
+      <div className="text-center py-8">
+        <User className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+        <p className="text-muted-foreground mb-4">No customer added yet</p>
+        <div className="flex gap-2 justify-center">
+          <Button
+            onClick={() => setIsNewCustomerModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New Customer
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setIsOldCustomerModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Users className="w-4 h-4" />
+            Old Customer
+          </Button>
+        </div>
+      </div>
+    ) : (
+      <div className="space-y-4">
+        {customers.map((customer, index) => (
+          <div key={customer.id} className="border rounded-lg p-4">
+            <div className="flex justify-between items-start">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <User className="w-5 h-5" />
-                  Customer Info
+                  <h3 className="font-semibold text-lg">{customer.name}</h3>
+                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                    Primary Guest
+                  </span>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => setIsNewCustomerModalOpen(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    New Customer
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsOldCustomerModalOpen(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Users className="w-4 h-4" />
-                    Old Customer
-                  </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Mobile:</span>
+                    <span className="font-medium">{customer.mobile}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Check-in:</span>
+                    <span className="font-medium">{customer.checkIn || 'Not set'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Check-out:</span>
+                    <span className="font-medium">{customer.checkOut || 'Not set'}</span>
+                  </div>
                 </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>SL</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Mobile No</TableHead>
-                    <TableHead>Check In</TableHead>
-                    <TableHead>Check Out</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customers.map((customer, index) => (
-                    <TableRow key={customer.id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{customer.name}</TableCell>
-                      <TableCell>{customer.mobile}</TableCell>
-                      <TableCell>{customer.checkIn}</TableCell>
-                      <TableCell>{customer.checkOut}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleDeleteCustomer(customer.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => setIsOldCustomerModalOpen(true)}
+                  className="flex items-center gap-1"
+                >
+                  <Edit className="w-4 h-4" />
+                  Change
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => handleDeleteCustomer(customer.id)}
+                  className="flex items-center gap-1 text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Remove
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+        
+        {/* Option to change customer when one is already added */}
+        <div className="text-center py-4 border-t">
+          <p className="text-sm text-muted-foreground mb-2">Need to change the customer?</p>
+          <div className="flex gap-2 justify-center">
+            <Button
+              variant="outline"
+              onClick={() => setIsNewCustomerModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add New Customer
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsOldCustomerModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Users className="w-4 h-4" />
+              Select Existing Customer
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+  </CardContent>
+</Card>
 
           {/* Payment Details */}
           <Card>

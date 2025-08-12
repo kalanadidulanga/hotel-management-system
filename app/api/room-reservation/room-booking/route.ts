@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 
-
+// Add type definition for complimentary items
+type ComplementaryItemData = {
+  id: number;
+  roomType: string;
+  complementary: string;
+  rate: number;
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -156,158 +162,70 @@ async function getAvailableRooms(
 
   return availableRooms;
 }
-
-
+function generateBookingNumber(lastNumber: string | null): string {
+  const nextNum = lastNumber ? parseInt(lastNumber) + 1 : 1;
+  return String(nextNum).padStart(8, "0"); // 8 digits, e.g., 00000330
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const {
-      // Reservation details
-      checkInDate,
-      checkOutDate,
-      checkInTime,
-      checkOutTime,
-      arrivalFrom,
-      bookingType,
-      bookingSource,
-      purposeOfVisit,
-      remarks,
+    const data = await req.json();
 
-      // Room details
-      roomType,
-      roomNumber,
-      adults,
-      children,
-      billingType,
-
-      // Customer
-      customerId,
-
-      // Complimentary items
-      complementaryItemIds = [],
-
-      // Payment details
-      discountReason,
-      discountAmount = 0,
-      commissionPercent = 0,
-      commissionAmount = 0,
-      bookingCharge = 0,
-      tax = 0,
-      serviceCharge = 0,
-      paymentMode,
-      advanceRemarks,
-      advanceAmount = 0,
-    } = body;
-
-    // Validate required fields
-    if (
-      !checkInDate ||
-      !checkOutDate ||
-      !roomType ||
-      !roomNumber ||
-      !customerId
-    ) {
-      return NextResponse.json(
-        { message: "Missing required fields" },
-        { status: 400 }
-      );
-    }
-
-    // Check if room is available
-    const room = await prisma.room.findFirst({
-      where: {
-        roomNumber: parseInt(roomNumber),
-        roomType: roomType,
-        isAvailable: true,
-      },
-      include: {
-        roomList: true,
-      },
+    // Find last booking number
+    const lastReservation = await prisma.reservation.findFirst({
+      orderBy: { id: "desc" },
+      select: { bookingNumber: true },
     });
 
-    if (!room) {
-      return NextResponse.json(
-        { message: "Room not available" },
-        { status: 400 }
-      );
-    }
+    const bookingNumber = generateBookingNumber(
+      lastReservation?.bookingNumber || null
+    );
 
-    // Calculate room price
-    const checkIn = new Date(checkInDate + " " + checkInTime);
-    const checkOut = new Date(checkOutDate + " " + checkOutTime);
-
-    let roomPrice = 0;
-    if (billingType === "hourly") {
-      const hours = Math.ceil(
-        (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60)
-      );
-      roomPrice = Math.max(1, hours) * room.roomList!.hourlyCharge;
-    } else {
-      const nights = Math.ceil(
-        (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      roomPrice = Math.max(1, nights) * room.roomList!.rate;
-    }
-
-    // Create reservation
     const reservation = await prisma.reservation.create({
       data: {
-        checkInDate: new Date(checkInDate),
-        checkOutDate: new Date(checkOutDate),
-        checkInTime,
-        checkOutTime,
-        arrivalFrom,
-        bookingType,
-        purposeOfVisit,
-        remarks,
-        roomType,
-        roomNumber,
-        adults,
-        children,
-        roomPrice: Math.round(roomPrice),
-        billingType,
-        customerId,
-        discountReason,
-        discountAmount,
-        commissionPercent,
-        commissionAmount,
-        bookingCharge,
-        tax,
-        serviceCharge,
-        paymentMode,
-        advanceRemarks,
-        advanceAmount,
-
-        // Connect complimentary items
+        bookingNumber, // ✅ save generated booking number
+        checkInDate: new Date(data.checkInDate),
+        checkOutDate: new Date(data.checkOutDate),
+        checkInTime: data.checkInTime,
+        checkOutTime: data.checkOutTime,
+        arrivalFrom: data.arrivalFrom || null,
+        bookingType: data.bookingType || null,
+        purposeOfVisit: data.purposeOfVisit,
+        remarks: data.remarks || null,
+        roomType: data.roomType,
+        roomNumber: String(data.roomNumber),
+        adults: data.adults || 0,
+        children: data.children || 0,
+        roomPrice: data.roomPrice,
+        billingType: data.billingType,
+        customerId: data.customers,
+        discountReason: data.discountReason || null,
+        discountAmount: data.discountAmount || 0,
+        commissionPercent: data.commissionPercent || 0,
+        commissionAmount: data.commissionAmount || 0,
+        bookingCharge: data.bookingCharge || 0,
+        tax: data.tax || 0,
+        serviceCharge: data.serviceCharge || 0,
+        paymentMode: data.paymentMode,
+        advanceRemarks: data.advanceRemarks || null,
+        advanceAmount: data.advanceAmount || 0,
+        total: data.total || 0,
+        balanceAmount: data.balanceAmount || 0,
         complementaryItems: {
-          connect: complementaryItemIds.map((id: number) => ({ id })),
+          connect: data.complimentaryItems.map((item: any) => ({
+            id: item.id,
+          })),
         },
       },
-      include: {
-        customer: true,
-        complementaryItems: true,
-      },
     });
 
-    // Mark room as unavailable for the reservation period
-    await prisma.room.update({
-      where: { id: room.id },
-      data: { isAvailable: false },
+    return NextResponse.json({
+      message: "Reservation saved successfully",
+      bookingNumber,
+      reservationId: reservation.id,
     });
-
-    return NextResponse.json(
-      {
-        message: "Reservation created successfully",
-        reservation,
-      },
-      { status: 201 }
-    );
   } catch (error: any) {
-    console.error("Error creating reservation:", error);
-    return NextResponse.json(
-      { message: "Internal Server Error", error: error.message },
-      { status: 500 }
-    );
+    console.error(error);
+    return NextResponse.json({ message: error.message }, { status: 500 });
   }
 }
