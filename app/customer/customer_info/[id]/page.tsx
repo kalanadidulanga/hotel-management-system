@@ -4,30 +4,20 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbS
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import {
   Home,
   Users,
-  ArrowLeft,
   Edit,
   Trash2,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  User,
-  CreditCard,
-  Building,
-  Globe,
   AlertCircle,
   Eye,
-  Settings,
-  DollarSign,
-  FileText,
-  Clock,
-  Activity
+  RefreshCw,
+  User,
+  ImageIcon
 } from "lucide-react";
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -35,19 +25,34 @@ import { toast } from "sonner";
 import useSWR from "swr";
 import Link from "next/link";
 
+// Customer interface based on your Prisma model
 interface Customer {
   id: number;
+  title?: string;
   firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
+  lastName?: string;
+  gender: string;
   dateOfBirth: string;
-  profession: string;
+  anniversary?: string;
   nationality: "native" | "foreigner";
-  nationalId: string;
+  isVip: boolean;
+  occupation?: string;
+  email: string;
+  countryCode: string;
+  phone: string;
+  contactType?: string;
+  country?: string;
+  state?: string;
+  city?: string;
+  zipcode?: string;
   address: string;
+  identityType?: string;
+  identityNumber: string;
+  frontIdUrl?: string;
+  backIdUrl?: string;
+  guestImageUrl?: string;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 const fetcher = (url: string) => fetch(url).then(res => {
@@ -63,7 +68,12 @@ export default function CustomerDetailsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch customer details with SWR
-  const { data: customer, error: customerError, isLoading: isLoadingCustomer, mutate } = useSWR<Customer>(
+  const {
+    data: customer,
+    error: customerError,
+    isLoading: isLoadingCustomer,
+    mutate
+  } = useSWR<Customer>(
     customerId ? `/api/customer/customer-list/${customerId}` : null,
     fetcher,
     {
@@ -80,7 +90,7 @@ export default function CustomerDetailsPage() {
   const handleDelete = async () => {
     if (!customer) return;
 
-    const customerName = `${customer.firstName} ${customer.lastName}`;
+    const customerName = `${customer.firstName} ${customer.lastName || ''}`.trim();
 
     if (!confirm(`Are you sure you want to delete "${customerName}"? This action cannot be undone.`)) {
       return;
@@ -88,14 +98,8 @@ export default function CustomerDetailsPage() {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/customer/customer-list`, {
+      const response = await fetch(`/api/customer/customer-list/${customer.id}`, {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: customer.id
-        }),
       });
 
       if (!response.ok) {
@@ -120,70 +124,59 @@ export default function CustomerDetailsPage() {
     }
   };
 
-  // Format date
+  // Helper functions
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+      month: '2-digit',
+      day: '2-digit'
     });
   };
 
-  // Calculate age
-  const calculateAge = (dateOfBirth: string) => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
+  const PhotoPlaceholder = ({ label, imageUrl }: { label: string; imageUrl?: string }) => (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium">{label}</Label>
+      <div className="w-26 h-20 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
+        {imageUrl ? (
+          <Link href = { imageUrl } target = "_blank" rel = "noopener noreferrer" >
 
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-
-    return age;
-  };
+          <img src={imageUrl} alt={label} className="w-full h-full object-cover rounded-lg" />
+          </Link>
+        ) : (
+          <ImageIcon className="w-6 h-6 text-gray-400" />
+        )}
+      </div>
+    </div>
+  );
 
   // Loading skeleton
   const LoadingSkeleton = () => (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center space-x-4">
-                <Skeleton className="h-16 w-16 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-6 w-48" />
-                  <Skeleton className="h-4 w-32" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex justify-between">
+    <div className="max-w-4xl mx-auto p-6">
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-8 w-64" />
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="space-y-2">
                   <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-10 w-full" />
                 </div>
               ))}
-            </CardContent>
-          </Card>
-        </div>
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="text-center">
-                  <Skeleton className="h-8 w-16 mx-auto mb-2" />
-                  <Skeleton className="h-4 w-20 mx-auto" />
+            </div>
+            <div className="space-y-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-10 w-full" />
                 </div>
               ))}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 
@@ -200,11 +193,11 @@ export default function CustomerDetailsPage() {
             </p>
             <div className="flex gap-2 justify-center">
               <Button onClick={() => mutate()} variant="outline">
+                <RefreshCw className="w-4 h-4 mr-2" />
                 Try Again
               </Button>
               <Link href="/customer/customer-list">
                 <Button>
-                  <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to List
                 </Button>
               </Link>
@@ -219,7 +212,6 @@ export default function CustomerDetailsPage() {
   if (isLoadingCustomer) {
     return (
       <div className="flex flex-col h-full bg-white relative">
-        {/* Header Section */}
         <div className="flex-shrink-0 bg-white/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border/50">
           <div className="px-4 py-4 space-y-4">
             <Breadcrumb>
@@ -250,8 +242,6 @@ export default function CustomerDetailsPage() {
             </div>
           </div>
         </div>
-
-        {/* Loading Content */}
         <div className="flex-1 overflow-auto">
           <LoadingSkeleton />
         </div>
@@ -270,10 +260,7 @@ export default function CustomerDetailsPage() {
               The customer you're looking for doesn't exist.
             </p>
             <Link href="/customer/customer-list">
-              <Button>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to List
-              </Button>
+              <Button>Back to List</Button>
             </Link>
           </div>
         </div>
@@ -314,7 +301,7 @@ export default function CustomerDetailsPage() {
               <div>
                 <h1 className="text-xl font-semibold text-foreground">Customer Details</h1>
                 <p className="text-sm text-muted-foreground">
-                  {customer.firstName} {customer.lastName} • ID: #{customer.id}
+                  {customer.firstName} {customer.lastName || ''} • ID: #{customer.id}
                 </p>
               </div>
             </div>
@@ -325,12 +312,8 @@ export default function CustomerDetailsPage() {
                   Customer List
                 </Button>
               </Link>
-              <Link href={`/customer/customer-list/update/${customer.id}`}>
-                <Button className="h-10 px-6 rounded-full shadow-md flex items-center gap-2">
-                  <Edit className="w-4 h-4" />
-                  Edit Customer
-                </Button>
-              </Link>
+              
+             
             </div>
           </div>
         </div>
@@ -338,213 +321,221 @@ export default function CustomerDetailsPage() {
 
       {/* Content Section */}
       <div className="flex-1 overflow-auto">
-        <div className="max-w-6xl mx-auto p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Customer Info */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Customer Profile Card */}
-              <Card className="shadow-lg border border-border/50">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <Avatar className="h-16 w-16 border-2 border-primary/20">
-                        <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
-                          {customer.firstName[0]?.toUpperCase()}{customer.lastName[0]?.toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h2 className="text-2xl font-bold text-foreground">
-                          {customer.firstName} {customer.lastName}
-                        </h2>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
-                          <span className="text-sm text-muted-foreground">
-                            {customer.nationality === 'native' ? 'Native' : 'Foreigner'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleDelete}
-                        disabled={isDeleting}
-                        className="rounded-full border-red-200 hover:bg-red-50 text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Contact Information */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                      <Phone className="w-5 h-5" />
-                      Contact Information
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                        <Mail className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Email</p>
-                          <p className="font-medium">{customer.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                        <Phone className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Phone</p>
-                          <p className="font-medium">{customer.phone}</p>
-                        </div>
-                      </div>
-                    </div>
+        <div className="max-w-4xl mx-auto p-6">
+          <Card className="shadow-lg border border-border/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Customer Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Two Column Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  {/* First Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName" className="text-sm font-medium">
+                      First Name
+                    </Label>
+                    <Input
+                      id="firstName"
+                      value={customer.firstName || ''}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-700"
+                    />
                   </div>
 
-                  <Separator />
-
-                  {/* Personal Information */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                      <User className="w-5 h-5" />
-                      Personal Information
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Date of Birth</p>
-                          <p className="font-medium">
-                            {formatDate(customer.dateOfBirth)} ({calculateAge(customer.dateOfBirth)} years old)
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                        <Building className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Profession</p>
-                          <p className="font-medium">{customer.profession}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                        <CreditCard className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">National ID</p>
-                          <p className="font-medium">{customer.nationalId}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                        <Globe className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Nationality</p>
-                          <p className="font-medium capitalize">{customer.nationality}</p>
-                        </div>
-                      </div>
-                    </div>
+                  {/* Email */}
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium">
+                      Email
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={customer.email || ''}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-700"
+                    />
                   </div>
 
-                  <Separator />
+                  {/* Date of Birth */}
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOfBirth" className="text-sm font-medium">
+                      Date of Birth
+                    </Label>
+                    <Input
+                      id="dateOfBirth"
+                      value={customer.dateOfBirth ? formatDate(customer.dateOfBirth) : 'Date of Birth'}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-400"
+                      placeholder="Date of Birth"
+                    />
+                  </div>
+
+                  {/* City */}
+                  <div className="space-y-2">
+                    <Label htmlFor="city" className="text-sm font-medium">
+                      City
+                    </Label>
+                    <Input
+                      id="city"
+                      value={customer.city || 'City'}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-400"
+                      placeholder="City"
+                    />
+                  </div>
+
+                  {/* Nationality */}
+                  <div className="space-y-2">
+                    <Label htmlFor="nationality" className="text-sm font-medium">
+                      Nationality
+                    </Label>
+                    <Input
+                      id="nationality"
+                      value={customer.nationality ? (customer.nationality === 'native' ? 'Native' : 'Foreigner') : 'Nationality'}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-400"
+                      placeholder="Nationality"
+                    />
+                  </div>
+
+                  {/* Photo Identity Type */}
+                  <div className="space-y-2">
+                    <Label htmlFor="identityType" className="text-sm font-medium">
+                      Photo Identity Type
+                    </Label>
+                    <Input
+                      id="identityType"
+                      value={customer.identityType || 'Photo Identity Type'}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-400"
+                      placeholder="Photo Identity Type"
+                    />
+                  </div>
+
+                  {/* Photo Front */}
+                  <PhotoPlaceholder label="Photo Front" imageUrl={customer.frontIdUrl} />
 
                   {/* Address */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                      <MapPin className="w-5 h-5" />
+                  <div className="space-y-2">
+                    <Label htmlFor="address" className="text-sm font-medium">
                       Address
-                    </h3>
-                    <div className="p-4 bg-muted/30 rounded-lg">
-                      <p className="text-foreground">{customer.address}</p>
-                    </div>
+                    </Label>
+                    <Textarea
+                      id="address"
+                      value={customer.address || '413 21st Ave NE Center'}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-700 min-h-[80px] resize-none"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  {/* Last Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className="text-sm font-medium">
+                      Last Name
+                    </Label>
+                    <Input
+                      id="lastName"
+                      value={customer.lastName || 'Vladimir Diaz'}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-700"
+                    />
                   </div>
 
-                  <Separator />
+                  {/* Phone */}
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-sm font-medium">
+                      Phone
+                    </Label>
+                    <Input
+                      id="phone"
+                      value={`${customer.countryCode || ''} ${customer.phone || '4342569705'}`}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-700"
+                    />
+                  </div>
 
-                  {/* Account Information */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                      <Clock className="w-5 h-5" />
-                      Account Information
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                        <Activity className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Member Since</p>
-                          <p className="font-medium">{formatDate(customer.createdAt)}</p>
-                        </div>
-                      </div>
-                      {customer.updatedAt && (
-                        <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                          <Edit className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm text-muted-foreground">Last Updated</p>
-                            <p className="font-medium">{formatDate(customer.updatedAt)}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                  {/* Profession */}
+                  <div className="space-y-2">
+                    <Label htmlFor="occupation" className="text-sm font-medium">
+                      Profession
+                    </Label>
+                    <Input
+                      id="occupation"
+                      value={customer.occupation || 'Profession'}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-400"
+                      placeholder="Profession"
+                    />
                   </div>
-                </CardContent>
-              </Card>
-            </div>
 
-            {/* Sidebar Stats */}
-            <div className="space-y-6">
-              {/* Customer Info Summary */}
-              <Card className="shadow-lg border border-border/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="w-5 h-5" />
-                    Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-sm font-medium text-blue-800 mb-1">Customer ID</div>
-                    <div className="text-2xl font-bold text-blue-600">#{customer.id}</div>
+                  {/* Gender */}
+                  <div className="space-y-2">
+                    <Label htmlFor="gender" className="text-sm font-medium">
+                      Gender
+                    </Label>
+                    <Input
+                      id="gender"
+                      value={customer.gender || 'Gender'}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-400"
+                      placeholder="Gender"
+                    />
                   </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-sm font-medium text-green-800 mb-1">Age</div>
-                    <div className="text-2xl font-bold text-green-600">
-                      {calculateAge(customer.dateOfBirth)} years
-                    </div>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <div className="text-sm font-medium text-purple-800 mb-1">Member For</div>
-                    <div className="text-2xl font-bold text-purple-600">
-                      {Math.floor((new Date().getTime() - new Date(customer.createdAt).getTime()) / (1000 * 60 * 60 * 24))} days
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
-            
+                  {/* Passport No */}
+                  <div className="space-y-2">
+                    <Label htmlFor="identityNumber" className="text-sm font-medium">
+                      Passport No
+                    </Label>
+                    <Input
+                      id="identityNumber"
+                      value={customer.identityNumber || 'Passport No'}
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-400"
+                      placeholder="Passport No"
+                    />
+                  </div>
 
-              {/* Additional Info */}
-              <Card className="shadow-lg border border-border/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Additional Info
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-sm text-muted-foreground">Status</span>
-                    <Badge className="bg-green-100 text-green-800 border-green-200">Active</Badge>
+                  {/* Photo Identity */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">
+                      Photo Identity
+                    </Label>
+                    <Input
+                      value="Photo Identity"
+                      readOnly
+                      className="bg-gray-50 border-gray-200 text-gray-400"
+                      placeholder="Photo Identity"
+                    />
                   </div>
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-sm text-muted-foreground">Nationality</span>
-                    <span className="text-sm font-medium capitalize">{customer.nationality}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-sm text-muted-foreground">Profession</span>
-                    <span className="text-sm font-medium">{customer.profession}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+
+                  {/* Photo Back */}
+                  <PhotoPlaceholder label="Photo Back" imageUrl={customer.backIdUrl} />
+
+                  {/* Photo Guest */}
+                  <PhotoPlaceholder label="Photo Guest" imageUrl={customer.guestImageUrl} />
+                </div>
+              </div>
+
+              {/* VIP Status Badge */}
+              {customer.isVip && (
+                <div className="mt-6 pt-6 border-t">
+                  <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 text-sm px-3 py-1">
+                    VIP Customer
+                  </Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Home,
   Search,
@@ -25,97 +28,115 @@ import {
   Users,
   IdCard,
   Download,
-  Plus
+  Plus,
+  Loader2,
+  X,
+  Calendar,
+  Clock,
+  RotateCcw
 } from "lucide-react";
 import Link from "next/link";
 
-interface Booking {
+// Updated interface to match Prisma Reservation schema
+interface ReservationBooking {
   id: number;
   bookingNumber: string;
+  checkInDate: string;
+  checkOutDate: string;
+  checkInTime: string;
+  checkOutTime: string;
   roomType: string;
-  roomNumber: string;
-  name: string;
-  phone: string;
-  checkIn: string;
-  checkOut: string;
-  paidAmount: number;
-  dueAmount: number;
-  bookingStatus: "Pending" | "Confirmed" | "Checked In" | "Checked Out" | "Cancelled";
-  paymentStatus: "Pending" | "Success" | "Failed" | "Partial";
+  roomNumber: number;
+  roomPrice: number;
+  total: number;
+  advanceAmount: number;
+  balanceAmount: number;
+  billingType: string;
+  paymentMode: string;
+  purposeOfVisit: string;
+  arrivalFrom?: string;
+  bookingType?: string;
+  remarks?: string;
+  adults?: number;
+  children?: number;
+  // Customer details (from relation)
+  customer: {
+    id: number;
+    firstName: string;
+    lastName?: string;
+    phone: string;
+    email: string;
+    nationality: "native" | "foreigner";
+  };
+  // Room details (from relation)
+  room: {
+    id: number;
+    roomNumber: number;
+    isAvailable: boolean;
+  };
+  roomTypeDetails: {
+    roomType: string;
+    rate: number;
+    capacity: number;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
-const mockBookings: Booking[] = [
-  {
-    id: 1,
-    bookingNumber: "0000282",
-    roomType: "Deluxe",
-    roomNumber: "165",
-    name: "farhid",
-    phone: "566567",
-    checkIn: "2025-07-18 01:00",
-    checkOut: "2025-07-18 03:00",
-    paidAmount: 0.00,
-    dueAmount: 183184.00,
-    bookingStatus: "Pending",
-    paymentStatus: "Pending"
-  },
-  {
-    id: 2,
-    bookingNumber: "0000281",
-    roomType: "VIP",
-    roomNumber: "102",
-    name: "Tester",
-    phone: "0620425286",
-    checkIn: "2025-07-18 01:00",
-    checkOut: "2025-07-18 03:00",
-    paidAmount: 0.00,
-    dueAmount: 42800.00,
-    bookingStatus: "Pending",
-    paymentStatus: "Success"
-  },
-  {
-    id: 3,
-    bookingNumber: "0000280",
-    roomType: "Standard",
-    roomNumber: "201",
-    name: "John Smith",
-    phone: "9876543210",
-    checkIn: "2025-07-19 15:00",
-    checkOut: "2025-07-20 12:00",
-    paidAmount: 5000.00,
-    dueAmount: 15000.00,
-    bookingStatus: "Confirmed",
-    paymentStatus: "Partial"
-  },
-  {
-    id: 4,
-    bookingNumber: "0000279",
-    roomType: "Suite",
-    roomNumber: "301",
-    name: "Alice Johnson",
-    phone: "1234567890",
-    checkIn: "2025-07-20 14:00",
-    checkOut: "2025-07-22 11:00",
-    paidAmount: 25000.00,
-    dueAmount: 0.00,
-    bookingStatus: "Confirmed",
-    paymentStatus: "Success"
-  },
-  {
-    id: 5,
-    bookingNumber: "0000278",
-    roomType: "Deluxe",
-    roomNumber: "150",
-    name: "Bob Wilson",
-    phone: "5555555555",
-    checkIn: "2025-07-16 16:00",
-    checkOut: "2025-07-18 10:00",
-    paidAmount: 8000.00,
-    dueAmount: 2000.00,
-    bookingStatus: "Checked In",
-    paymentStatus: "Partial"
+// API Response interface
+interface ApiResponse {
+  data: ReservationBooking[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+// Edit form data interface
+interface EditFormData {
+  checkInDate: string;
+  checkOutDate: string;
+  checkInTime: string;
+  checkOutTime: string;
+  roomPrice: string;
+  total: string;
+  advanceAmount: string;
+  balanceAmount: string;
+  paymentMode: string;
+  purposeOfVisit: string;
+  arrivalFrom: string;
+  billingType: string;
+  adults: string;
+  children: string;
+  remarks: string;
+}
+
+// Define booking status type based on dates and business logic
+type BookingStatus = "Pending" | "Confirmed" | "Checked In" | "Checked Out" | "Cancelled";
+type PaymentStatus = "Pending" | "Success" | "Failed" | "Partial";
+
+// Build URL for API calls
+const buildUrl = (search: string, page: number, entries: number, sort: { key: string; dir: "asc" | "desc" }) => {
+  const params = new URLSearchParams({
+    search,
+    page: page.toString(),
+    limit: entries.toString(),
+    sortBy: sort.key,
+    sortDir: sort.dir,
+  });
+  return `/api/room-reservation/booking-list?${params}`;
+};
+
+// Fetcher function for SWR
+const fetcher = async (url: string): Promise<ApiResponse> => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error('Failed to fetch reservations');
   }
-];
+  return response.json();
+};
 
 const pageSizes = [10, 25, 50, 100];
 
@@ -124,81 +145,310 @@ const columns = [
   { key: "bookingNumber", label: "Booking Number" },
   { key: "roomType", label: "Room Type" },
   { key: "roomNumber", label: "Room No." },
-  { key: "name", label: "Name" },
+  { key: "customerName", label: "Customer Name" },
   { key: "phone", label: "Phone" },
   { key: "checkIn", label: "Check In" },
   { key: "checkOut", label: "Check Out" },
-  { key: "paidAmount", label: "Paid Amount" },
-  { key: "dueAmount", label: "Due Amount" },
+  { key: "advanceAmount", label: "Advance Paid" },
+  { key: "balanceAmount", label: "Balance Due" },
+  { key: "total", label: "Total Amount" },
   { key: "bookingStatus", label: "Booking Status" },
   { key: "paymentStatus", label: "Payment Status" },
   { key: "action", label: "Action" },
 ];
 
+const paymentModes = [
+  { value: "cash", label: "Cash" },
+  { value: "card", label: "Card" },
+  { value: "bank_transfer", label: "Bank Transfer" },
+  { value: "upi", label: "UPI" },
+  { value: "cheque", label: "Cheque" },
+];
+
+const billingTypes = [
+  { value: "nightly", label: "Nightly" },
+  { value: "hourly", label: "Hourly" },
+];
+
+const purposeOptions = [
+  { value: "leisure", label: "Leisure" },
+  { value: "business", label: "Business" },
+  { value: "conference", label: "Conference" },
+  { value: "wedding", label: "Wedding" },
+  { value: "other", label: "Other" },
+];
+
 export default function BookingListPage() {
   const [entries, setEntries] = useState(10);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // Input value for search field
+  const [searchQuery, setSearchQuery] = useState(""); // Actual search query used for API
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "sl", dir: "asc" });
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "id", dir: "desc" });
   const [visibleCols, setVisibleCols] = useState(columns.map(c => c.key));
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings);
 
-  // Filtering
-  const filtered = useMemo(() => {
-    return bookings.filter(booking =>
-      booking.bookingNumber.toLowerCase().includes(search.toLowerCase()) ||
-      booking.name.toLowerCase().includes(search.toLowerCase()) ||
-      booking.phone.toLowerCase().includes(search.toLowerCase()) ||
-      booking.roomType.toLowerCase().includes(search.toLowerCase()) ||
-      booking.roomNumber.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [search, bookings]);
+  // Edit modal states
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingReservation, setEditingReservation] = useState<ReservationBooking | null>(null);
+  const [editFormData, setEditFormData] = useState<EditFormData>({
+    checkInDate: "",
+    checkOutDate: "",
+    checkInTime: "",
+    checkOutTime: "",
+    roomPrice: "",
+    total: "",
+    advanceAmount: "",
+    balanceAmount: "",
+    paymentMode: "",
+    purposeOfVisit: "",
+    arrivalFrom: "",
+    billingType: "",
+    adults: "",
+    children: "",
+    remarks: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Sorting
-  const sorted = useMemo(() => {
-    const sortedBookings = [...filtered];
-    if (sort.key === "sl") {
-      sortedBookings.sort((a, b) => sort.dir === "asc" ? a.id - b.id : b.id - a.id);
-    } else if (sort.key === "bookingNumber") {
-      sortedBookings.sort((a, b) => {
-        if (a.bookingNumber < b.bookingNumber) return sort.dir === "asc" ? -1 : 1;
-        if (a.bookingNumber > b.bookingNumber) return sort.dir === "asc" ? 1 : -1;
-        return 0;
-      });
-    } else if (sort.key === "name") {
-      sortedBookings.sort((a, b) => {
-        if (a.name < b.name) return sort.dir === "asc" ? -1 : 1;
-        if (a.name > b.name) return sort.dir === "asc" ? 1 : -1;
-        return 0;
-      });
-    } else if (sort.key === "paidAmount" || sort.key === "dueAmount") {
-      sortedBookings.sort((a, b) => {
-        const aVal = sort.key === "paidAmount" ? a.paidAmount : a.dueAmount;
-        const bVal = sort.key === "paidAmount" ? b.paidAmount : b.dueAmount;
-        return sort.dir === "asc" ? aVal - bVal : bVal - aVal;
-      });
+  // Reset page when search query or entries change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, entries]);
+
+  // SWR hook for fetching reservations data with backend search/pagination
+  const {
+    data: response,
+    error,
+    isLoading,
+    mutate
+  } = useSWR<ApiResponse>(
+    buildUrl(searchQuery, page, entries, sort),
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      keepPreviousData: true,
+      dedupingInterval: 5000,
     }
-    return sortedBookings;
-  }, [filtered, sort]);
+  );
 
-  // Pagination
-  const totalPages = Math.ceil(sorted.length / entries);
-  const paginated = sorted.slice((page - 1) * entries, page * entries);
+  const reservations = response?.data || [];
+  const pagination = response?.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 };
+  const totalPages = pagination.totalPages;
+
+  // Helper function to determine booking status
+  const getBookingStatus = useCallback((reservation: ReservationBooking): BookingStatus => {
+    const now = new Date();
+    const checkInDate = new Date(reservation.checkInDate);
+    const checkOutDate = new Date(reservation.checkOutDate);
+
+    if (checkOutDate < now) return "Checked Out";
+    if (checkInDate <= now && checkOutDate >= now) return "Checked In";
+    if (checkInDate > now) return "Confirmed";
+    return "Pending";
+  }, []);
+
+  // Helper function to determine payment status
+  const getPaymentStatus = useCallback((reservation: ReservationBooking): PaymentStatus => {
+    const { total, advanceAmount, balanceAmount } = reservation;
+
+    if (advanceAmount >= total) return "Success";
+    if (advanceAmount > 0 && balanceAmount > 0) return "Partial";
+    if (balanceAmount > 0) return "Pending";
+    return "Success";
+  }, []);
+
+  // Format date for input field (YYYY-MM-DD)
+  const formatDateForInput = useCallback((dateString: string) => {
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
+  }, []);
+
+  // Handle search button click
+  const handleSearch = useCallback(() => {
+    setSearchQuery(searchInput.trim());
+    setPage(1);
+  }, [searchInput]);
+
+  // Handle search input change
+  const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchInput(e.target.value);
+  }, []);
+
+  // Handle clear search
+  const handleClearSearch = useCallback(() => {
+    setSearchInput("");
+    setSearchQuery("");
+    setPage(1);
+  }, []);
+
+  // Handle Enter key press in search input
+  const handleSearchKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  }, [handleSearch]);
+
+  // Handle edit button click
+  const handleEdit = useCallback((reservation: ReservationBooking) => {
+    setEditingReservation(reservation);
+    setEditFormData({
+      checkInDate: formatDateForInput(reservation.checkInDate),
+      checkOutDate: formatDateForInput(reservation.checkOutDate),
+      checkInTime: reservation.checkInTime,
+      checkOutTime: reservation.checkOutTime,
+      roomPrice: String(reservation.roomPrice),
+      total: String(reservation.total),
+      advanceAmount: String(reservation.advanceAmount),
+      balanceAmount: String(reservation.balanceAmount),
+      paymentMode: reservation.paymentMode,
+      purposeOfVisit: reservation.purposeOfVisit,
+      arrivalFrom: reservation.arrivalFrom || "",
+      billingType: reservation.billingType,
+      adults: String(reservation.adults || 1),
+      children: String(reservation.children || 0),
+      remarks: reservation.remarks || "",
+    });
+    setEditModalOpen(true);
+  }, [formatDateForInput]);
+
+  // Handle form input changes
+  const handleInputChange = useCallback((field: keyof EditFormData, value: string) => {
+    setEditFormData(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+
+      // Auto-calculate balance when total or advance changes
+      if (field === 'total' || field === 'advanceAmount') {
+        const total = field === 'total' ? Number(value) || 0 : Number(updated.total) || 0;
+        const advance = field === 'advanceAmount' ? Number(value) || 0 : Number(updated.advanceAmount) || 0;
+        const balance = Math.max(0, total - advance);
+
+        updated.balanceAmount = String(balance);
+      }
+
+      return updated;
+    });
+  }, []);
+
+  // Handle edit form submission
+  const handleEditSubmit = useCallback(async () => {
+    if (!editingReservation) return;
+
+    setIsSubmitting(true);
+    try {
+      const updateData = {
+        id: editingReservation.id,
+        checkInDate: new Date(editFormData.checkInDate).toISOString(),
+        checkOutDate: new Date(editFormData.checkOutDate).toISOString(),
+        checkInTime: editFormData.checkInTime,
+        checkOutTime: editFormData.checkOutTime,
+        roomPrice: Number(editFormData.roomPrice),
+        total: Number(editFormData.total),
+        advanceAmount: Number(editFormData.advanceAmount),
+        balanceAmount: Number(editFormData.balanceAmount),
+        paymentMode: editFormData.paymentMode,
+        purposeOfVisit: editFormData.purposeOfVisit,
+        arrivalFrom: editFormData.arrivalFrom || null,
+        billingType: editFormData.billingType,
+        adults: Number(editFormData.adults) || 1,
+        children: Number(editFormData.children) || 0,
+        remarks: editFormData.remarks || null,
+      };
+
+      const response = await fetch('/api/room-reservation/booking-list', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update reservation');
+      }
+
+      // Revalidate data
+      await mutate();
+      setEditModalOpen(false);
+      setEditingReservation(null);
+
+      alert('Reservation updated successfully!');
+    } catch (error) {
+      console.error('Error updating reservation:', error);
+      alert('Failed to update reservation. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [editingReservation, editFormData, mutate]);
+
+  // Close edit modal
+  const handleCloseEditModal = useCallback(() => {
+    setEditModalOpen(false);
+    setEditingReservation(null);
+    setIsSubmitting(false);
+  }, []);
+
+  // Handle entries change
+  const handleEntriesChange = useCallback((value: string) => {
+    setEntries(Number(value));
+    setPage(1);
+  }, []);
+
+  // Handle sort change
+  const handleSort = useCallback((key: string) => {
+    if (key === "action" || isLoading) return;
+
+    setSort(prevSort => ({
+      key,
+      dir: prevSort.key === key ? (prevSort.dir === "asc" ? "desc" : "asc") : "asc"
+    }));
+    setPage(1);
+  }, [isLoading]);
 
   // Export/Print handlers
-  const handleExport = (type: string) => {
+  const handleExport = useCallback((type: string) => {
     alert(`Export as ${type}`);
-  };
+  }, []);
 
-  // Delete booking
-  const handleDelete = (id: number) => {
+  // Delete booking with optimistic updates
+  const handleDelete = useCallback(async (id: number) => {
     if (confirm("Are you sure you want to delete this booking?")) {
-      setBookings(bookings.filter(b => b.id !== id));
-    }
-  };
+      try {
+        const response = await fetch(`/api/room-reservation/booking-list`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ id }),
+        });
 
-  // Get status badge variant
-  const getBookingStatusConfig = (status: string) => {
+        if (!response.ok) {
+          throw new Error('Failed to delete reservation');
+        }
+
+        // Revalidate data
+        await mutate();
+        alert('Reservation deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting reservation:', error);
+        alert('Failed to delete reservation. Please try again.');
+      }
+    }
+  }, [mutate]);
+
+  // Refresh data manually
+  const handleRefresh = useCallback(() => {
+    mutate();
+  }, [mutate]);
+
+  // Handle page change
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage);
+  }, []);
+
+  // Get status badge configurations
+  const getBookingStatusConfig = useCallback((status: BookingStatus) => {
     switch (status) {
       case "Confirmed":
         return { variant: "default" as const, className: "bg-green-100 text-green-800" };
@@ -213,9 +463,9 @@ export default function BookingListPage() {
       default:
         return { variant: "outline" as const, className: "bg-gray-100 text-gray-800" };
     }
-  };
+  }, []);
 
-  const getPaymentStatusConfig = (status: string) => {
+  const getPaymentStatusConfig = useCallback((status: PaymentStatus) => {
     switch (status) {
       case "Success":
         return { variant: "default" as const, className: "bg-green-100 text-green-800" };
@@ -228,7 +478,21 @@ export default function BookingListPage() {
       default:
         return { variant: "outline" as const, className: "bg-gray-100 text-gray-800" };
     }
-  };
+  }, []);
+
+  // Show error state
+  if (error && !reservations.length) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <Building className="w-12 h-12 text-muted-foreground mb-4" />
+        <p className="text-lg font-medium text-foreground">Failed to load bookings</p>
+        <p className="text-sm text-muted-foreground mb-4">Please check your connection and try again</p>
+        <Button onClick={handleRefresh} variant="outline">
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-white relative">
@@ -245,13 +509,13 @@ export default function BookingListPage() {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/booking" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  Booking
+                <BreadcrumbLink href="/room-reservation" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  Room Reservation
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/booking/booking-list" className="text-sm font-medium">
+                <BreadcrumbLink href="/room-reservation/booking-list" className="text-sm font-medium">
                   Booking List
                 </BreadcrumbLink>
               </BreadcrumbItem>
@@ -263,16 +527,33 @@ export default function BookingListPage() {
             <div className="flex items-center gap-3">
               <Building className="w-6 h-6 text-primary" />
               <div>
-                <h1 className="text-xl font-semibold text-foreground">Booking List</h1>
-                <p className="text-sm text-muted-foreground">Manage all guest room bookings</p>
+                <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
+                  Booking List
+                  {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {pagination.total > 0 ? `${pagination.total} reservations found` : 'Manage all guest room bookings'}
+                </p>
               </div>
             </div>
-            <Link href={"/room-reservation/room-booking"} className="flex-shrink-0">
-              <Button className="h-10 px-6 rounded-full shadow-md flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Room Booking
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleRefresh}
+                variant="outline"
+                size="sm"
+                className="h-10 px-4 rounded-full shadow-md"
+                disabled={isLoading}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Refresh
               </Button>
-            </Link>
+              <Link href="/room-reservation/room-booking" className="flex-shrink-0">
+                <Button className="h-10 px-6 rounded-full shadow-md flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Room Booking
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -285,7 +566,7 @@ export default function BookingListPage() {
             {/* Entries Selection */}
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground">Show</span>
-              <Select value={String(entries)} onValueChange={v => { setEntries(Number(v)); setPage(1); }}>
+              <Select value={String(entries)} onValueChange={handleEntriesChange}>
                 <SelectTrigger className="w-20 h-9 text-sm rounded-lg border-border/50 shadow-sm">
                   <SelectValue />
                 </SelectTrigger>
@@ -305,6 +586,7 @@ export default function BookingListPage() {
                 variant="outline"
                 onClick={() => handleExport("Copy")}
                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                disabled={isLoading}
               >
                 <Copy className="w-4 h-4 mr-2" />
                 Copy
@@ -314,6 +596,7 @@ export default function BookingListPage() {
                 variant="outline"
                 onClick={() => handleExport("CSV")}
                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                disabled={isLoading}
               >
                 <FileText className="w-4 h-4 mr-2" />
                 CSV
@@ -323,6 +606,7 @@ export default function BookingListPage() {
                 variant="outline"
                 onClick={() => handleExport("PDF")}
                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                disabled={isLoading}
               >
                 <FileText className="w-4 h-4 mr-2" />
                 PDF
@@ -332,30 +616,79 @@ export default function BookingListPage() {
                 variant="outline"
                 onClick={() => handleExport("Print")}
                 className="h-9 px-4 rounded-full text-sm shadow-sm"
+                disabled={isLoading}
               >
                 <Printer className="w-4 h-4 mr-2" />
                 Print
               </Button>
             </div>
 
-            {/* Search Bar */}
+            {/* Search Bar with Button */}
             <div className="flex items-center gap-2 ml-auto">
               <span className="text-sm font-medium text-muted-foreground">Search:</span>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search bookings..."
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                  className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
-                />
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Search reservations..."
+                    value={searchInput}
+                    onChange={handleSearchInputChange}
+                    onKeyPress={handleSearchKeyPress}
+                    className="h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm pr-10"
+                    disabled={isLoading}
+                  />
+                  {searchInput && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleClearSearch}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-gray-100"
+                      disabled={isLoading}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleSearch}
+                  className="h-9 px-4 rounded-lg text-sm shadow-sm"
+                  disabled={isLoading}
+                >
+                  <Search className="w-4 h-4 mr-1" />
+                  Search
+                </Button>
+                {searchQuery && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleClearSearch}
+                    className="h-9 px-3 rounded-lg text-sm shadow-sm"
+                    disabled={isLoading}
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1" />
+                    Clear
+                  </Button>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Active Search Indicator */}
+          {searchQuery && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+              <Search className="w-4 h-4 text-blue-600" />
+              <span>Searching for: <span className="font-medium text-blue-700">"{searchQuery}"</span></span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleClearSearch}
+                className="h-6 w-6 p-0 ml-2 hover:bg-blue-100 text-blue-600"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
 
           {/* Column Visibility */}
           <div className="flex items-center gap-2">
@@ -365,6 +698,7 @@ export default function BookingListPage() {
                   size="sm"
                   variant="outline"
                   className="h-9 px-4 rounded-lg text-sm shadow-sm"
+                  disabled={isLoading}
                 >
                   <Eye className="w-4 h-4 mr-2" />
                   Column visibility
@@ -403,14 +737,7 @@ export default function BookingListPage() {
                     <TableHead
                       key={col.key}
                       className="text-sm font-medium text-muted-foreground cursor-pointer select-none hover:bg-accent transition-colors duration-200 border-b border-border/50 whitespace-nowrap h-12"
-                      onClick={() => {
-                        if (col.key !== "action") {
-                          setSort(s => ({
-                            key: col.key,
-                            dir: s.key === col.key ? (s.dir === "asc" ? "desc" : "asc") : "asc"
-                          }));
-                        }
-                      }}
+                      onClick={() => handleSort(col.key)}
                     >
                       <div className="flex items-center gap-2">
                         {col.label}
@@ -431,126 +758,152 @@ export default function BookingListPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginated.length === 0 ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={visibleCols.length} className="text-center py-12">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                        Loading reservations...
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : reservations.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={visibleCols.length} className="text-center py-12">
                       <div className="flex flex-col items-center gap-3">
                         <Building className="w-12 h-12 text-muted-foreground" />
                         <p className="text-base text-muted-foreground">No bookings found</p>
-                        <p className="text-sm text-muted-foreground">Try adjusting your search criteria</p>
+                        <p className="text-sm text-muted-foreground">
+                          {searchQuery ? "Try adjusting your search criteria" : "No reservations available"}
+                        </p>
                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginated.map((booking, idx) => (
-                    <TableRow key={booking.id} className="hover:bg-accent/50 transition-colors duration-200 border-b border-border/50">
-                      {visibleCols.includes("sl") && (
-                        <TableCell className="text-sm text-foreground font-medium py-3">
-                          {(page - 1) * entries + idx + 1}
-                        </TableCell>
-                      )}
-                      {visibleCols.includes("bookingNumber") && (
-                        <TableCell className="text-sm py-3 font-medium text-blue-600">
-                          {booking.bookingNumber}
-                        </TableCell>
-                      )}
-                      {visibleCols.includes("roomType") && (
-                        <TableCell className="text-sm py-3">
-                          {booking.roomType}
-                        </TableCell>
-                      )}
-                      {visibleCols.includes("roomNumber") && (
-                        <TableCell className="text-sm py-3 font-medium">
-                          {booking.roomNumber}
-                        </TableCell>
-                      )}
-                      {visibleCols.includes("name") && (
-                        <TableCell className="text-sm py-3">
-                          {booking.name}
-                        </TableCell>
-                      )}
-                      {visibleCols.includes("phone") && (
-                        <TableCell className="text-sm py-3">
-                          {booking.phone}
-                        </TableCell>
-                      )}
-                      {visibleCols.includes("checkIn") && (
-                        <TableCell className="text-sm py-3">
-                          {booking.checkIn}
-                        </TableCell>
-                      )}
-                      {visibleCols.includes("checkOut") && (
-                        <TableCell className="text-sm py-3">
-                          {booking.checkOut}
-                        </TableCell>
-                      )}
-                      {visibleCols.includes("paidAmount") && (
-                        <TableCell className="text-sm py-3 font-medium">
-                          {booking.paidAmount.toLocaleString()}
-                        </TableCell>
-                      )}
-                      {visibleCols.includes("dueAmount") && (
-                        <TableCell className="text-sm py-3 font-medium text-red-600">
-                          {booking.dueAmount.toLocaleString()}
-                        </TableCell>
-                      )}
-                      {visibleCols.includes("bookingStatus") && (
-                        <TableCell className="text-sm py-3">
-                          <Badge
-                            variant={getBookingStatusConfig(booking.bookingStatus).variant}
-                            className={getBookingStatusConfig(booking.bookingStatus).className}
-                          >
-                            {booking.bookingStatus}
-                          </Badge>
-                        </TableCell>
-                      )}
-                      {visibleCols.includes("paymentStatus") && (
-                        <TableCell className="text-sm py-3">
-                          <Badge
-                            variant={getPaymentStatusConfig(booking.paymentStatus).variant}
-                            className={getPaymentStatusConfig(booking.paymentStatus).className}
-                          >
-                            {booking.paymentStatus}
-                          </Badge>
-                        </TableCell>
-                      )}
-                      {visibleCols.includes("action") && (
-                        <TableCell className="py-3">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                  reservations.map((reservation, idx) => {
+                    const bookingStatus = getBookingStatus(reservation);
+                    const paymentStatus = getPaymentStatus(reservation);
+
+                    return (
+                      <TableRow key={reservation.id} className="hover:bg-accent/50 transition-colors duration-200 border-b border-border/50">
+                        {visibleCols.includes("sl") && (
+                          <TableCell className="text-sm text-foreground font-medium py-3">
+                            {(page - 1) * entries + idx + 1}
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("bookingNumber") && (
+                          <TableCell className="text-sm py-3 font-medium text-blue-600">
+                            {reservation.bookingNumber}
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("roomType") && (
+                          <TableCell className="text-sm py-3">
+                            {reservation.roomType}
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("roomNumber") && (
+                          <TableCell className="text-sm py-3 font-medium">
+                            {reservation.roomNumber}
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("customerName") && (
+                          <TableCell className="text-sm py-3">
+                            {reservation.customer.firstName} {reservation.customer.lastName || ''}
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("phone") && (
+                          <TableCell className="text-sm py-3">
+                            {reservation.customer.phone}
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("checkIn") && (
+                          <TableCell className="text-sm py-3">
+                            {new Date(reservation.checkInDate).toLocaleDateString()} {reservation.checkInTime}
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("checkOut") && (
+                          <TableCell className="text-sm py-3">
+                            {new Date(reservation.checkOutDate).toLocaleDateString()} {reservation.checkOutTime}
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("advanceAmount") && (
+                          <TableCell className="text-sm py-3 font-medium text-green-600">
+                            Rs.{reservation.advanceAmount.toLocaleString()}
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("balanceAmount") && (
+                          <TableCell className="text-sm py-3 font-medium text-red-600">
+                            Rs.{reservation.balanceAmount.toLocaleString()}
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("total") && (
+                          <TableCell className="text-sm py-3 font-medium">
+                            Rs.{reservation.total.toLocaleString()}
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("bookingStatus") && (
+                          <TableCell className="text-sm py-3">
+                            <Badge
+                              variant={getBookingStatusConfig(bookingStatus).variant}
+                              className={getBookingStatusConfig(bookingStatus).className}
                             >
-                              <Eye className="w-4 h-4 text-blue-600" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 w-8 p-0 rounded-full border-yellow-200 hover:bg-yellow-50 hover:border-yellow-300 shadow-sm"
+                              {bookingStatus}
+                            </Badge>
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("paymentStatus") && (
+                          <TableCell className="text-sm py-3">
+                            <Badge
+                              variant={getPaymentStatusConfig(paymentStatus).variant}
+                              className={getPaymentStatusConfig(paymentStatus).className}
                             >
-                              <Edit className="w-4 h-4 text-yellow-600" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 w-8 p-0 rounded-full border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
-                            >
-                              <IdCard className="w-4 h-4 text-gray-600" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDelete(booking.id)}
-                              className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-600" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
+                              {paymentStatus}
+                            </Badge>
+                          </TableCell>
+                        )}
+                        {visibleCols.includes("action") && (
+                          <TableCell className="py-3">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                                disabled={isLoading}
+                              >
+                                <Eye className="w-4 h-4 text-blue-600" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(reservation)}
+                                className="h-8 w-8 p-0 rounded-full border-yellow-200 hover:bg-yellow-50 hover:border-yellow-300 shadow-sm"
+                                disabled={isLoading}
+                              >
+                                <Edit className="w-4 h-4 text-yellow-600" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 w-8 p-0 rounded-full border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
+                                disabled={isLoading}
+                              >
+                                <IdCard className="w-4 h-4 text-gray-600" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDelete(reservation.id)}
+                                className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
+                                disabled={isLoading}
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -563,7 +916,7 @@ export default function BookingListPage() {
         <div className="px-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="text-sm text-muted-foreground">
-              Showing {(page - 1) * entries + 1} to {Math.min(page * entries, sorted.length)} of {sorted.length} entries
+              Showing {pagination.total > 0 ? (page - 1) * entries + 1 : 0} to {Math.min(page * entries, pagination.total)} of {pagination.total} entries
             </div>
 
             {totalPages > 1 && (
@@ -571,8 +924,8 @@ export default function BookingListPage() {
                 <PaginationContent className="flex justify-center">
                   <PaginationItem>
                     <PaginationPrevious
-                      onClick={() => setPage(Math.max(1, page - 1))}
-                      className={`${page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-9 px-4 text-sm`}
+                      onClick={() => handlePageChange(Math.max(1, page - 1))}
+                      className={`${page === 1 || isLoading ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-9 px-4 text-sm`}
                     />
                   </PaginationItem>
                   {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -589,9 +942,9 @@ export default function BookingListPage() {
                     return (
                       <PaginationItem key={pageNum}>
                         <PaginationLink
-                          onClick={() => setPage(pageNum)}
+                          onClick={() => handlePageChange(pageNum)}
                           isActive={page === pageNum}
-                          className={`cursor-pointer rounded-full hover:bg-accent h-9 px-4 text-sm ${page === pageNum ? "shadow-md" : "shadow-sm"}`}
+                          className={`${isLoading ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full h-9 px-4 text-sm ${page === pageNum ? "shadow-md" : "shadow-sm"}`}
                         >
                           {pageNum}
                         </PaginationLink>
@@ -600,8 +953,8 @@ export default function BookingListPage() {
                   })}
                   <PaginationItem>
                     <PaginationNext
-                      onClick={() => setPage(Math.min(totalPages, page + 1))}
-                      className={`${page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-9 px-4 text-sm`}
+                      onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
+                      className={`${page === totalPages || isLoading ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-9 px-4 text-sm`}
                     />
                   </PaginationItem>
                 </PaginationContent>
@@ -610,6 +963,287 @@ export default function BookingListPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <Dialog open={editModalOpen} onOpenChange={handleCloseEditModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Edit className="w-5 h-5 text-primary" />
+              Edit Reservation - {editingReservation?.bookingNumber}
+            </DialogTitle>
+          </DialogHeader>
+
+          {editingReservation && (
+            <div className="space-y-6 py-4">
+              {/* Customer Info (Read-only) */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-medium text-gray-900 mb-2">Customer Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Name:</span> {editingReservation.customer.firstName} {editingReservation.customer.lastName || ''}
+                  </div>
+                  <div>
+                    <span className="font-medium">Phone:</span> {editingReservation.customer.phone}
+                  </div>
+                  <div>
+                    <span className="font-medium">Email:</span> {editingReservation.customer.email}
+                  </div>
+                  <div>
+                    <span className="font-medium">Room:</span> {editingReservation.roomType} - {editingReservation.roomNumber}
+                  </div>
+                </div>
+              </div>
+
+              {/* Editable Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Check-in Date & Time */}
+                <div className="space-y-2">
+                  <Label htmlFor="checkInDate" className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Check-in Date
+                  </Label>
+                  <Input
+                    id="checkInDate"
+                    type="date"
+                    value={editFormData.checkInDate}
+                    onChange={(e) => handleInputChange('checkInDate', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="checkInTime" className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Check-in Time
+                  </Label>
+                  <Input
+                    id="checkInTime"
+                    type="time"
+                    value={editFormData.checkInTime}
+                    onChange={(e) => handleInputChange('checkInTime', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Check-out Date & Time */}
+                <div className="space-y-2">
+                  <Label htmlFor="checkOutDate" className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Check-out Date
+                  </Label>
+                  <Input
+                    id="checkOutDate"
+                    type="date"
+                    value={editFormData.checkOutDate}
+                    onChange={(e) => handleInputChange('checkOutDate', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="checkOutTime" className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Check-out Time
+                  </Label>
+                  <Input
+                    id="checkOutTime"
+                    type="time"
+                    value={editFormData.checkOutTime}
+                    onChange={(e) => handleInputChange('checkOutTime', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Guests */}
+                <div className="space-y-2">
+                  <Label htmlFor="adults">Adults</Label>
+                  <Input
+                    id="adults"
+                    type="number"
+                    min="1"
+                    value={editFormData.adults}
+                    onChange={(e) => handleInputChange('adults', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="children">Children</Label>
+                  <Input
+                    id="children"
+                    type="number"
+                    min="0"
+                    value={editFormData.children}
+                    onChange={(e) => handleInputChange('children', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Billing Information */}
+                <div className="space-y-2">
+                  <Label htmlFor="roomPrice">Room Price (Rs.)</Label>
+                  <Input
+                    id="roomPrice"
+                    type="number"
+                    min="0"
+                    value={editFormData.roomPrice}
+                    onChange={(e) => handleInputChange('roomPrice', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="total">Total Amount (Rs.)</Label>
+                  <Input
+                    id="total"
+                    type="number"
+                    min="0"
+                    value={editFormData.total}
+                    onChange={(e) => handleInputChange('total', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="advanceAmount">Advance Amount (Rs.)</Label>
+                  <Input
+                    id="advanceAmount"
+                    type="number"
+                    min="0"
+                    value={editFormData.advanceAmount}
+                    onChange={(e) => handleInputChange('advanceAmount', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="balanceAmount">Balance Amount (Rs.)</Label>
+                  <Input
+                    id="balanceAmount"
+                    type="number"
+                    min="0"
+                    value={editFormData.balanceAmount}
+                    readOnly
+                    className="w-full bg-gray-50"
+                  />
+                </div>
+
+                {/* Payment & Booking Details */}
+                <div className="space-y-2">
+                  <Label htmlFor="paymentMode">Payment Mode</Label>
+                  <Select
+                    value={editFormData.paymentMode}
+                    onValueChange={(value) => handleInputChange('paymentMode', value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select payment mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentModes.map(mode => (
+                        <SelectItem key={mode.value} value={mode.value}>
+                          {mode.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="billingType">Billing Type</Label>
+                  <Select
+                    value={editFormData.billingType}
+                    onValueChange={(value) => handleInputChange('billingType', value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select billing type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {billingTypes.map(type => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="purposeOfVisit">Purpose of Visit</Label>
+                  <Select
+                    value={editFormData.purposeOfVisit}
+                    onValueChange={(value) => handleInputChange('purposeOfVisit', value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select purpose" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {purposeOptions.map(purpose => (
+                        <SelectItem key={purpose.value} value={purpose.value}>
+                          {purpose.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="arrivalFrom">Arrival From</Label>
+                  <Input
+                    id="arrivalFrom"
+                    type="text"
+                    placeholder="e.g., Delhi, Mumbai"
+                    value={editFormData.arrivalFrom}
+                    onChange={(e) => handleInputChange('arrivalFrom', e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Remarks */}
+              <div className="space-y-2">
+                <Label htmlFor="remarks">Remarks</Label>
+                <Textarea
+                  id="remarks"
+                  placeholder="Any additional notes..."
+                  value={editFormData.remarks}
+                  onChange={(e) => handleInputChange('remarks', e.target.value)}
+                  className="w-full min-h-[80px]"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={handleCloseEditModal}
+              disabled={isSubmitting}
+              className="flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditSubmit}
+              disabled={isSubmitting}
+              className="flex items-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Edit className="w-4 h-4" />
+                  Update Reservation
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

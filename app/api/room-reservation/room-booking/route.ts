@@ -156,7 +156,7 @@ async function getAvailableRooms(
 
     // Filter out reserved rooms
     availableRooms = availableRooms.filter(
-      (room) => !reservedRoomNumbers.includes(room.roomNumber.toString())
+      (room) => !reservedRoomNumbers.includes(room.roomNumber)
     );
   }
 
@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
 
-    // Find last booking number
+    // 1️⃣ Find last booking number
     const lastReservation = await prisma.reservation.findFirst({
       orderBy: { id: "desc" },
       select: { bookingNumber: true },
@@ -181,51 +181,69 @@ export async function POST(req: NextRequest) {
       lastReservation?.bookingNumber || null
     );
 
-    const reservation = await prisma.reservation.create({
-      data: {
-        bookingNumber, // ✅ save generated booking number
-        checkInDate: new Date(data.checkInDate),
-        checkOutDate: new Date(data.checkOutDate),
-        checkInTime: data.checkInTime,
-        checkOutTime: data.checkOutTime,
-        arrivalFrom: data.arrivalFrom || null,
-        bookingType: data.bookingType || null,
-        purposeOfVisit: data.purposeOfVisit,
-        remarks: data.remarks || null,
-        roomType: data.roomType,
-        roomNumber: String(data.roomNumber),
-        adults: data.adults || 0,
-        children: data.children || 0,
-        roomPrice: data.roomPrice,
-        billingType: data.billingType,
-        customerId: data.customers,
-        discountReason: data.discountReason || null,
-        discountAmount: data.discountAmount || 0,
-        commissionPercent: data.commissionPercent || 0,
-        commissionAmount: data.commissionAmount || 0,
-        bookingCharge: data.bookingCharge || 0,
-        tax: data.tax || 0,
-        serviceCharge: data.serviceCharge || 0,
-        paymentMode: data.paymentMode,
-        advanceRemarks: data.advanceRemarks || null,
-        advanceAmount: data.advanceAmount || 0,
-        total: data.total || 0,
-        balanceAmount: data.balanceAmount || 0,
-        complementaryItems: {
-          connect: data.complimentaryItems.map((item: any) => ({
-            id: item.id,
-          })),
+    // 2️⃣ Run both actions inside one transaction
+    const reservation = await prisma.$transaction(async (tx) => {
+      // Step 1 — Create the reservation
+      const createdReservation = await tx.reservation.create({
+        data: {
+          bookingNumber,
+          checkInDate: new Date(data.checkInDate),
+          checkOutDate: new Date(data.checkOutDate),
+          checkInTime: data.checkInTime,
+          checkOutTime: data.checkOutTime,
+          arrivalFrom: data.arrivalFrom || null,
+          bookingType: data.bookingType || null,
+          purposeOfVisit: data.purposeOfVisit,
+          remarks: data.remarks || null,
+          roomType: data.roomType,
+          roomNumber: Number(data.roomNumber),
+          adults: data.adults || 0,
+          children: data.children || 0,
+          roomPrice: data.roomPrice,
+          billingType: data.billingType,
+          customerId: data.customers,
+          discountReason: data.discountReason || null,
+          discountAmount: data.discountAmount || 0,
+          commissionPercent: data.commissionPercent || 0,
+          commissionAmount: data.commissionAmount || 0,
+          bookingCharge: data.bookingCharge || 0,
+          tax: data.tax || 0,
+          serviceCharge: data.serviceCharge || 0,
+          paymentMode: data.paymentMode,
+          advanceRemarks: data.advanceRemarks || null,
+          advanceAmount: data.advanceAmount || 0,
+          total: data.total || 0,
+          balanceAmount: data.balanceAmount || 0,
+          complementaryItems: {
+            connect:
+              data.complimentaryItems?.map((item: any) => ({
+                id: item.id,
+              })) || [],
+          },
         },
-      },
+      });
+
+      // Step 2 — Mark the room as unavailable
+      await tx.room.update({
+        where: { roomNumber: Number(data.roomNumber) },
+        data: { isAvailable: false },
+      });
+
+      // Return reservation for response
+      return createdReservation;
     });
 
+    // 3️⃣ Success response
     return NextResponse.json({
       message: "Reservation saved successfully",
       bookingNumber,
       reservationId: reservation.id,
     });
   } catch (error: any) {
-    console.error(error);
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    console.error("Error creating reservation:", error);
+    return NextResponse.json(
+      { message: error.message || "Internal server error" },
+      { status: 500 }
+    );
   }
 }

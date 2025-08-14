@@ -31,9 +31,11 @@ import {
     Check,
     Receipt,
     MessageSquare,
-    Loader2
+    Loader2,
+    X,
+    RotateCcw
 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 import Link from "next/link";
@@ -88,10 +90,10 @@ const columns = [
 export default function CustomerListPage() {
     const [entries, setEntries] = useState(10);
     const [page, setPage] = useState(1);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchInput, setSearchInput] = useState(""); // Input value for search field
+    const [searchQuery, setSearchQuery] = useState(""); // Actual search query used for API
     const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "sl", dir: "asc" });
     const [visibleCols, setVisibleCols] = useState(columns.map(c => c.key));
-    const [debouncedSearch, setDebouncedSearch] = useState("");
 
     // Payment modal states
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -103,17 +105,10 @@ export default function CustomerListPage() {
     const [remarks, setRemarks] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Debounce search query
+    // Reset page when search query or entries change
     useEffect(() => {
-        console.log("Search query changed:", searchQuery);
-        const timer = setTimeout(() => {
-            console.log("Setting debounced search:", searchQuery);
-            setDebouncedSearch(searchQuery);
-            setPage(1); // Reset to first page when search changes
-        }, 500);
-
-        return () => clearTimeout(timer);
-    }, [searchQuery]);
+        setPage(1);
+    }, [searchQuery, entries]);
 
     // Build API URL with query parameters
     const buildApiUrl = () => {
@@ -124,8 +119,8 @@ export default function CustomerListPage() {
             sortOrder: sort.dir,
         });
 
-        if (debouncedSearch) {
-            params.append('search', debouncedSearch);
+        if (searchQuery) {
+            params.append('search', searchQuery);
         }
 
         const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
@@ -133,7 +128,7 @@ export default function CustomerListPage() {
 
         // Debug logging
         console.log("API URL:", fullUrl);
-        console.log("Search query:", debouncedSearch);
+        console.log("Search query:", searchQuery);
 
         return fullUrl;
     };
@@ -144,7 +139,9 @@ export default function CustomerListPage() {
         fetcher,
         {
             revalidateOnFocus: false,
-            revalidateOnReconnect: false,
+            revalidateOnReconnect: true,
+            keepPreviousData: true,
+            dedupingInterval: 5000,
         }
     );
 
@@ -168,6 +165,31 @@ export default function CustomerListPage() {
         booking.bookingNumber.toLowerCase().includes(searchBooking.toLowerCase()) ||
         booking.customerName.toLowerCase().includes(searchBooking.toLowerCase())
     );
+
+    // Handle search button click
+    const handleSearch = useCallback(() => {
+        setSearchQuery(searchInput.trim());
+        setPage(1);
+    }, [searchInput]);
+
+    // Handle search input change
+    const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchInput(e.target.value);
+    }, []);
+
+    // Handle clear search
+    const handleClearSearch = useCallback(() => {
+        setSearchInput("");
+        setSearchQuery("");
+        setPage(1);
+    }, []);
+
+    // Handle Enter key press in search input
+    const handleSearchKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    }, [handleSearch]);
 
     // Handle payment modal open
     const handlePaymentClick = (customer: Customer) => {
@@ -230,8 +252,8 @@ export default function CustomerListPage() {
                 sortOrder: sort.dir,
             });
 
-            if (debouncedSearch) {
-                params.append('search', debouncedSearch);
+            if (searchQuery) {
+                params.append('search', searchQuery);
             }
 
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/customers/export?${params.toString()}`);
@@ -278,7 +300,7 @@ export default function CustomerListPage() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  id : id
+                    id: id
                 }),
             });
 
@@ -295,6 +317,33 @@ export default function CustomerListPage() {
             toast.error(error instanceof Error ? error.message : "Failed to delete customer. Please try again.");
         }
     };
+
+    // Refresh data manually
+    const handleRefresh = useCallback(() => {
+        mutateCustomers();
+    }, [mutateCustomers]);
+
+    // Handle entries change
+    const handleEntriesChange = useCallback((value: string) => {
+        setEntries(Number(value));
+        setPage(1);
+    }, []);
+
+    // Handle sort change
+    const handleSort = useCallback((key: string) => {
+        if (key === "action" || customersLoading) return;
+
+        setSort(prevSort => ({
+            key,
+            dir: prevSort.key === key ? (prevSort.dir === "asc" ? "desc" : "asc") : "asc"
+        }));
+        setPage(1);
+    }, [customersLoading]);
+
+    // Handle page change
+    const handlePageChange = useCallback((newPage: number) => {
+        setPage(newPage);
+    }, []);
 
     // Format currency
     const formatCurrency = (amount: number) => {
@@ -340,7 +389,7 @@ export default function CustomerListPage() {
     );
 
     // Error state
-    if (customerError) {
+    if (customerError && !customers.length) {
         return (
             <div className="flex flex-col h-full bg-white relative">
                 <div className="flex-1 flex items-center justify-center">
@@ -384,7 +433,10 @@ export default function CustomerListPage() {
                         <div className="flex items-center gap-3">
                             <Users className="w-6 h-6 text-primary" />
                             <div>
-                                <h1 className="text-xl font-semibold text-foreground">Customer Management</h1>
+                                <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
+                                    Customer Management
+                                    {customersLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                </h1>
                                 <p className="text-sm text-muted-foreground">
                                     {totalCustomers > 0 ? `${totalCustomers} customers found` : 'Manage your customers'}
                                 </p>
@@ -413,10 +465,7 @@ export default function CustomerListPage() {
                             <span className="text-sm font-medium text-muted-foreground">Show</span>
                             <Select
                                 value={String(entries)}
-                                onValueChange={v => {
-                                    setEntries(Number(v));
-                                    setPage(1);
-                                }}
+                                onValueChange={handleEntriesChange}
                                 disabled={customersLoading}
                             >
                                 <SelectTrigger className="w-20 h-9 text-sm rounded-lg border-border/50 shadow-sm">
@@ -475,22 +524,72 @@ export default function CustomerListPage() {
                             </Button>
                         </div>
 
-                        {/* Search Bar */}
+                        {/* Search Bar with Button */}
                         <div className="flex items-center gap-2 ml-auto">
                             <span className="text-sm font-medium text-muted-foreground">Search:</span>
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    type="text"
-                                    placeholder="Search customers..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                            <div className="flex items-center gap-2">
+                                <div className="relative">
+                                    <Input
+                                        type="text"
+                                        placeholder="Search customers..."
+                                        value={searchInput}
+                                        onChange={handleSearchInputChange}
+                                        onKeyPress={handleSearchKeyPress}
+                                        className="h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm pr-10"
+                                        disabled={customersLoading}
+                                    />
+                                    {searchInput && (
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={handleClearSearch}
+                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-gray-100"
+                                            disabled={customersLoading}
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </Button>
+                                    )}
+                                </div>
+                                <Button
+                                    size="sm"
+                                    onClick={handleSearch}
+                                    className="h-9 px-4 rounded-lg text-sm shadow-sm"
                                     disabled={customersLoading}
-                                />
+                                >
+                                    <Search className="w-4 h-4 mr-1" />
+                                    Search
+                                </Button>
+                                {searchQuery && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleClearSearch}
+                                        className="h-9 px-3 rounded-lg text-sm shadow-sm"
+                                        disabled={customersLoading}
+                                    >
+                                        <RotateCcw className="w-4 h-4 mr-1" />
+                                        Clear
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     </div>
+
+                    {/* Active Search Indicator */}
+                    {searchQuery && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                            <Search className="w-4 h-4 text-blue-600" />
+                            <span>Searching for: <span className="font-medium text-blue-700">"{searchQuery}"</span></span>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={handleClearSearch}
+                                className="h-6 w-6 p-0 ml-2 hover:bg-blue-100 text-blue-600"
+                            >
+                                <X className="w-3 h-3" />
+                            </Button>
+                        </div>
+                    )}
 
                     {/* Column Visibility */}
                     <div className="flex items-center gap-2">
@@ -524,15 +623,7 @@ export default function CustomerListPage() {
                                         <TableHead
                                             key={col.key}
                                             className="text-sm font-medium text-muted-foreground cursor-pointer select-none hover:bg-accent transition-colors duration-200 border-b border-border/50 whitespace-nowrap h-12"
-                                            onClick={() => {
-                                                if (col.key !== "action" && !customersLoading) {
-                                                    setSort(s => ({
-                                                        key: col.key,
-                                                        dir: s.key === col.key ? (s.dir === "asc" ? "desc" : "asc") : "asc"
-                                                    }));
-                                                    setPage(1);
-                                                }
-                                            }}
+                                            onClick={() => handleSort(col.key)}
                                         >
                                             <div className="flex items-center gap-2">
                                                 {col.label}
@@ -689,7 +780,7 @@ export default function CustomerListPage() {
                             {customersLoading ? (
                                 "Loading..."
                             ) : (
-                                `Showing ${(page - 1) * entries + 1} to ${Math.min(page * entries, totalCustomers)} of ${totalCustomers} entries`
+                                `Showing ${totalCustomers > 0 ? (page - 1) * entries + 1 : 0} to ${Math.min(page * entries, totalCustomers)} of ${totalCustomers} entries`
                             )}
                         </div>
 
@@ -698,8 +789,8 @@ export default function CustomerListPage() {
                                 <PaginationContent className="flex justify-center">
                                     <PaginationItem>
                                         <PaginationPrevious
-                                            onClick={() => setPage(Math.max(1, page - 1))}
-                                            className={`${page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-9 px-4 text-sm`}
+                                            onClick={() => handlePageChange(Math.max(1, page - 1))}
+                                            className={`${page === 1 || customersLoading ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-9 px-4 text-sm`}
                                         />
                                     </PaginationItem>
                                     {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -716,9 +807,9 @@ export default function CustomerListPage() {
                                         return (
                                             <PaginationItem key={pageNum}>
                                                 <PaginationLink
-                                                    onClick={() => setPage(pageNum)}
+                                                    onClick={() => handlePageChange(pageNum)}
                                                     isActive={page === pageNum}
-                                                    className={`cursor-pointer rounded-full hover:bg-accent h-9 px-4 text-sm ${page === pageNum ? "shadow-md" : "shadow-sm"}`}
+                                                    className={`${customersLoading ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full h-9 px-4 text-sm ${page === pageNum ? "shadow-md" : "shadow-sm"}`}
                                                 >
                                                     {pageNum}
                                                 </PaginationLink>
@@ -727,8 +818,8 @@ export default function CustomerListPage() {
                                     })}
                                     <PaginationItem>
                                         <PaginationNext
-                                            onClick={() => setPage(Math.min(totalPages, page + 1))}
-                                            className={`${page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-9 px-4 text-sm`}
+                                            onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
+                                            className={`${page === totalPages || customersLoading ? "pointer-events-none opacity-50" : "cursor-pointer hover:bg-accent"} rounded-full shadow-sm h-9 px-4 text-sm`}
                                         />
                                     </PaginationItem>
                                 </PaginationContent>

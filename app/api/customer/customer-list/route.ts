@@ -277,46 +277,133 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function PUT(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { id, ...updateData } = body;
 
-    if (!id || typeof id !== "number") {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = parseInt(params.id);
+
+    if (isNaN(id)) {
       return NextResponse.json(
-        { message: "Valid 'id' is required" },
+        { message: "Invalid customer ID" },
         { status: 400 }
       );
     }
 
-    // Process dates if provided
-    if (updateData.dateOfBirth) {
-      updateData.dateOfBirth = new Date(updateData.dateOfBirth);
+    const body = await request.json();
+    const {
+      firstName,
+      lastName,
+      gender,
+      email,
+      phone,
+      dateOfBirth,
+      occupation,
+      nationality,
+      identityNumber,
+      address,
+      contactType,
+      identityType,
+    } = body;
+
+    // Validate required fields
+    if (!firstName || typeof firstName !== "string") {
+      return NextResponse.json(
+        { message: "Valid 'firstName' (string) is required" },
+        { status: 400 }
+      );
     }
-    if (updateData.anniversary) {
-      updateData.anniversary = new Date(updateData.anniversary);
+
+    if (!email || typeof email !== "string") {
+      return NextResponse.json(
+        { message: "Valid 'email' (string) is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!phone || typeof phone !== "string") {
+      return NextResponse.json(
+        { message: "Valid 'phone' (string) is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!gender || typeof gender !== "string") {
+      return NextResponse.json(
+        { message: "Valid 'gender' (string) is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!dateOfBirth) {
+      return NextResponse.json(
+        { message: "Valid 'dateOfBirth' is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!nationality) {
+      return NextResponse.json(
+        { message: "Valid 'nationality' is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!address || typeof address !== "string") {
+      return NextResponse.json(
+        { message: "Valid 'address' (string) is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if customer exists
+    const existingCustomer = await prisma.customer.findUnique({
+      where: { id },
+    });
+
+    if (!existingCustomer) {
+      return NextResponse.json(
+        { message: "Customer not found" },
+        { status: 404 }
+      );
     }
 
     // Update customer
-    const updated = await prisma.customer.update({
+    const customer = await prisma.customer.update({
       where: { id },
-      data: updateData,
+      data: {
+        firstName,
+        lastName: lastName || null,
+        gender,
+        dateOfBirth: new Date(dateOfBirth),
+        nationality,
+        occupation: occupation || null,
+        email,
+        phone,
+        contactType: contactType || null,
+        address,
+        identityType: identityType || null,
+        identityNumber: identityNumber || null,
+      },
     });
 
-    return NextResponse.json(updated, { status: 200 });
+    return NextResponse.json(customer, { status: 200 });
   } catch (error: any) {
     console.error("Error updating customer:", error);
 
-    // Handle unique constraint errors
+    // Handle unique constraint violations
     if (error.code === "P2002") {
       const field = error.meta?.target?.[0];
       return NextResponse.json(
-        { message: `${field} already exists` },
-        { status: 400 }
+        {
+          message: `${field} already exists. Please use a different ${field}.`,
+        },
+        { status: 409 }
       );
     }
 
-    // Handle record not found
     if (error.code === "P2025") {
       return NextResponse.json(
         { message: "Customer not found" },
@@ -331,40 +418,44 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-export async function DELETE(req: NextRequest) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
-    const body = await req.json();
-    const { id } = body;
+    const id = parseInt(params.id);
 
-    if (!id || typeof id !== "number") {
+    if (isNaN(id)) {
       return NextResponse.json(
-        { message: "Valid 'id' is required" },
+        { message: "Invalid customer ID" },
         { status: 400 }
       );
     }
 
-    // Check if customer has reservations
-    const reservationCount = await prisma.reservation.count({
-      where: { customerId: id },
+    // Check if customer exists
+    const existingCustomer = await prisma.customer.findUnique({
+      where: { id },
     });
 
-    if (reservationCount > 0) {
+    if (!existingCustomer) {
       return NextResponse.json(
-        { message: "Cannot delete customer with existing reservations" },
-        { status: 400 }
+        { message: "Customer not found" },
+        { status: 404 }
       );
     }
 
     // Delete customer
-    const deleted = await prisma.customer.delete({
+    const customer = await prisma.customer.delete({
       where: { id },
     });
 
-    return NextResponse.json(deleted, { status: 200 });
+    return NextResponse.json(
+      { message: "Customer deleted successfully", customer },
+      { status: 200 }
+    );
   } catch (error: any) {
     console.error("Error deleting customer:", error);
 
-    // Handle record not found
     if (error.code === "P2025") {
       return NextResponse.json(
         { message: "Customer not found" },

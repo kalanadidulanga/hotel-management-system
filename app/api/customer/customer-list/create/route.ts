@@ -1,49 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 
-export async function GET() {
-  try {
-    const customers = await prisma.customer.findMany({
-      orderBy: { id: "asc" },
-    });
-
-    return NextResponse.json(customers);
-  } catch (error: any) {
-    console.error("Error fetching customers:", error);
-    return NextResponse.json(
-      { message: "Failed to fetch customers", error: error.message },
-      { status: 500 }
-    );
-  }
-}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
-      title,
+      
       firstName,
       lastName,
       gender,
       email,
-      countryCode,
+      
       phone,
       dateOfBirth,
-      occupation, // was 'profession' in frontend
+      occupation,
       nationality,
-      identityNumber, // was 'nationalId' in frontend
+      identityNumber,
       address,
-      anniversary,
+      
       contactType,
-      country,
-      state,
-      city,
-      zipcode,
+      
+      
       identityType,
-      frontIdUrl,
-      backIdUrl,
-      guestImageUrl,
-      isVip,
+     
+      
     } = body;
 
     // Validate required fields
@@ -99,29 +80,24 @@ export async function POST(req: NextRequest) {
     // Create customer
     const customer = await prisma.customer.create({
       data: {
-        title: title || null,
+        title: null,
         firstName,
         lastName: lastName || null,
         gender,
         dateOfBirth: new Date(dateOfBirth),
-        anniversary: anniversary ? new Date(anniversary) : null,
+        anniversary:  null,
         nationality,
-        isVip: isVip || false,
+       
         occupation: occupation || null,
         email,
-        countryCode: countryCode || "+1", // default if not provided
+        countryCode:  "+94",
         phone,
         contactType: contactType || null,
-        country: country || null,
-        state: state || null,
-        city: city || null,
-        zipcode: zipcode || null,
+        
         address,
         identityType: identityType || null,
         identityNumber: identityNumber || null,
-        frontIdUrl: frontIdUrl || null,
-        backIdUrl: backIdUrl || null,
-        guestImageUrl: guestImageUrl || null,
+       
       },
     });
 

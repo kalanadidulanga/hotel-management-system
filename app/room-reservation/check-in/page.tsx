@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
@@ -12,10 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
 import {
     Home,
     Search,
@@ -27,105 +22,63 @@ import {
     Printer,
     ChevronUp,
     ChevronDown,
-    Building,
-    Users,
-    Plus,
-    CalendarIcon,
     UserCheck,
-    CreditCard,
-    User,
-    Phone,
-    Clock
+    Plus,
 } from "lucide-react";
 import Link from "next/link";
+import useSWR from 'swr';
 
-interface CheckIn {
+// Updated interface to match Prisma schema
+interface CheckInReservation {
     id: number;
     bookingNumber: string;
+    checkInDate: string;
+    checkOutDate: string;
+    checkInTime: string;
+    checkOutTime: string;
     roomType: string;
-    roomNumber: string;
-    name: string;
-    phone: string;
-    checkIn: string;
-    checkOut: string;
-    paidAmount: number;
-    dueAmount: number;
-    bookingStatus: "Check In" | "Checked In" | "Checked Out";
-    paymentStatus: "Pending" | "Success" | "Failed" | "Partial";
+    roomNumber: number;
+    roomPrice: number;
+    total: number;
+    advanceAmount: number;
+    balanceAmount: number;
+    billingType: string;
+    paymentMode: string;
+    purposeOfVisit: string;
+    adults?: number;
+    children?: number;
+    // Customer details (from relation)
+    customer: {
+        id: number;
+        firstName: string;
+        lastName?: string;
+        phone: string;
+        email: string;
+        nationality: "native" | "foreigner";
+    };
+    // Room details (from relation)
+    room: {
+        id: number;
+        roomNumber: number;
+        isAvailable: boolean;
+    };
+    roomTypeDetails: {
+        roomType: string;
+        rate: number;
+        capacity: number;
+    };
+    createdAt: string;
+    updatedAt: string;
 }
 
-const mockCheckIns: CheckIn[] = [
-    {
-        id: 1,
-        bookingNumber: "00000239",
-        roomType: "VIP",
-        roomNumber: "165",
-        name: "Mr CHRIS CLADIO",
-        phone: "Nigeria/07062068",
-        checkIn: "2025-07-18",
-        checkOut: "2025-07-20",
-        paidAmount: 0.00,
-        dueAmount: 89800.00,
-        bookingStatus: "Check In",
-        paymentStatus: "Pending"
-    },
-    {
-        id: 2,
-        bookingNumber: "00000238",
-        roomType: "Deluxe",
-        roomNumber: "102",
-        name: "Wemba",
-        phone: "123456789",
-        checkIn: "2025-07-18",
-        checkOut: "2025-07-18",
-        paidAmount: 0.00,
-        dueAmount: 78645.00,
-        bookingStatus: "Check In",
-        paymentStatus: "Pending"
-    },
-    {
-        id: 3,
-        bookingNumber: "00000236",
-        roomType: "Presidential Suite",
-        roomNumber: "501",
-        name: "Ms Evelyn Osakwe",
-        phone: "2348065553243",
-        checkIn: "2025-07-15",
-        checkOut: "2025-07-20",
-        paidAmount: 0.00,
-        dueAmount: 1063728.50,
-        bookingStatus: "Check In",
-        paymentStatus: "Success"
-    },
-    {
-        id: 4,
-        bookingNumber: "00000235",
-        roomType: "Standard",
-        roomNumber: "201",
-        name: "John Smith",
-        phone: "9876543210",
-        checkIn: "2025-07-17",
-        checkOut: "2025-07-19",
-        paidAmount: 5000.00,
-        dueAmount: 15000.00,
-        bookingStatus: "Check In",
-        paymentStatus: "Partial"
-    },
-    {
-        id: 5,
-        bookingNumber: "00000234",
-        roomType: "Suite",
-        roomNumber: "301",
-        name: "Alice Johnson",
-        phone: "1234567890",
-        checkIn: "2025-07-16",
-        checkOut: "2025-07-18",
-        paidAmount: 25000.00,
-        dueAmount: 0.00,
-        bookingStatus: "Check In",
-        paymentStatus: "Success"
-    }
-];
+// Define check-in status type
+type CheckInStatus = "Pending" | "Checked In" | "Checked Out" | "Cancelled";
+type PaymentStatus = "Pending" | "Partial" | "Paid" | "Overdue";
+
+const fetcher = (url: string) => fetch(url).then(res => {
+    if (!res.ok) throw new Error('Failed to fetch');
+    return res.json();
+});
 
 const pageSizes = [10, 25, 50, 100];
 
@@ -134,13 +87,14 @@ const columns = [
     { key: "bookingNumber", label: "Booking Number" },
     { key: "roomType", label: "Room Type" },
     { key: "roomNumber", label: "Room No." },
-    { key: "name", label: "Name" },
+    { key: "customerName", label: "Customer Name" },
     { key: "phone", label: "Phone" },
     { key: "checkIn", label: "Check In" },
     { key: "checkOut", label: "Check Out" },
-    { key: "paidAmount", label: "Paid Amount" },
-    { key: "dueAmount", label: "Due Amount" },
-    { key: "bookingStatus", label: "Booking Status" },
+    { key: "advanceAmount", label: "Advance Paid" },
+    { key: "balanceAmount", label: "Balance Due" },
+    { key: "total", label: "Total Amount" },
+    { key: "checkInStatus", label: "Check-in Status" },
     { key: "paymentStatus", label: "Payment Status" },
     { key: "action", label: "Action" },
 ];
@@ -151,44 +105,92 @@ export default function CheckInListPage() {
     const [page, setPage] = useState(1);
     const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" }>({ key: "sl", dir: "asc" });
     const [visibleCols, setVisibleCols] = useState(columns.map(c => c.key));
-    const [checkIns, setCheckIns] = useState<CheckIn[]>(mockCheckIns);
+
+    // Fetch reservations that are eligible for check-in (today's check-ins)
+    const { data: reservations = [], error, isLoading, mutate } = useSWR<CheckInReservation[]>(
+        "/api/room-reservation/check-in",
+        fetcher,
+        {
+            refreshInterval: 30000, // Refresh every 30 seconds
+        }
+    );
+
+    // Helper function to determine check-in status
+    const getCheckInStatus = (reservation: CheckInReservation): CheckInStatus => {
+        const today = new Date().toDateString();
+        const checkInDate = new Date(reservation.checkInDate).toDateString();
+        const checkOutDate = new Date(reservation.checkOutDate).toDateString();
+
+        if (checkOutDate < today) return "Checked Out";
+        if (checkInDate === today) return "Pending"; // Can check in today
+        if (checkInDate < today) return "Checked In"; // Should be checked in
+        return "Pending";
+    };
+
+    // Helper function to determine payment status
+    const getPaymentStatus = (reservation: CheckInReservation): PaymentStatus => {
+        const { total, advanceAmount, balanceAmount } = reservation;
+
+        if (advanceAmount >= total) return "Paid";
+        if (advanceAmount > 0 && balanceAmount > 0) return "Partial";
+        if (balanceAmount > 0) return "Pending";
+        return "Paid";
+    };
 
     // Filtering
     const filtered = useMemo(() => {
-        return checkIns.filter(checkIn =>
-            checkIn.bookingNumber.toLowerCase().includes(search.toLowerCase()) ||
-            checkIn.name.toLowerCase().includes(search.toLowerCase()) ||
-            checkIn.phone.toLowerCase().includes(search.toLowerCase()) ||
-            checkIn.roomType.toLowerCase().includes(search.toLowerCase()) ||
-            checkIn.roomNumber.toLowerCase().includes(search.toLowerCase())
-        );
-    }, [search, checkIns]);
+        if (!reservations || reservations.length === 0) return [];
+
+        return reservations.filter(reservation => {
+            const customerName = `${reservation.customer.firstName} ${reservation.customer.lastName || ''}`.toLowerCase();
+            const searchTerm = search.toLowerCase();
+
+            return (
+                reservation.bookingNumber.toLowerCase().includes(searchTerm) ||
+                customerName.includes(searchTerm) ||
+                reservation.customer.phone.toLowerCase().includes(searchTerm) ||
+                reservation.roomType.toLowerCase().includes(searchTerm) ||
+                String(reservation.roomNumber).includes(searchTerm)
+            );
+        });
+    }, [search, reservations]);
 
     // Sorting
     const sorted = useMemo(() => {
-        const sortedCheckIns = [...filtered];
+        const sortedReservations = [...filtered];
+
         if (sort.key === "sl") {
-            sortedCheckIns.sort((a, b) => sort.dir === "asc" ? a.id - b.id : b.id - a.id);
+            sortedReservations.sort((a, b) => sort.dir === "asc" ? a.id - b.id : b.id - a.id);
         } else if (sort.key === "bookingNumber") {
-            sortedCheckIns.sort((a, b) => {
+            sortedReservations.sort((a, b) => {
                 if (a.bookingNumber < b.bookingNumber) return sort.dir === "asc" ? -1 : 1;
                 if (a.bookingNumber > b.bookingNumber) return sort.dir === "asc" ? 1 : -1;
                 return 0;
             });
-        } else if (sort.key === "name") {
-            sortedCheckIns.sort((a, b) => {
-                if (a.name < b.name) return sort.dir === "asc" ? -1 : 1;
-                if (a.name > b.name) return sort.dir === "asc" ? 1 : -1;
+        } else if (sort.key === "customerName") {
+            sortedReservations.sort((a, b) => {
+                const nameA = `${a.customer.firstName} ${a.customer.lastName || ''}`;
+                const nameB = `${b.customer.firstName} ${b.customer.lastName || ''}`;
+                if (nameA < nameB) return sort.dir === "asc" ? -1 : 1;
+                if (nameA > nameB) return sort.dir === "asc" ? 1 : -1;
                 return 0;
             });
-        } else if (sort.key === "paidAmount" || sort.key === "dueAmount") {
-            sortedCheckIns.sort((a, b) => {
-                const aVal = sort.key === "paidAmount" ? a.paidAmount : a.dueAmount;
-                const bVal = sort.key === "paidAmount" ? b.paidAmount : b.dueAmount;
+        } else if (["advanceAmount", "balanceAmount", "total"].includes(sort.key)) {
+            sortedReservations.sort((a, b) => {
+                const aVal = a[sort.key as keyof CheckInReservation] as number;
+                const bVal = b[sort.key as keyof CheckInReservation] as number;
                 return sort.dir === "asc" ? aVal - bVal : bVal - aVal;
             });
+        } else if (["checkIn", "checkOut"].includes(sort.key)) {
+            sortedReservations.sort((a, b) => {
+                const aVal = sort.key === "checkIn" ? a.checkInDate : a.checkOutDate;
+                const bVal = sort.key === "checkIn" ? b.checkInDate : b.checkOutDate;
+                return sort.dir === "asc" ?
+                    new Date(aVal).getTime() - new Date(bVal).getTime() :
+                    new Date(bVal).getTime() - new Date(aVal).getTime();
+            });
         }
-        return sortedCheckIns;
+        return sortedReservations;
     }, [filtered, sort]);
 
     // Pagination
@@ -200,41 +202,69 @@ export default function CheckInListPage() {
         alert(`Export as ${type}`);
     };
 
-    // Delete check-in
-    const handleDelete = (id: number) => {
-        if (confirm("Are you sure you want to cancel this check-in?")) {
-            setCheckIns(checkIns.filter(c => c.id !== id));
+    // Handle check-in action
+    const handleCheckIn = async (reservationId: number) => {
+        try {
+            const response = await fetch(`/api/room-reservation/check-in/${reservationId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) throw new Error('Failed to check in');
+
+            mutate(); // Refresh data
+            alert('Guest checked in successfully!');
+        } catch (error) {
+            console.error('Check-in error:', error);
+            alert('Failed to check in guest');
         }
     };
 
-    // Get status badge variant
-    const getBookingStatusConfig = (status: string) => {
+    // Get status badge configurations
+    const getCheckInStatusConfig = (status: CheckInStatus) => {
         switch (status) {
-            case "Check In":
-                return { variant: "default" as const, className: "bg-blue-100 text-blue-800" };
-            case "Checked In":
-                return { variant: "outline" as const, className: "bg-green-100 text-green-800" };
-            case "Checked Out":
-                return { variant: "outline" as const, className: "bg-purple-100 text-purple-800" };
-            default:
-                return { variant: "outline" as const, className: "bg-gray-100 text-gray-800" };
-        }
-    };
-
-    const getPaymentStatusConfig = (status: string) => {
-        switch (status) {
-            case "Success":
-                return { variant: "default" as const, className: "bg-green-100 text-green-800" };
             case "Pending":
                 return { variant: "secondary" as const, className: "bg-yellow-100 text-yellow-800" };
-            case "Partial":
-                return { variant: "outline" as const, className: "bg-orange-100 text-orange-800" };
-            case "Failed":
+            case "Checked In":
+                return { variant: "default" as const, className: "bg-green-100 text-green-800" };
+            case "Checked Out":
+                return { variant: "outline" as const, className: "bg-purple-100 text-purple-800" };
+            case "Cancelled":
                 return { variant: "destructive" as const, className: "bg-red-100 text-red-800" };
             default:
                 return { variant: "outline" as const, className: "bg-gray-100 text-gray-800" };
         }
     };
+
+    const getPaymentStatusConfig = (status: PaymentStatus) => {
+        switch (status) {
+            case "Paid":
+                return { variant: "default" as const, className: "bg-green-100 text-green-800" };
+            case "Pending":
+                return { variant: "secondary" as const, className: "bg-yellow-100 text-yellow-800" };
+            case "Partial":
+                return { variant: "outline" as const, className: "bg-orange-100 text-orange-800" };
+            case "Overdue":
+                return { variant: "destructive" as const, className: "bg-red-100 text-red-800" };
+            default:
+                return { variant: "outline" as const, className: "bg-gray-100 text-gray-800" };
+        }
+    };
+
+    if (error) {
+        return (
+            <div className="p-6">
+                <div className="text-center py-12">
+                    <p className="text-red-500 mb-4">Error loading check-in data: {error.message}</p>
+                    <Button onClick={() => mutate()}>
+                        Retry
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full bg-white relative">
@@ -251,13 +281,13 @@ export default function CheckInListPage() {
                             </BreadcrumbItem>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>
-                                <BreadcrumbLink href="/check-in" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                                    Check In
+                                <BreadcrumbLink href="/room-reservation" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                    Room Reservation
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>
-                                <BreadcrumbLink href="/check-in/check-in-list" className="text-sm font-medium">
+                                <BreadcrumbLink href="/room-reservation/check-in" className="text-sm font-medium">
                                     Check In List
                                 </BreadcrumbLink>
                             </BreadcrumbItem>
@@ -270,13 +300,15 @@ export default function CheckInListPage() {
                             <UserCheck className="w-6 h-6 text-primary" />
                             <div>
                                 <h1 className="text-xl font-semibold text-foreground">Check In List</h1>
-                                <p className="text-sm text-muted-foreground">Manage all current guest check-ins</p>
+                                <p className="text-sm text-muted-foreground">
+                                    {filtered.length > 0 ? `${filtered.length} reservations ready for check-in` : 'Manage all current guest check-ins'}
+                                </p>
                             </div>
                         </div>
-                        <Link href={"/room-reservation/room-booking"} className="flex-shrink-0">
+                        <Link href="/room-reservation/room-booking" className="flex-shrink-0">
                             <Button className="h-10 px-6 rounded-full shadow-md flex items-center gap-2">
                                 <Plus className="w-4 h-4" />
-                                Direct Checkin
+                                New Reservation
                             </Button>
                         </Link>
                     </div>
@@ -351,13 +383,14 @@ export default function CheckInListPage() {
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type="text"
-                                    placeholder="Search check-ins..."
+                                    placeholder="Search reservations..."
                                     value={search}
                                     onChange={(e) => {
                                         setSearch(e.target.value);
                                         setPage(1);
                                     }}
                                     className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                                    disabled={isLoading}
                                 />
                             </div>
                         </div>
@@ -437,7 +470,16 @@ export default function CheckInListPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {paginated.length === 0 ? (
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={visibleCols.length} className="text-center py-12">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                                                Loading check-in data...
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : paginated.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={visibleCols.length} className="text-center py-12">
                                             <div className="flex flex-col items-center gap-3">
@@ -448,108 +490,120 @@ export default function CheckInListPage() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    paginated.map((checkIn, idx) => (
-                                        <TableRow key={checkIn.id} className="hover:bg-accent/50 transition-colors duration-200 border-b border-border/50">
-                                            {visibleCols.includes("sl") && (
-                                                <TableCell className="text-sm text-foreground font-medium py-3">
-                                                    {(page - 1) * entries + idx + 1}
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("bookingNumber") && (
-                                                <TableCell className="text-sm py-3 font-medium text-blue-600">
-                                                    {checkIn.bookingNumber}
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("roomType") && (
-                                                <TableCell className="text-sm py-3">
-                                                    {checkIn.roomType}
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("roomNumber") && (
-                                                <TableCell className="text-sm py-3 font-medium">
-                                                    {checkIn.roomNumber}
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("name") && (
-                                                <TableCell className="text-sm py-3">
-                                                    {checkIn.name}
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("phone") && (
-                                                <TableCell className="text-sm py-3">
-                                                    {checkIn.phone}
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("checkIn") && (
-                                                <TableCell className="text-sm py-3">
-                                                    {checkIn.checkIn}
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("checkOut") && (
-                                                <TableCell className="text-sm py-3">
-                                                    {checkIn.checkOut}
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("paidAmount") && (
-                                                <TableCell className="text-sm py-3 font-medium">
-                                                    {checkIn.paidAmount.toLocaleString()}
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("dueAmount") && (
-                                                <TableCell className="text-sm py-3 font-medium text-red-600">
-                                                    {checkIn.dueAmount.toLocaleString()}
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("bookingStatus") && (
-                                                <TableCell className="text-sm py-3">
-                                                    <Badge
-                                                        variant={getBookingStatusConfig(checkIn.bookingStatus).variant}
-                                                        className={getBookingStatusConfig(checkIn.bookingStatus).className}
-                                                    >
-                                                        {checkIn.bookingStatus}
-                                                    </Badge>
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("paymentStatus") && (
-                                                <TableCell className="text-sm py-3">
-                                                    <Badge
-                                                        variant={getPaymentStatusConfig(checkIn.paymentStatus).variant}
-                                                        className={getPaymentStatusConfig(checkIn.paymentStatus).className}
-                                                    >
-                                                        {checkIn.paymentStatus}
-                                                    </Badge>
-                                                </TableCell>
-                                            )}
-                                            {visibleCols.includes("action") && (
-                                                <TableCell className="py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                                    paginated.map((reservation, idx) => {
+                                        const checkInStatus = getCheckInStatus(reservation);
+                                        const paymentStatus = getPaymentStatus(reservation);
+
+                                        return (
+                                            <TableRow key={reservation.id} className="hover:bg-accent/50 transition-colors duration-200 border-b border-border/50">
+                                                {visibleCols.includes("sl") && (
+                                                    <TableCell className="text-sm text-foreground font-medium py-3">
+                                                        {(page - 1) * entries + idx + 1}
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("bookingNumber") && (
+                                                    <TableCell className="text-sm py-3 font-medium text-blue-600">
+                                                        {reservation.bookingNumber}
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("roomType") && (
+                                                    <TableCell className="text-sm py-3">
+                                                        {reservation.roomType}
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("roomNumber") && (
+                                                    <TableCell className="text-sm py-3 font-medium">
+                                                        {reservation.roomNumber}
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("customerName") && (
+                                                    <TableCell className="text-sm py-3">
+                                                        {reservation.customer.firstName} {reservation.customer.lastName || ''}
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("phone") && (
+                                                    <TableCell className="text-sm py-3">
+                                                        {reservation.customer.phone}
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("checkIn") && (
+                                                    <TableCell className="text-sm py-3">
+                                                        {new Date(reservation.checkInDate).toLocaleDateString()} {reservation.checkInTime}
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("checkOut") && (
+                                                    <TableCell className="text-sm py-3">
+                                                        {new Date(reservation.checkOutDate).toLocaleDateString()} {reservation.checkOutTime}
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("advanceAmount") && (
+                                                    <TableCell className="text-sm py-3 font-medium text-green-600">
+                                                        Rs.{reservation.advanceAmount.toLocaleString()}
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("balanceAmount") && (
+                                                    <TableCell className="text-sm py-3 font-medium text-red-600">
+                                                        Rs.{reservation.balanceAmount.toLocaleString()}
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("total") && (
+                                                    <TableCell className="text-sm py-3 font-medium">
+                                                        Rs.{reservation.total.toLocaleString()}
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("checkInStatus") && (
+                                                    <TableCell className="text-sm py-3">
+                                                        <Badge
+                                                            variant={getCheckInStatusConfig(checkInStatus).variant}
+                                                            className={getCheckInStatusConfig(checkInStatus).className}
                                                         >
-                                                            <Eye className="w-4 h-4 text-blue-600" />
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="h-8 w-8 p-0 rounded-full border-yellow-200 hover:bg-yellow-50 hover:border-yellow-300 shadow-sm"
+                                                            {checkInStatus}
+                                                        </Badge>
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("paymentStatus") && (
+                                                    <TableCell className="text-sm py-3">
+                                                        <Badge
+                                                            variant={getPaymentStatusConfig(paymentStatus).variant}
+                                                            className={getPaymentStatusConfig(paymentStatus).className}
                                                         >
-                                                            <Edit className="w-4 h-4 text-yellow-600" />
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => handleDelete(checkIn.id)}
-                                                            className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
-                                                        >
-                                                            <Trash2 className="w-4 h-4 text-red-600" />
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
-                                            )}
-                                        </TableRow>
-                                    ))
+                                                            {paymentStatus}
+                                                        </Badge>
+                                                    </TableCell>
+                                                )}
+                                                {visibleCols.includes("action") && (
+                                                    <TableCell className="py-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                                                            >
+                                                                <Eye className="w-4 h-4 text-blue-600" />
+                                                            </Button>
+                                                            {checkInStatus === "Pending" && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => handleCheckIn(reservation.id)}
+                                                                    className="h-8 px-3 rounded-full border-green-200 hover:bg-green-50 hover:border-green-300 shadow-sm text-green-600 text-xs"
+                                                                >
+                                                                    Check In
+                                                                </Button>
+                                                            )}
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-8 w-8 p-0 rounded-full border-yellow-200 hover:bg-yellow-50 hover:border-yellow-300 shadow-sm"
+                                                            >
+                                                                <Edit className="w-4 h-4 text-yellow-600" />
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
+                                                )}
+                                            </TableRow>
+                                        );
+                                    })
                                 )}
                             </TableBody>
                         </Table>

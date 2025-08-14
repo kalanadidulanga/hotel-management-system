@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 import {
     Home,
     Plus,
@@ -25,14 +26,30 @@ import {
     ChevronDown,
     Clock,
     MessageSquare,
-    Phone
+    Phone,
+    User,
+    X,
+    Loader2
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import useSWR from "swr";
+import { toast } from "sonner";
+
+interface Customer {
+    id: number;
+    firstName: string;
+    lastName?: string;
+    email: string;
+    phone: string;
+    countryCode: string;
+}
 
 interface WakeUpCall {
     id: number;
+    customerId: number;
     customerName: string;
+    customerPhone: string;
     date: string;
     time: string;
     remarks: string;
@@ -41,51 +58,7 @@ interface WakeUpCall {
 }
 
 const mockWakeUpCalls: WakeUpCall[] = [
-    {
-        id: 1,
-        customerName: "Diana Aparna",
-        date: "2025-02-15",
-        time: "11:59",
-        remarks: "",
-        status: "Pending",
-        createdAt: "2025-01-15"
-    },
-    {
-        id: 2,
-        customerName: "Milo Timothy",
-        date: "2025-02-16",
-        time: "16:00",
-        remarks: "",
-        status: "Pending",
-        createdAt: "2025-01-16"
-    },
-    {
-        id: 3,
-        customerName: "John Smith",
-        date: "2025-02-17",
-        time: "07:30",
-        remarks: "Important meeting",
-        status: "Completed",
-        createdAt: "2025-01-17"
-    },
-    {
-        id: 4,
-        customerName: "Sarah Johnson",
-        date: "2025-02-18",
-        time: "06:00",
-        remarks: "Early flight",
-        status: "Pending",
-        createdAt: "2025-01-18"
-    },
-    {
-        id: 5,
-        customerName: "Mike Wilson",
-        date: "2025-02-19",
-        time: "08:00",
-        remarks: "",
-        status: "Cancelled",
-        createdAt: "2025-01-19"
-    }
+   
 ];
 
 const pageSizes = [10, 25, 50, 100];
@@ -93,10 +66,17 @@ const pageSizes = [10, 25, 50, 100];
 const columns = [
     { key: "sl", label: "SL" },
     { key: "customerName", label: "Customer Name" },
+    { key: "customerPhone", label: "Phone" },
     { key: "date", label: "Date" },
     { key: "remarks", label: "Remarks" },
     { key: "action", label: "Action" }
 ];
+
+// Fetcher function for SWR
+const fetcher = (url: string) => fetch(url).then(res => {
+    if (!res.ok) throw new Error('Failed to fetch');
+    return res.json();
+});
 
 export default function WakeUpCallListPage() {
     const [entries, setEntries] = useState(10);
@@ -110,20 +90,66 @@ export default function WakeUpCallListPage() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedWakeUpCall, setSelectedWakeUpCall] = useState<WakeUpCall | null>(null);
+
+    // Customer search states
+    const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+
     const [formData, setFormData] = useState({
-        customerName: "",
         date: "",
         time: "",
         remarks: ""
     });
 
+    // Customer search with SWR
+    const {
+        data: customers,
+        error: customerError,
+        isLoading: isLoadingCustomers
+    } = useSWR<Customer[]>(
+        customerSearchQuery.length >= 2 ? `/api/customer/wakeup-call/customer?q=${encodeURIComponent(customerSearchQuery)}` : null,
+        fetcher,
+        {
+            revalidateOnFocus: false,
+            dedupingInterval: 300,
+        }
+    );
+
+    // Handle customer search
+    const handleCustomerSearch = () => {
+        if (customerSearchQuery.length < 2) {
+            toast.error("Please enter at least 2 characters to search");
+            return;
+        }
+        setShowCustomerSearch(true);
+    };
+
+    // Handle customer selection
+    const handleCustomerSelect = (customer: Customer) => {
+        setSelectedCustomer(customer);
+        setShowCustomerSearch(false);
+        setCustomerSearchQuery("");
+    };
+
+    // Clear selected customer
+    const handleClearCustomer = () => {
+        setSelectedCustomer(null);
+        setCustomerSearchQuery("");
+    };
+
     // Handle form submission for add
     const handleAddSubmit = () => {
-        if (!formData.customerName || !formData.date || !formData.time) return;
+        if (!selectedCustomer || !formData.date || !formData.time) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
 
         const newWakeUpCall: WakeUpCall = {
             id: Math.max(...wakeUpCalls.map(w => w.id)) + 1,
-            customerName: formData.customerName,
+            customerId: selectedCustomer.id,
+            customerName: `${selectedCustomer.firstName} ${selectedCustomer.lastName || ''}`.trim(),
+            customerPhone: `${selectedCustomer.countryCode} ${selectedCustomer.phone}`,
             date: formData.date,
             time: formData.time,
             remarks: formData.remarks,
@@ -133,29 +159,51 @@ export default function WakeUpCallListPage() {
 
         setWakeUpCalls([...wakeUpCalls, newWakeUpCall]);
         setShowAddModal(false);
-        setFormData({ customerName: "", date: "", time: "", remarks: "" });
+        setSelectedCustomer(null);
+        setFormData({ date: "", time: "", remarks: "" });
+        toast.success("Wake up call added successfully!");
     };
 
     // Handle form submission for edit
     const handleEditSubmit = () => {
-        if (!selectedWakeUpCall || !formData.customerName || !formData.date || !formData.time) return;
+        if (!selectedWakeUpCall || !selectedCustomer || !formData.date || !formData.time) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
 
         setWakeUpCalls(wakeUpCalls.map(w =>
             w.id === selectedWakeUpCall.id
-                ? { ...w, customerName: formData.customerName, date: formData.date, time: formData.time, remarks: formData.remarks }
+                ? {
+                    ...w,
+                    customerId: selectedCustomer.id,
+                    customerName: `${selectedCustomer.firstName} ${selectedCustomer.lastName || ''}`.trim(),
+                    customerPhone: `${selectedCustomer.countryCode} ${selectedCustomer.phone}`,
+                    date: formData.date,
+                    time: formData.time,
+                    remarks: formData.remarks
+                }
                 : w
         ));
 
         setShowEditModal(false);
         setSelectedWakeUpCall(null);
-        setFormData({ customerName: "", date: "", time: "", remarks: "" });
+        setSelectedCustomer(null);
+        setFormData({ date: "", time: "", remarks: "" });
+        toast.success("Wake up call updated successfully!");
     };
 
     // Handle edit click
     const handleEditClick = (wakeUpCall: WakeUpCall) => {
         setSelectedWakeUpCall(wakeUpCall);
+        setSelectedCustomer({
+            id: wakeUpCall.customerId,
+            firstName: wakeUpCall.customerName.split(' ')[0],
+            lastName: wakeUpCall.customerName.split(' ').slice(1).join(' '),
+            email: '', // You might want to fetch this from API
+            phone: wakeUpCall.customerPhone.split(' ').slice(1).join(''),
+            countryCode: wakeUpCall.customerPhone.split(' ')[0]
+        });
         setFormData({
-            customerName: wakeUpCall.customerName,
             date: wakeUpCall.date,
             time: wakeUpCall.time,
             remarks: wakeUpCall.remarks
@@ -163,10 +211,19 @@ export default function WakeUpCallListPage() {
         setShowEditModal(true);
     };
 
+    // Reset modal state
+    const resetModalState = () => {
+        setSelectedCustomer(null);
+        setCustomerSearchQuery("");
+        setShowCustomerSearch(false);
+        setFormData({ date: "", time: "", remarks: "" });
+    };
+
     // Filtering
     const filteredWakeUpCalls = useMemo(() => {
         return wakeUpCalls.filter(wakeUpCall =>
             wakeUpCall.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            wakeUpCall.customerPhone.toLowerCase().includes(searchQuery.toLowerCase()) ||
             wakeUpCall.date.toLowerCase().includes(searchQuery.toLowerCase()) ||
             wakeUpCall.time.toLowerCase().includes(searchQuery.toLowerCase()) ||
             wakeUpCall.remarks.toLowerCase().includes(searchQuery.toLowerCase())
@@ -205,6 +262,7 @@ export default function WakeUpCallListPage() {
     const handleDelete = (id: number) => {
         if (confirm("Are you sure you want to delete this wake up call?")) {
             setWakeUpCalls(wakeUpCalls.filter(w => w.id !== id));
+            toast.success("Wake up call deleted successfully!");
         }
     };
 
@@ -212,6 +270,113 @@ export default function WakeUpCallListPage() {
     const formatDateTime = (date: string, time: string) => {
         return `${date} ${time}`;
     };
+
+    // Customer Search Component
+    const CustomerSearchSection = () => (
+        <div className="space-y-4">
+            <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Customer
+                </Label>
+
+                {selectedCustomer ? (
+                    <Card className="border-green-200 bg-green-50">
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="font-medium text-green-800">
+                                        {selectedCustomer.firstName} {selectedCustomer.lastName}
+                                    </p>
+                                    <p className="text-sm text-green-600">
+                                        {selectedCustomer.countryCode} {selectedCustomer.phone}
+                                    </p>
+                                    {selectedCustomer.email && (
+                                        <p className="text-sm text-green-600">{selectedCustomer.email}</p>
+                                    )}
+                                </div>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={handleClearCustomer}
+                                    className="text-green-700 hover:text-green-900"
+                                >
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="space-y-3">
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="Search customer by name or phone..."
+                                value={customerSearchQuery}
+                                onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                                className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
+                                onKeyDown={(e) => e.key === 'Enter' && handleCustomerSearch()}
+                            />
+                            <Button
+                                onClick={handleCustomerSearch}
+                                disabled={customerSearchQuery.length < 2 || isLoadingCustomers}
+                                className="px-4"
+                            >
+                                {isLoadingCustomers ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Search className="w-4 h-4" />
+                                )}
+                            </Button>
+                        </div>
+
+                        {showCustomerSearch && (
+                            <Card className="max-h-48 overflow-y-auto">
+                                <CardContent className="p-2">
+                                    {isLoadingCustomers ? (
+                                        <div className="flex items-center justify-center py-4">
+                                            <Loader2 className="w-6 h-6 animate-spin" />
+                                            <span className="ml-2 text-sm text-muted-foreground">Searching...</span>
+                                        </div>
+                                    ) : customerError ? (
+                                        <div className="text-center py-4">
+                                            <p className="text-sm text-red-600">Error searching customers</p>
+                                        </div>
+                                    ) : customers && customers.length > 0 ? (
+                                        <div className="space-y-1">
+                                            {customers.map((customer) => (
+                                                <Button
+                                                    key={customer.id}
+                                                    variant="ghost"
+                                                    className="w-full justify-start p-3 h-auto"
+                                                    onClick={() => handleCustomerSelect(customer)}
+                                                >
+                                                    <div className="text-left">
+                                                        <p className="font-medium">
+                                                            {customer.firstName} {customer.lastName}
+                                                        </p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {customer.countryCode} {customer.phone}
+                                                        </p>
+                                                        {customer.email && (
+                                                            <p className="text-sm text-muted-foreground">{customer.email}</p>
+                                                        )}
+                                                    </div>
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-4">
+                                            <p className="text-sm text-muted-foreground">No customers found</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 
     return (
         <div className="flex flex-col h-full bg-white relative">
@@ -339,7 +504,7 @@ export default function WakeUpCallListPage() {
                             variant="outline"
                             onClick={() => {
                                 const next = visibleCols.length === columns.length ?
-                                    ["sl", "customerName", "date", "remarks", "action"] :
+                                    ["sl", "customerName", "customerPhone", "date", "remarks", "action"] :
                                     columns.map(c => c.key);
                                 setVisibleCols(next);
                             }}
@@ -374,7 +539,7 @@ export default function WakeUpCallListPage() {
                                         >
                                             <div className="flex items-center gap-2">
                                                 {col.label}
-                                                {col.key !== "action" && col.key !== "remarks" && (
+                                                {col.key !== "action" && col.key !== "remarks" && col.key !== "customerPhone" && (
                                                     <div className="flex flex-col">
                                                         {sort.key === col.key ? (
                                                             sort.dir === "asc" ?
@@ -411,6 +576,11 @@ export default function WakeUpCallListPage() {
                                             {visibleCols.includes("customerName") && (
                                                 <TableCell className="text-sm text-foreground font-medium py-3">
                                                     {wakeUpCall.customerName}
+                                                </TableCell>
+                                            )}
+                                            {visibleCols.includes("customerPhone") && (
+                                                <TableCell className="text-sm text-foreground py-3">
+                                                    {wakeUpCall.customerPhone}
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("date") && (
@@ -508,7 +678,10 @@ export default function WakeUpCallListPage() {
             </div>
 
             {/* Add Wake Up Call Modal */}
-            <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+            <Dialog open={showAddModal} onOpenChange={(open) => {
+                setShowAddModal(open);
+                if (!open) resetModalState();
+            }}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
@@ -517,18 +690,7 @@ export default function WakeUpCallListPage() {
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="customerName" className="text-sm font-medium">
-                                Customer Name
-                            </Label>
-                            <Input
-                                id="customerName"
-                                placeholder="Enter customer name"
-                                value={formData.customerName}
-                                onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                                className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
-                            />
-                        </div>
+                        <CustomerSearchSection />
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -577,7 +739,7 @@ export default function WakeUpCallListPage() {
                                 variant="outline"
                                 onClick={() => {
                                     setShowAddModal(false);
-                                    setFormData({ customerName: "", date: "", time: "", remarks: "" });
+                                    resetModalState();
                                 }}
                                 className="px-4"
                             >
@@ -585,7 +747,7 @@ export default function WakeUpCallListPage() {
                             </Button>
                             <Button
                                 onClick={handleAddSubmit}
-                                disabled={!formData.customerName || !formData.date || !formData.time}
+                                disabled={!selectedCustomer || !formData.date || !formData.time}
                                 className="px-4"
                             >
                                 Add Wake Up Call
@@ -596,7 +758,13 @@ export default function WakeUpCallListPage() {
             </Dialog>
 
             {/* Edit Wake Up Call Modal */}
-            <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+            <Dialog open={showEditModal} onOpenChange={(open) => {
+                setShowEditModal(open);
+                if (!open) {
+                    setSelectedWakeUpCall(null);
+                    resetModalState();
+                }
+            }}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
@@ -605,18 +773,7 @@ export default function WakeUpCallListPage() {
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="editCustomerName" className="text-sm font-medium">
-                                Customer Name
-                            </Label>
-                            <Input
-                                id="editCustomerName"
-                                placeholder="Enter customer name"
-                                value={formData.customerName}
-                                onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                                className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent"
-                            />
-                        </div>
+                        <CustomerSearchSection />
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -666,7 +823,7 @@ export default function WakeUpCallListPage() {
                                 onClick={() => {
                                     setShowEditModal(false);
                                     setSelectedWakeUpCall(null);
-                                    setFormData({ customerName: "", date: "", time: "", remarks: "" });
+                                    resetModalState();
                                 }}
                                 className="px-4"
                             >
@@ -674,7 +831,7 @@ export default function WakeUpCallListPage() {
                             </Button>
                             <Button
                                 onClick={handleEditSubmit}
-                                disabled={!formData.customerName || !formData.date || !formData.time}
+                                disabled={!selectedCustomer || !formData.date || !formData.time}
                                 className="px-4"
                             >
                                 Update Wake Up Call

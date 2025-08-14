@@ -49,6 +49,9 @@ model Room_Size_List{
     name     String    @unique
 }
 
+
+
+
 model Customer {
   id               Int          @id @default(autoincrement())
   title            String?
@@ -77,7 +80,28 @@ model Customer {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
     reservations    Reservation[]
+  wakeUpCalls      WakeUpCall[] 
 }
+
+model WakeUpCall {
+  id             Int       @id @default(autoincrement())
+  customerId     Int
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  customerName   String
+  customerPhone  String
+  date           DateTime
+  time           String
+  remarks        String?
+  status         WakeUpCallStatus @default(Pending)
+  createdAt      DateTime @default(now())
+}
+
+enum WakeUpCallStatus {
+  Pending
+  Completed
+  Cancelled
+}
+
 
 
 
@@ -113,7 +137,8 @@ model Reservation {
 
   roomType           String
   roomTypeDetails   RoomList  @relation(fields: [roomType], references: [roomType])
-  roomNumber         String
+  roomNumber         Int
+  room               Room      @relation(fields: [roomNumber], references: [roomNumber])
   adults             Int?
   children           Int?
   roomPrice          Int
@@ -244,7 +269,8 @@ model Room {
   isAvailable Boolean    @default(true)
   roomType    String?    // optional link to RoomList.roomType if needed
   roomList   RoomList?  @relation(fields: [roomType], references: [roomType])
-  
+  reservations Reservation[]
+
 }
 
 model Promocode {
