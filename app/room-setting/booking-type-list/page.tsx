@@ -29,6 +29,8 @@ import {
 } from "lucide-react";
 import useSWR from "swr";
 import { toast } from "sonner";
+import autoTable from "jspdf-autotable";
+import jsPDF from "jspdf";
 
 // Interface for booking type data
 interface BookingType {
@@ -106,9 +108,116 @@ export default function BookingTypeListPage() {
     const paginated = sorted.slice((page - 1) * entries, page * entries);
 
     // Export/Print handlers
-    const handleExport = (type: string) => {
-        toast.info(`Exporting as ${type}...`);
+    const handleExport = (type: "Copy" | "CSV" | "PDF" | "Print") => {
+        if (!bookingTypes?.length) {
+            toast.warning("No data available to export");
+            return;
+        }
+
+        // Prepare export data
+        const exportData = bookingTypes.map((bt, index) => ({
+            sl: index + 1,
+            name: bt.name || "-",
+            createdAt: bt.createdAt || "-"
+        }));
+
+        // ---- COPY ----
+        if (type === "Copy") {
+            const text = exportData
+                .map(row => `${row.sl}\t${row.name}\t${row.createdAt}`)
+                .join("\n");
+            navigator.clipboard.writeText(text);
+            toast.success("Copied to clipboard!");
+        }
+
+        // ---- CSV ----
+        if (type === "CSV") {
+            const headers = ["SL", "Booking Type", "Created At"];
+            const rows = exportData.map(row => [row.sl, `"${row.name}"`, `"${row.createdAt}"`]);
+            const csvContent =
+                "data:text/csv;charset=utf-8," +
+                [headers, ...rows].map(e => e.join(",")).join("\n");
+
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent);
+            link.download = "booking-types-list.csv";
+            link.click();
+            toast.success("CSV downloaded!");
+        }
+
+        // ---- PDF ----
+        if (type === "PDF") {
+            const doc = new jsPDF();
+
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            doc.text("🏨 Grand Ocean View Hotel", 105, 20, { align: "center" });
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text("Booking Types Report", 105, 30, { align: "center" });
+
+            autoTable(doc, {
+                startY: 40,
+                head: [["SL", "Booking Type", "Created At"]],
+                body: exportData.map(row => [row.sl, row.name, row.createdAt]),
+                theme: "grid",
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+                bodyStyles: { textColor: 50 },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+            });
+
+            doc.save("booking-types-list.pdf");
+            toast.success("PDF downloaded!");
+        }
+
+        // ---- PRINT ----
+        if (type === "Print") {
+            const printWindow = window.open("", "_blank");
+            if (printWindow) {
+                printWindow.document.write(`
+<html>
+  <head>
+    <title>Booking Types Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
+      h1 { font-size: 24px; margin-bottom: 0; color: #2c3e50; }
+      h3 { font-size: 16px; margin-top: 5px; margin-bottom: 20px; color: #7f8c8d; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #333; padding: 8px; font-size: 12px; }
+      th { background: #2980b9; color: white; }
+      tr:nth-child(even) { background: #f2f2f2; }
+    </style>
+  </head>
+  <body>
+    <h1>Grand Ocean View Hotel</h1>
+    <h3>Booking Types Report</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>SL</th>
+          <th>Booking Type</th>
+          <th>Created At</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${exportData.map(row => `
+          <tr>
+            <td>${row.sl}</td>
+            <td>${row.name}</td>
+            <td>${row.createdAt}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>
+  </body>
+</html>
+            `);
+                printWindow.document.close();
+                printWindow.print();
+            }
+        }
     };
+
 
     // Reset form states
     const resetAddForm = () => {
@@ -342,7 +451,7 @@ export default function BookingTypeListPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleExport("Copy")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={isLoading}
                             >
                                 <Copy className="w-4 h-4 mr-2" />
@@ -352,7 +461,7 @@ export default function BookingTypeListPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleExport("CSV")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={isLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
@@ -362,7 +471,7 @@ export default function BookingTypeListPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleExport("PDF")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={isLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
@@ -372,7 +481,7 @@ export default function BookingTypeListPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleExport("Print")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={isLoading}
                             >
                                 <Printer className="w-4 h-4 mr-2" />

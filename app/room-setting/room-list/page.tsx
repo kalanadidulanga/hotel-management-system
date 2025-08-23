@@ -36,6 +36,8 @@ import { useState, useMemo } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 import Link from "next/link";
+import autoTable from "jspdf-autotable";
+import jsPDF from "jspdf";
 
 interface BedType {
     id: number;
@@ -312,9 +314,171 @@ export default function RoomListPage() {
     const paginatedRooms = sortedRooms.slice((page - 1) * entries, page * entries);
 
     // Export handlers
-    const handleExport = (type: string) => {
-        toast.info(`Exporting as ${type}...`);
+    const handleExport = (
+        type: "Copy" | "CSV" | "PDF" | "Print",
+        data: Room[]
+    ) => {
+        if (!data?.length) {
+            toast.warning("No data available to export");
+            return;
+        }
+
+        const exportData = data.map((item, index) => ({
+            sl: index + 1,
+            roomType: item.roomType || "-",
+            rate: item.rate?.toString() || "0",
+            bedCharge: item.bedCharge?.toString() || "0",
+            hourlyCharge: item.hourlyCharge?.toString() || "0",
+            personCharge: item.personCharge?.toString() || "0",
+            capacity: item.capacity?.toString() || "0",
+            extraCapability: item.extraCapability ? "Yes" : "No",
+            roomSize: item.roomSize || "-",
+            bedNo: item.bedNo?.toString() || "0",
+            bedType: item.bedType?.name || "-",
+        }));
+
+        // ---- COPY ----
+        if (type === "Copy") {
+            const text = exportData
+                .map(row =>
+                    `${row.sl}\t${row.roomType}\t${row.rate}\t${row.bedCharge}\t${row.hourlyCharge}\t${row.personCharge}\t${row.capacity}\t${row.extraCapability}\t${row.roomSize}\t${row.bedNo}\t${row.bedType}`
+                )
+                .join("\n");
+            navigator.clipboard.writeText(text);
+            toast.success("Copied to clipboard!");
+        }
+
+        // ---- CSV ----
+        if (type === "CSV") {
+            const headers = ["SL", "Room Type", "Rate", "Bed Charge", "Hourly Charge", "Person Charge", "Capacity", "Extra Capability", "Room Size", "Bed No", "Bed Type"];
+            const rows = exportData.map(row => [
+                row.sl,
+                row.roomType,
+                row.rate,
+                row.bedCharge,
+                row.hourlyCharge,
+                row.personCharge,
+                row.capacity,
+                row.extraCapability,
+                row.roomSize,
+                row.bedNo,
+                row.bedType
+            ]);
+            const csvContent =
+                "data:text/csv;charset=utf-8," +
+                [headers, ...rows].map(e => e.join(",")).join("\n");
+
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent);
+            link.download = "room-list.csv";
+            link.click();
+            toast.success("CSV downloaded!");
+        }
+
+        // ---- PDF ----
+        if (type === "PDF") {
+            const doc = new jsPDF();
+
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            doc.text("🏨 Grand Ocean View Hotel", 105, 20, { align: "center" });
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text("Room List Report", 105, 30, { align: "center" });
+
+            autoTable(doc, {
+                startY: 40,
+                head: [["SL", "Room Type", "Rate", "Bed Charge", "Hourly Charge", "Person Charge", "Capacity", "Extra Capability", "Room Size", "Bed No", "Bed Type"]],
+                body: exportData.map(row => [
+                    row.sl,
+                    row.roomType,
+                    row.rate,
+                    row.bedCharge,
+                    row.hourlyCharge,
+                    row.personCharge,
+                    row.capacity,
+                    row.extraCapability,
+                    row.roomSize,
+                    row.bedNo,
+                    row.bedType
+                ]),
+                theme: "grid",
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+                bodyStyles: { textColor: 50 },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+            });
+
+            doc.save("room-list.pdf");
+            toast.success("PDF downloaded!");
+        }
+
+        // ---- PRINT ----
+        if (type === "Print") {
+            const printWindow = window.open("", "_blank");
+            if (printWindow) {
+                printWindow.document.write(`
+<html>
+  <head>
+    <title>Room List Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
+      h1 { font-size: 24px; margin-bottom: 0; color: #2c3e50; }
+      h3 { font-size: 16px; margin-top: 5px; margin-bottom: 20px; color: #7f8c8d; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #333; padding: 8px; font-size: 12px; }
+      th { background: #2980b9; color: white; }
+      tr:nth-child(even) { background: #f2f2f2; }
+    </style>
+  </head>
+  <body>
+    <h1>Grand Ocean View Hotel</h1>
+    <h3>Room List Report</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>SL</th>
+          <th>Room Type</th>
+          <th>Rate</th>
+          <th>Bed Charge</th>
+          <th>Hourly Charge</th>
+          <th>Person Charge</th>
+          <th>Capacity</th>
+          <th>Extra Capability</th>
+          <th>Room Size</th>
+          <th>Bed No</th>
+          <th>Bed Type</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${exportData
+                        .map(row => `
+          <tr>
+            <td>${row.sl}</td>
+            <td>${row.roomType}</td>
+            <td>${row.rate}</td>
+            <td>${row.bedCharge}</td>
+            <td>${row.hourlyCharge}</td>
+            <td>${row.personCharge}</td>
+            <td>${row.capacity}</td>
+            <td>${row.extraCapability}</td>
+            <td>${row.roomSize}</td>
+            <td>${row.bedNo}</td>
+            <td>${row.bedType}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </body>
+</html>
+            `);
+                printWindow.document.close();
+                printWindow.print();
+            }
+        }
     };
+
+
 
     // Delete room
     const handleDelete = async (id: number, roomType: string) => {
@@ -492,8 +656,8 @@ export default function RoomListPage() {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleExport("Copy")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                onClick={() => handleExport("Copy", sortedRooms)}
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={roomsLoading}
                             >
                                 <Copy className="w-4 h-4 mr-2" />
@@ -502,8 +666,8 @@ export default function RoomListPage() {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleExport("CSV")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                onClick={() => handleExport("CSV", sortedRooms)}
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={roomsLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
@@ -512,8 +676,8 @@ export default function RoomListPage() {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleExport("PDF")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                onClick={() => handleExport("PDF", sortedRooms)}
+                                    className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={roomsLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
@@ -522,8 +686,8 @@ export default function RoomListPage() {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleExport("Print")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                onClick={() => handleExport("Print", sortedRooms)}
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={roomsLoading}
                             >
                                 <Printer className="w-4 h-4 mr-2" />

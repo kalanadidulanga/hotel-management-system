@@ -32,6 +32,8 @@ import {
 } from "lucide-react";
 import useSWR from "swr";
 import { toast } from "sonner";
+import autoTable from "jspdf-autotable";
+import jsPDF from "jspdf";
 
 interface BookingType {
     id: number;
@@ -148,8 +150,146 @@ export default function BookingSourcePage() {
     const paginated = sorted.slice((page - 1) * entries, page * entries);
 
     // Export/Print handlers
-    const handleExport = (type: string) => {
-        toast.info(`Exporting as ${type}...`);
+
+    const handleExport = (type: "Copy" | "CSV" | "PDF" | "Print") => {
+        if (!bookingSources?.length) {
+            toast.warning("No data available to export");
+            return;
+        }
+
+        // Prepare export data
+        const exportData = bookingSources.map((source, index) => ({
+            sl: index + 1,
+            bookingType: source.bookingType?.name || "-",
+            bookingSource: source.bookingSource || "-",
+            commissionRate: source.commissionRate ?? 0,
+            totalBalance: source.totalBalance ?? 0,
+            paidAmount: source.paidAmount ?? 0,
+            dueAmount: source.dueAmount ?? 0,
+        }));
+
+        // ---- COPY ----
+        if (type === "Copy") {
+            const text = exportData
+                .map(row =>
+                    `${row.sl}\t${row.bookingType}\t${row.bookingSource}\t${row.commissionRate}\t${row.totalBalance}\t${row.paidAmount}\t${row.dueAmount}`
+                )
+                .join("\n");
+            navigator.clipboard.writeText(text);
+            toast.success("Copied to clipboard!");
+        }
+
+        // ---- CSV ----
+        if (type === "CSV") {
+            const headers = ["SL", "Booking Type", "Booking Source", "Commission Rate", "Total Balance", "Paid Amount", "Due Amount"];
+            const rows = exportData.map(row => [
+                row.sl,
+                `"${row.bookingType}"`,
+                `"${row.bookingSource}"`,
+                row.commissionRate,
+                row.totalBalance,
+                row.paidAmount,
+                row.dueAmount
+            ]);
+
+            const csvContent =
+                "data:text/csv;charset=utf-8," +
+                [headers, ...rows].map(e => e.join(",")).join("\n");
+
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent);
+            link.download = "booking-sources-list.csv";
+            link.click();
+            toast.success("CSV downloaded!");
+        }
+
+        // ---- PDF ----
+        if (type === "PDF") {
+            const doc = new jsPDF();
+
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            doc.text("🏨 Grand Ocean View Hotel", 105, 20, { align: "center" });
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text("Booking Sources Report", 105, 30, { align: "center" });
+
+            autoTable(doc, {
+                startY: 40,
+                head: [["SL", "Booking Type", "Booking Source", "Commission Rate", "Total Balance", "Paid Amount", "Due Amount"]],
+                body: exportData.map(row => [
+                    row.sl,
+                    row.bookingType,
+                    row.bookingSource,
+                    row.commissionRate,
+                    row.totalBalance,
+                    row.paidAmount,
+                    row.dueAmount
+                ]),
+                theme: "grid",
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+                bodyStyles: { textColor: 50 },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+            });
+
+            doc.save("booking-sources-list.pdf");
+            toast.success("PDF downloaded!");
+        }
+
+        // ---- PRINT ----
+        if (type === "Print") {
+            const printWindow = window.open("", "_blank");
+            if (printWindow) {
+                printWindow.document.write(`
+<html>
+  <head>
+    <title>Booking Sources Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
+      h1 { font-size: 24px; margin-bottom: 0; color: #2c3e50; }
+      h3 { font-size: 16px; margin-top: 5px; margin-bottom: 20px; color: #7f8c8d; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #333; padding: 8px; font-size: 12px; }
+      th { background: #2980b9; color: white; }
+      tr:nth-child(even) { background: #f2f2f2; }
+    </style>
+  </head>
+  <body>
+    <h1>Grand Ocean View Hotel</h1>
+    <h3>Booking Sources Report</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>SL</th>
+          <th>Booking Type</th>
+          <th>Booking Source</th>
+          <th>Commission Rate</th>
+          <th>Total Balance</th>
+          <th>Paid Amount</th>
+          <th>Due Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${exportData.map(row => `
+          <tr>
+            <td>${row.sl}</td>
+            <td>${row.bookingType}</td>
+            <td>${row.bookingSource}</td>
+            <td>${row.commissionRate}</td>
+            <td>${row.totalBalance}</td>
+            <td>${row.paidAmount}</td>
+            <td>${row.dueAmount}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>
+  </body>
+</html>
+            `);
+                printWindow.document.close();
+                printWindow.print();
+            }
+        }
     };
 
     // Add booking source
@@ -444,7 +584,7 @@ export default function BookingSourcePage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleExport("Copy")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={isLoading}
                             >
                                 <Copy className="w-4 h-4 mr-2" />
@@ -454,7 +594,7 @@ export default function BookingSourcePage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleExport("CSV")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={isLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
@@ -464,7 +604,7 @@ export default function BookingSourcePage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleExport("PDF")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={isLoading}
                             >
                                 <FileText className="w-4 h-4 mr-2" />
@@ -474,7 +614,7 @@ export default function BookingSourcePage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleExport("Print")}
-                                className="h-9 px-4 rounded-full text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                                className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={isLoading}
                             >
                                 <Printer className="w-4 h-4 mr-2" />
@@ -615,17 +755,17 @@ export default function BookingSourcePage() {
                                             )}
                                             {visibleCols.includes("totalBalance") && (
                                                 <TableCell className="text-sm py-3">
-                                                    <span className="text-foreground font-medium">₹{source.totalBalance.toLocaleString()}</span>
+                                                    <span className="text-foreground font-medium">Rs.{source.totalBalance.toLocaleString()}</span>
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("paidAmount") && (
                                                 <TableCell className="text-sm py-3">
-                                                    <span className="text-foreground font-medium">₹{source.paidAmount.toLocaleString()}</span>
+                                                    <span className="text-foreground font-medium">Rs.{source.paidAmount.toLocaleString()}</span>
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("dueAmount") && (
                                                 <TableCell className="text-sm py-3">
-                                                    <span className="text-foreground font-medium">₹{source.dueAmount.toLocaleString()}</span>
+                                                    <span className="text-foreground font-medium">Rs.{source.dueAmount.toLocaleString()}</span>
                                                 </TableCell>
                                             )}
                                             {visibleCols.includes("action") && (
@@ -742,11 +882,17 @@ export default function BookingSourcePage() {
                                     <SelectValue placeholder="Select booking type..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {bookingTypes.map((type) => (
-                                        <SelectItem key={type.id} value={type.id.toString()}>
-                                            {type.name}
-                                        </SelectItem>
-                                    ))}
+                                    {bookingTypes.length === 0 || bookingTypes.every((type) => bookingSources.some((source) => source.bookingTypeId === type.id)) ? (
+                                        <div className="text-sm text-muted-foreground p-2">No available booking types</div>
+                                    ) : (
+                                        bookingTypes
+                                            .filter((type) => !bookingSources.some((source) => source.bookingTypeId === type.id))
+                                            .map((type) => (
+                                                <SelectItem key={type.id} value={type.id.toString()}>
+                                                    {type.name}
+                                                </SelectItem>
+                                            ))
+                                    )}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -906,7 +1052,7 @@ export default function BookingSourcePage() {
                                 <p className="text-sm text-muted-foreground">Booking Source</p>
                                 <p className="font-medium">{payingSource.bookingSource}</p>
                                 <p className="text-sm text-muted-foreground mt-2">Due Amount</p>
-                                <p className="font-medium text-red-600">₹{payingSource.dueAmount.toLocaleString()}</p>
+                                <p className="font-medium text-red-600">Rs.{payingSource.dueAmount.toLocaleString()}</p>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="paymentAmount" className="text-sm font-medium">

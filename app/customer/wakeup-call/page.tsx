@@ -35,6 +35,8 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
+import autoTable from "jspdf-autotable";
+import jsPDF from "jspdf";
 
 interface Customer {
     id: number;
@@ -254,9 +256,173 @@ export default function WakeUpCallListPage() {
     const paginatedWakeUpCalls = sortedWakeUpCalls.slice((page - 1) * entries, page * entries);
 
     // Export handlers
-    const handleExport = (type: string) => {
-        alert(`Export as ${type}`);
+    const handleExport = (type: "Copy" | "CSV" | "PDF" | "Print") => {
+        if (!wakeUpCalls?.length) {
+            toast.warning("No data available to export");
+            return;
+        }
+
+        // Prepare export data
+        const exportData = wakeUpCalls.map((call, index) => ({
+            sl: index + 1,
+            customerName: call.customerName || "-",
+            customerPhone: call.customerPhone || "-",
+            dateTime: `${call.date} ${call.time}`,
+            remarks: call.remarks || "-",
+            status: call.status,
+            createdAt: call.createdAt
+                ? new Date(call.createdAt).toLocaleDateString("en-CA")
+                : "-",
+        }));
+
+        // ---- COPY ----
+        if (type === "Copy") {
+            const text = exportData
+                .map(
+                    row =>
+                        `${row.sl}\t${row.customerName}\t${row.customerPhone}\t${row.dateTime}\t${row.remarks}\t${row.status}\t${row.createdAt}`
+                )
+                .join("\n");
+            navigator.clipboard.writeText(text);
+            toast.success("Copied to clipboard!");
+        }
+
+        // ---- CSV ----
+        if (type === "CSV") {
+            const headers = [
+                "SL",
+                "Customer Name",
+                "Phone",
+                "Date & Time",
+                "Remarks",
+                "Status",
+                "Created At",
+            ];
+            const rows = exportData.map(row => [
+                row.sl,
+                row.customerName,
+                row.customerPhone,
+                row.dateTime,
+                `"${row.remarks}"`, // wrap remarks to avoid CSV break
+                row.status,
+                row.createdAt,
+            ]);
+
+            const csvContent =
+                "data:text/csv;charset=utf-8," +
+                [headers, ...rows].map(e => e.join(",")).join("\n");
+
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent);
+            link.download = "wake-up-calls.csv";
+            link.click();
+            toast.success("CSV downloaded!");
+        }
+
+        // ---- PDF ----
+        if (type === "PDF") {
+            const doc = new jsPDF();
+
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            doc.text("🏨 Grand Ocean View Hotel", 105, 20, { align: "center" });
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text("Wake-Up Call Report", 105, 30, { align: "center" });
+
+            autoTable(doc, {
+                startY: 40,
+                head: [
+                    [
+                        "SL",
+                        "Customer Name",
+                        "Phone",
+                        "Date & Time",
+                        "Remarks",
+                        "Status",
+                        "Created At",
+                    ],
+                ],
+                body: exportData.map(row => [
+                    row.sl,
+                    row.customerName,
+                    row.customerPhone,
+                    row.dateTime,
+                    row.remarks,
+                    row.status,
+                    row.createdAt,
+                ]),
+                theme: "grid",
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+                bodyStyles: { textColor: 50 },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+            });
+
+            doc.save("wake-up-calls.pdf");
+            toast.success("PDF downloaded!");
+        }
+
+        // ---- PRINT ----
+        if (type === "Print") {
+            const printWindow = window.open("", "_blank");
+            if (printWindow) {
+                printWindow.document.write(`
+<html>
+  <head>
+    <title>Wake-Up Call Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
+      h1 { font-size: 24px; margin-bottom: 0; color: #2c3e50; }
+      h3 { font-size: 16px; margin-top: 5px; margin-bottom: 20px; color: #7f8c8d; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #333; padding: 8px; font-size: 12px; }
+      th { background: #2980b9; color: white; }
+      tr:nth-child(even) { background: #f2f2f2; }
+    </style>
+  </head>
+  <body>
+    <h1>Grand Ocean View Hotel</h1>
+    <h3>Wake-Up Call Report</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>SL</th>
+          <th>Customer Name</th>
+          <th>Phone</th>
+          <th>Date & Time</th>
+          <th>Remarks</th>
+          <th>Status</th>
+          <th>Created At</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${exportData
+                        .map(
+                            row => `
+          <tr>
+            <td>${row.sl}</td>
+            <td>${row.customerName}</td>
+            <td>${row.customerPhone}</td>
+            <td>${row.dateTime}</td>
+            <td>${row.remarks}</td>
+            <td>${row.status}</td>
+            <td>${row.createdAt}</td>
+          </tr>
+        `
+                        )
+                        .join("")}
+      </tbody>
+    </table>
+  </body>
+</html>
+            `);
+                printWindow.document.close();
+                printWindow.print();
+            }
+        }
     };
+
 
     // Delete wake up call
     const handleDelete = (id: number) => {

@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { id, se } from "date-fns/locale";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Building, ChevronDown, ChevronUp, Copy, Edit, Eye, FileText, Home, Loader2, Plus, Printer, Search, Settings, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -213,9 +215,138 @@ export default function RoomFacilitiesDetailsListPage() {
     const paginatedFacilities = sortedFacilities.slice((page - 1) * entries, page * entries);
 
     // Export handlers
-    const handleExport = (type: string) => {
-        toast.info(`Exporting as ${type}...`);
+    const handleExport = (type: "Copy" | "CSV" | "PDF" | "Print") => {
+        if (!facilityDetails?.length) {
+            toast.warning("No data available to export");
+            return;
+        }
+
+        // Prepare export data
+        const exportData = facilityDetails.map((facility, index) => ({
+            sl: index + 1,
+            facilityType: facility.facilityType || "-",
+            facilityName: facility.facility_name || "-",
+            description: facility.description || "-",
+        }));
+
+        // ---- COPY ----
+        if (type === "Copy") {
+            const text = exportData
+                .map(
+                    row =>
+                        `${row.sl}\t${row.facilityType}\t${row.facilityName}\t${row.description}`
+                )
+                .join("\n");
+            navigator.clipboard.writeText(text);
+            toast.success("Copied to clipboard!");
+        }
+
+        // ---- CSV ----
+        if (type === "CSV") {
+            const headers = ["SL", "Facility Type", "Facility Name", "Description"];
+            const rows = exportData.map(row => [
+                row.sl,
+                row.facilityType,
+                row.facilityName,
+                `"${row.description}"`,
+            ]);
+
+            const csvContent =
+                "data:text/csv;charset=utf-8," +
+                [headers, ...rows].map(e => e.join(",")).join("\n");
+
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent);
+            link.download = "room-facilities-details.csv";
+            link.click();
+            toast.success("CSV downloaded!");
+        }
+
+        // ---- PDF ----
+        if (type === "PDF") {
+            const doc = new jsPDF();
+
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            doc.text("🏨 Grand Ocean View Hotel", 105, 20, { align: "center" });
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text("Room Facilities Details Report", 105, 30, { align: "center" });
+
+            autoTable(doc, {
+                startY: 40,
+                head: [["SL", "Facility Type", "Facility Name", "Description"]],
+                body: exportData.map(row => [
+                    row.sl,
+                    row.facilityType,
+                    row.facilityName,
+                    row.description,
+                ]),
+                theme: "grid",
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+                bodyStyles: { textColor: 50 },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+            });
+
+            doc.save("room-facilities-details.pdf");
+            toast.success("PDF downloaded!");
+        }
+
+        // ---- PRINT ----
+        if (type === "Print") {
+            const printWindow = window.open("", "_blank");
+            if (printWindow) {
+                printWindow.document.write(`
+<html>
+  <head>
+    <title>Room Facilities Details Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
+      h1 { font-size: 24px; margin-bottom: 0; color: #2c3e50; }
+      h3 { font-size: 16px; margin-top: 5px; margin-bottom: 20px; color: #7f8c8d; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #333; padding: 8px; font-size: 12px; }
+      th { background: #2980b9; color: white; }
+      tr:nth-child(even) { background: #f2f2f2; }
+    </style>
+  </head>
+  <body>
+    <h1>Grand Ocean View Hotel</h1>
+    <h3>Room Facilities Details Report</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>SL</th>
+          <th>Facility Type</th>
+          <th>Facility Name</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${exportData
+                        .map(
+                            row => `
+          <tr>
+            <td>${row.sl}</td>
+            <td>${row.facilityType}</td>
+            <td>${row.facilityName}</td>
+            <td>${row.description}</td>
+          </tr>
+        `
+                        )
+                        .join("")}
+      </tbody>
+    </table>
+  </body>
+</html>
+            `);
+                printWindow.document.close();
+                printWindow.print();
+            }
+        }
     };
+
 
     // Delete facility
     const handleDelete = async (id: number, name: string) => {
@@ -359,7 +490,7 @@ export default function RoomFacilitiesDetailsListPage() {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleExport("Copy")}
+                                onClick={() => handleExport("Copy" )}
                                 className="h-9 px-4 rounded-full text-sm shadow-sm"
                                 disabled={isLoading}
                             >

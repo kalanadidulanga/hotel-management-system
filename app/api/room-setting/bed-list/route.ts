@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/db";
+import prisma from "@/lib/db"; // adjust path if needed
 
 export async function GET() {
   try {
-    const customers = await prisma.customer.findMany({
+    const items = await prisma.bedType.findMany({
       orderBy: { id: "asc" },
     });
 
-    return NextResponse.json(customers);
-  } catch (error: any) {
-    console.error("Error fetching customers:", error);
+    return NextResponse.json(items);
+  } catch (error) {
     return NextResponse.json(
-      { message: "Failed to fetch customers", error: error.message },
+      { message: "Failed to fetch bed types" },
       { status: 500 }
     );
   }
@@ -20,126 +19,24 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {
-      title,
-      firstName,
-      lastName,
-      gender,
-      email,
-      countryCode,
-      phone,
-      dateOfBirth,
-      occupation, // was 'profession' in frontend
-      nationality,
-      identityNumber, // was 'nationalId' in frontend
-      address,
-      anniversary,
-      contactType,
-      country,
-      state,
-      city,
-      zipcode,
-      identityType,
-      frontIdUrl,
-      backIdUrl,
-      guestImageUrl,
-      isVip,
-    } = body;
+    const { name } = body;
 
-    // Validate required fields
-    if (!firstName || typeof firstName !== "string") {
+    // Validate input
+    if (!name || typeof name !== "string") {
       return NextResponse.json(
-        { message: "Valid 'firstName' (string) is required" },
+        { message: "Valid 'name' (string) is required" },
         { status: 400 }
       );
     }
 
-    if (!email || typeof email !== "string") {
-      return NextResponse.json(
-        { message: "Valid 'email' (string) is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!phone || typeof phone !== "string") {
-      return NextResponse.json(
-        { message: "Valid 'phone' (string) is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!gender || typeof gender !== "string") {
-      return NextResponse.json(
-        { message: "Valid 'gender' (string) is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!dateOfBirth) {
-      return NextResponse.json(
-        { message: "Valid 'dateOfBirth' is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!nationality) {
-      return NextResponse.json(
-        { message: "Valid 'nationality' is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!address || typeof address !== "string") {
-      return NextResponse.json(
-        { message: "Valid 'address' (string) is required" },
-        { status: 400 }
-      );
-    }
-
-    // Create customer
-    const customer = await prisma.customer.create({
-      data: {
-        title: title || null,
-        firstName,
-        lastName: lastName || null,
-        gender,
-        dateOfBirth: new Date(dateOfBirth),
-        anniversary: anniversary ? new Date(anniversary) : null,
-        nationality,
-        isVip: isVip || false,
-        occupation: occupation || null,
-        email,
-        countryCode: countryCode || "+1", // default if not provided
-        phone,
-        contactType: contactType || null,
-        country: country || null,
-        state: state || null,
-        city: city || null,
-        zipcode: zipcode || null,
-        address,
-        identityType: identityType || null,
-        identityNumber: identityNumber || null,
-        frontIdUrl: frontIdUrl || null,
-        backIdUrl: backIdUrl || null,
-        guestImageUrl: guestImageUrl || null,
-      },
+    // Create bed type
+    const created = await prisma.bedType.create({
+      data: { name },
     });
 
-    return NextResponse.json(customer, { status: 201 });
+    return NextResponse.json(created, { status: 201 });
   } catch (error: any) {
-    console.error("Error creating customer:", error);
-
-    // Handle unique constraint violations
-    if (error.code === "P2002") {
-      const field = error.meta?.target?.[0];
-      return NextResponse.json(
-        {
-          message: `${field} already exists. Please use a different ${field}.`,
-        },
-        { status: 409 }
-      );
-    }
-
+    console.error("Error creating bed type:", error);
     return NextResponse.json(
       { message: "Internal Server Error", error: error.message },
       { status: 500 }
@@ -150,106 +47,24 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const {
-      id,
-      title,
-      firstName,
-      lastName,
-      gender,
-      email,
-      countryCode,
-      phone,
-      dateOfBirth,
-      occupation,
-      nationality,
-      identityNumber,
-      address,
-      anniversary,
-      contactType,
-      country,
-      state,
-      city,
-      zipcode,
-      identityType,
-      frontIdUrl,
-      backIdUrl,
-      guestImageUrl,
-      isVip,
-    } = body;
+    const { id, name } = body;
 
-    if (!id || typeof id !== "number") {
+    if (!name || typeof name !== "string") {
       return NextResponse.json(
-        { message: "Valid 'id' (number) is required" },
+        { message: "Valid 'name' (string) is required" },
         { status: 400 }
       );
     }
 
-    // Validate required fields
-    if (!firstName || typeof firstName !== "string") {
-      return NextResponse.json(
-        { message: "Valid 'firstName' (string) is required" },
-        { status: 400 }
-      );
-    }
-
-    if (!email || typeof email !== "string") {
-      return NextResponse.json(
-        { message: "Valid 'email' (string) is required" },
-        { status: 400 }
-      );
-    }
-
-    // Update customer
-    const customer = await prisma.customer.update({
+    // Update bed type
+    const updated = await prisma.bedType.update({
       where: { id },
-      data: {
-        title: title || null,
-        firstName,
-        lastName: lastName || null,
-        gender,
-        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-        anniversary: anniversary ? new Date(anniversary) : null,
-        nationality,
-        isVip: isVip !== undefined ? isVip : undefined,
-        occupation: occupation || null,
-        email,
-        countryCode: countryCode || undefined,
-        phone,
-        contactType: contactType || null,
-        country: country || null,
-        state: state || null,
-        city: city || null,
-        zipcode: zipcode || null,
-        address,
-        identityType: identityType || null,
-        identityNumber: identityNumber || null,
-        frontIdUrl: frontIdUrl || null,
-        backIdUrl: backIdUrl || null,
-        guestImageUrl: guestImageUrl || null,
-      },
+      data: { name },
     });
 
-    return NextResponse.json(customer, { status: 200 });
+    return NextResponse.json(updated, { status: 200 });
   } catch (error: any) {
-    console.error("Error updating customer:", error);
-
-    if (error.code === "P2002") {
-      const field = error.meta?.target?.[0];
-      return NextResponse.json(
-        {
-          message: `${field} already exists. Please use a different ${field}.`,
-        },
-        { status: 409 }
-      );
-    }
-
-    if (error.code === "P2025") {
-      return NextResponse.json(
-        { message: "Customer not found" },
-        { status: 404 }
-      );
-    }
-
+    console.error("Error updating bed type:", error);
     return NextResponse.json(
       { message: "Internal Server Error", error: error.message },
       { status: 500 }
@@ -262,29 +77,14 @@ export async function DELETE(req: NextRequest) {
     const body = await req.json();
     const { id } = body;
 
-    if (!id || typeof id !== "number") {
-      return NextResponse.json(
-        { message: "Valid 'id' (number) is required" },
-        { status: 400 }
-      );
-    }
-
-    // Delete customer
-    const deleted = await prisma.customer.delete({
+    // Delete bed type
+    const deleted = await prisma.bedType.delete({
       where: { id },
     });
 
     return NextResponse.json(deleted, { status: 200 });
   } catch (error: any) {
-    console.error("Error deleting customer:", error);
-
-    if (error.code === "P2025") {
-      return NextResponse.json(
-        { message: "Customer not found" },
-        { status: 404 }
-      );
-    }
-
+    console.error("Error deleting bed type:", error);
     return NextResponse.json(
       { message: "Internal Server Error", error: error.message },
       { status: 500 }

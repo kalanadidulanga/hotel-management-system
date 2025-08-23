@@ -39,6 +39,8 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 import Link from "next/link";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Customer {
     id: number;
@@ -244,48 +246,152 @@ export default function CustomerListPage() {
     };
 
     // Export handlers
-    const handleExport = async (type: string) => {
-        try {
-            const params = new URLSearchParams({
-                format: type.toLowerCase(),
-                sortBy: sort.key,
-                sortOrder: sort.dir,
+    const handleExport = (type: "Copy" | "CSV" | "PDF" | "Print") => {
+        if (!customers?.length) {
+            toast.warning("No data available to export");
+            return;
+        }
+
+        const exportData = customers.map((customer, index) => ({
+            sl: index + 1,
+            firstName: customer.firstName || "-",
+            lastName: customer.lastName || "-",
+            email: customer.email || "-",
+            phone: customer.phone || "-",
+            balance: customer.balance?.toFixed(2) || "0.00",
+            status: customer.status || "-",
+            createdAt: customer.createdAt
+                ? new Date(customer.createdAt).toLocaleDateString("en-CA")
+                : "-", // YYYY-MM-DD
+        }));
+
+        // ---- COPY ----
+        if (type === "Copy") {
+            const text = exportData
+                .map(row =>
+                    `${row.sl}\t${row.firstName}\t${row.lastName}\t${row.email}\t${row.phone}\t${row.balance}\t${row.status}\t${row.createdAt}`
+                )
+                .join("\n");
+            navigator.clipboard.writeText(text);
+            toast.success("Copied to clipboard!");
+        }
+
+        // ---- CSV ----
+        if (type === "CSV") {
+            const headers = ["SL", "First Name", "Last Name", "Email", "Phone", "Balance", "Status", "Created At"];
+            const rows = exportData.map(row => [
+                row.sl,
+                row.firstName,
+                row.lastName,
+                row.email,
+                row.phone,
+                row.balance,
+                row.status,
+                row.createdAt,
+            ]);
+            const csvContent =
+                "data:text/csv;charset=utf-8," +
+                [headers, ...rows].map(e => e.join(",")).join("\n");
+
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent);
+            link.download = "customer-list.csv";
+            link.click();
+            toast.success("CSV downloaded!");
+        }
+
+        // ---- PDF ----
+        if (type === "PDF") {
+            const doc = new jsPDF();
+
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            doc.text("🏨 Grand Ocean View Hotel", 105, 20, { align: "center" });
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text("Customer List Report", 105, 30, { align: "center" });
+
+            autoTable(doc, {
+                startY: 40,
+                head: [["SL", "First Name", "Last Name", "Email", "Phone", "Balance", "Status", "Created At"]],
+                body: exportData.map(row => [
+                    row.sl,
+                    row.firstName,
+                    row.lastName,
+                    row.email,
+                    row.phone,
+                    row.balance,
+                    row.status,
+                    row.createdAt,
+                ]),
+                theme: "grid",
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+                bodyStyles: { textColor: 50 },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
             });
 
-            if (searchQuery) {
-                params.append('search', searchQuery);
-            }
+            doc.save("customer-list.pdf");
+            toast.success("PDF downloaded!");
+        }
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/customers/export?${params.toString()}`);
-
-            if (!response.ok) {
-                throw new Error('Export failed');
+        // ---- PRINT ----
+        if (type === "Print") {
+            const printWindow = window.open("", "_blank");
+            if (printWindow) {
+                printWindow.document.write(`
+<html>
+  <head>
+    <title>Customer List Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
+      h1 { font-size: 24px; margin-bottom: 0; color: #2c3e50; }
+      h3 { font-size: 16px; margin-top: 5px; margin-bottom: 20px; color: #7f8c8d; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #333; padding: 8px; font-size: 12px; }
+      th { background: #2980b9; color: white; }
+      tr:nth-child(even) { background: #f2f2f2; }
+    </style>
+  </head>
+  <body>
+    <h1>Grand Ocean View Hotel</h1>
+    <h3>Customer List Report</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>SL</th>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Balance</th>
+          <th>Status</th>
+          <th>Created At</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${exportData
+                        .map(row => `
+          <tr>
+            <td>${row.sl}</td>
+            <td>${row.firstName}</td>
+            <td>${row.lastName}</td>
+            <td>${row.email}</td>
+            <td>${row.phone}</td>
+            <td>${row.balance}</td>
+            <td>${row.status}</td>
+            <td>${row.createdAt}</td>
+          </tr>
+        `)
+                        .join("")}
+      </tbody>
+    </table>
+  </body>
+</html>
+            `);
+                printWindow.document.close();
+                printWindow.print();
             }
-
-            // Handle file download based on type
-            if (type === 'CSV' || type === 'PDF') {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `customers.${type.toLowerCase()}`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            } else if (type === 'Copy') {
-                const text = await response.text();
-                await navigator.clipboard.writeText(text);
-                toast.success("Data copied to clipboard!");
-            } else if (type === 'Print') {
-                const htmlContent = await response.text();
-                const printWindow = window.open('', '_blank');
-                printWindow?.document.write(htmlContent);
-                printWindow?.document.close();
-                printWindow?.print();
-            }
-        } catch (error) {
-            toast.error(`Failed to export as ${type}`);
         }
     };
 

@@ -36,6 +36,9 @@ import {
   RotateCcw
 } from "lucide-react";
 import Link from "next/link";
+import autoTable from "jspdf-autotable";
+import jsPDF from "jspdf";
+import { toast } from "sonner";
 
 // Updated interface to match Prisma Reservation schema
 interface ReservationBooking {
@@ -407,9 +410,223 @@ export default function BookingListPage() {
   }, [isLoading]);
 
   // Export/Print handlers
-  const handleExport = useCallback((type: string) => {
-    alert(`Export as ${type}`);
-  }, []);
+  const handleExport = (
+    type: "Copy" | "CSV" | "PDF" | "Print",
+    sorted: ReservationBooking[]
+  ) => {
+    const exportData = sorted.map((reservation, index) => ({
+      sl: index + 1,
+      bookingNumber: reservation.bookingNumber,
+      customerName: `${reservation.customer.firstName} ${reservation.customer.lastName || ""}`.trim(),
+      phone: reservation.customer.phone,
+      roomType: reservation.roomTypeDetails.roomType,
+      roomNumber: reservation.room.roomNumber,
+      checkIn: `${reservation.checkInDate} ${reservation.checkInTime}`,
+      checkOut: `${reservation.checkOutDate} ${reservation.checkOutTime}`,
+      advanceAmount: reservation.advanceAmount.toFixed(2),
+      balanceAmount: reservation.balanceAmount.toFixed(2),
+      total: reservation.total.toFixed(2),
+      billingType: reservation.billingType,
+      paymentMode: reservation.paymentMode,
+      status: getBookingStatus(reservation), // Custom logic for booking status
+      paymentStatus: getPaymentStatus(reservation), // Custom logic for payment status
+    }));
+
+    // ---------- COPY ----------
+    if (type === "Copy") {
+      const text = exportData
+        .map((row) =>
+          `${row.sl}\t${row.bookingNumber}\t${row.customerName}\t${row.phone}\t${row.roomType}\t${row.roomNumber}\t${row.checkIn}\t${row.checkOut}\t${row.advanceAmount}\t${row.balanceAmount}\t${row.total}\t${row.billingType}\t${row.paymentMode}\t${row.status}\t${row.paymentStatus}`
+        )
+        .join("\n");
+      navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard!");
+    }
+
+    // ---------- CSV ----------
+    if (type === "CSV") {
+      const headers = [
+        "SL",
+        "Booking Number",
+        "Customer Name",
+        "Phone",
+        "Room Type",
+        "Room Number",
+        "Check In",
+        "Check Out",
+        "Advance Paid",
+        "Balance Due",
+        "Total Amount",
+        "Billing Type",
+        "Payment Mode",
+        "Booking Status",
+        "Payment Status",
+      ];
+      const rows = exportData.map((row) => [
+        row.sl,
+        row.bookingNumber,
+        row.customerName,
+        row.phone,
+        row.roomType,
+        row.roomNumber,
+        row.checkIn,
+        row.checkOut,
+        row.advanceAmount,
+        row.balanceAmount,
+        row.total,
+        row.billingType,
+        row.paymentMode,
+        row.status,
+        row.paymentStatus,
+      ]);
+      const csvContent =
+        "data:text/csv;charset=utf-8," +
+        [headers, ...rows].map((e) => e.join(",")).join("\n");
+
+      const link = document.createElement("a");
+      link.href = encodeURI(csvContent);
+      link.download = "reservations.csv";
+      link.click();
+    }
+
+    // ---------- PDF ----------
+    if (type === "PDF") {
+      const doc = new jsPDF("landscape"); // Use landscape for wider tables
+
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("🌟 Grand Ocean View Hotel 🌟", 148, 20, { align: "center" });
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text("Reservation Bookings List", 148, 30, { align: "center" });
+
+      autoTable(doc, {
+        startY: 40,
+        head: [
+          [
+            "SL",
+            "Booking Number",
+            "Customer Name",
+            "Phone",
+            "Room Type",
+            "Room No.",
+            "Check In",
+            "Check Out",
+            "Advance",
+            "Balance",
+            "Total",
+            "Billing",
+            "Payment",
+            "Status",
+            "Payment Status",
+          ],
+        ],
+        body: exportData.map((row) => [
+          row.sl,
+          row.bookingNumber,
+          row.customerName,
+          row.phone,
+          row.roomType,
+          row.roomNumber,
+          row.checkIn,
+          row.checkOut,
+          row.advanceAmount,
+          row.balanceAmount,
+          row.total,
+          row.billingType,
+          row.paymentMode,
+          row.status,
+          row.paymentStatus,
+        ]),
+        theme: "grid",
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: 255,
+          fontStyle: "bold",
+        },
+        bodyStyles: { textColor: 50 },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+      });
+
+      doc.save("reservations.pdf");
+    }
+
+    // ---------- PRINT ----------
+    if (type === "Print") {
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(`
+        <html>
+          <head>
+            <title>Reservation Bookings</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 40px; }
+              h1 { text-align: center; color: #2c3e50; }
+              h3 { text-align: center; color: #7f8c8d; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #333; padding: 8px; font-size: 12px; }
+              th { background: #2980b9; color: white; }
+              tr:nth-child(even) { background: #f2f2f2; }
+            </style>
+          </head>
+          <body>
+            <h1>Grand Ocean View Hotel</h1>
+            <h3>Reservation Bookings List</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>SL</th>
+                  <th>Booking Number</th>
+                  <th>Customer Name</th>
+                  <th>Phone</th>
+                  <th>Room Type</th>
+                  <th>Room No.</th>
+                  <th>Check In</th>
+                  <th>Check Out</th>
+                  <th>Advance</th>
+                  <th>Balance</th>
+                  <th>Total</th>
+                  <th>Billing</th>
+                  <th>Payment</th>
+                  <th>Status</th>
+                  <th>Payment Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${exportData
+            .map(
+              (row) => `
+                  <tr>
+                    <td>${row.sl}</td>
+                    <td>${row.bookingNumber}</td>
+                    <td>${row.customerName}</td>
+                    <td>${row.phone}</td>
+                    <td>${row.roomType}</td>
+                    <td>${row.roomNumber}</td>
+                    <td>${row.checkIn}</td>
+                    <td>${row.checkOut}</td>
+                    <td>${row.advanceAmount}</td>
+                    <td>${row.balanceAmount}</td>
+                    <td>${row.total}</td>
+                    <td>${row.billingType}</td>
+                    <td>${row.paymentMode}</td>
+                    <td>${row.status}</td>
+                    <td>${row.paymentStatus}</td>
+                  </tr>`
+            )
+            .join("")}
+              </tbody>
+            </table>
+          </body>
+        </html>
+      `);
+        printWindow.document.close();
+        printWindow.print();
+      }
+    }
+  };
+
 
   // Delete booking with optimistic updates
   const handleDelete = useCallback(async (id: number) => {
@@ -584,7 +801,7 @@ export default function BookingListPage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleExport("Copy")}
+                onClick={() => handleExport("Copy",reservations)}
                 className="h-9 px-4 rounded-full text-sm shadow-sm"
                 disabled={isLoading}
               >
@@ -594,7 +811,7 @@ export default function BookingListPage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleExport("CSV")}
+                onClick={() => handleExport("CSV", reservations)}
                 className="h-9 px-4 rounded-full text-sm shadow-sm"
                 disabled={isLoading}
               >
@@ -604,7 +821,7 @@ export default function BookingListPage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleExport("PDF")}
+                onClick={() => handleExport("PDF", reservations)}
                 className="h-9 px-4 rounded-full text-sm shadow-sm"
                 disabled={isLoading}
               >
@@ -614,7 +831,7 @@ export default function BookingListPage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleExport("Print")}
+                onClick={() => handleExport("Print", reservations)}
                 className="h-9 px-4 rounded-full text-sm shadow-sm"
                 disabled={isLoading}
               >

@@ -35,6 +35,7 @@ import {
   Users
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import useSWR from 'swr';
 
 interface AvailableRoom {
@@ -726,9 +727,9 @@ console.log("Customers:", customers[0]?.name);
       if (!bookingType) {
         validationErrors.push("Booking type is required");
       }
-      if (!bookingSource) {
-        validationErrors.push("Booking source is required");
-      }
+      // if (!bookingSource) {
+      //   validationErrors.push("Booking source is required");
+      // }
 
       // 4. Customer validation
       if (customers.length === 0) {
@@ -885,7 +886,8 @@ console.log("Customers:", customers[0]?.name);
       const result = await response.json();
 
       // Success notification
-      alert(`Reservation saved successfully!\nReservation ID: ${result.reservationId || 'N/A'}`);
+      // alert(`Reservation saved successfully!'}`);
+      toast.success(`Reservation saved successfully!`);
 
       // Optional: Reset form or redirect
       const resetForm = window.confirm("Would you like to create another reservation?");
@@ -923,7 +925,7 @@ console.log("Customers:", customers[0]?.name);
 
     } catch (error) {
       console.error("Error saving reservation:", error);
-      alert(`Failed to save reservation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to save reservation: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 

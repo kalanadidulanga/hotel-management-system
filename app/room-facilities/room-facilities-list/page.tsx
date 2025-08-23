@@ -35,6 +35,9 @@ import {
 
 import useSWR from 'swr';
 import axiosInstance from "@/lib/axios";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 interface Facility {
     id: number;
@@ -110,9 +113,112 @@ export default function RoomFacilitiesPage() {
     const paginated = sorted.slice((page - 1) * entries, page * entries);
 
     // Export/Print handlers
-    const handleExport = (type: string) => {
-        toast.info(`Exporting as ${type}...`);
-        // Implement actual export logic here
+   
+    const handleExport = (type: "Copy" | "CSV" | "PDF" | "Print") => {
+        if (!facilities?.length) {
+            toast.warning("No data available to export");
+            return;
+        }
+
+        // Prepare export data
+        const exportData = facilities.map((facility, index) => ({
+            sl: index + 1,
+            facilityName: facility.name || "-",
+        }));
+
+        // ---- COPY ----
+        if (type === "Copy") {
+            const text = exportData
+                .map(row => `${row.sl}\t${row.facilityName}`)
+                .join("\n");
+            navigator.clipboard.writeText(text);
+            toast.success("Copied to clipboard!");
+        }
+
+        // ---- CSV ----
+        if (type === "CSV") {
+            const headers = ["SL", "Facility Name"];
+            const rows = exportData.map(row => [row.sl, `"${row.facilityName}"`]);
+            const csvContent =
+                "data:text/csv;charset=utf-8," +
+                [headers, ...rows].map(e => e.join(",")).join("\n");
+
+            const link = document.createElement("a");
+            link.href = encodeURI(csvContent);
+            link.download = "room-facilities.csv";
+            link.click();
+            toast.success("CSV downloaded!");
+        }
+
+        // ---- PDF ----
+        if (type === "PDF") {
+            const doc = new jsPDF();
+
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            doc.text("🏨 Grand Ocean View Hotel", 105, 20, { align: "center" });
+
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "normal");
+            doc.text("Room Facilities Report", 105, 30, { align: "center" });
+
+            autoTable(doc, {
+                startY: 40,
+                head: [["SL", "Facility Name"]],
+                body: exportData.map(row => [row.sl, row.facilityName]),
+                theme: "grid",
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: "bold" },
+                bodyStyles: { textColor: 50 },
+                alternateRowStyles: { fillColor: [245, 245, 245] },
+            });
+
+            doc.save("room-facilities.pdf");
+            toast.success("PDF downloaded!");
+        }
+
+        // ---- PRINT ----
+        if (type === "Print") {
+            const printWindow = window.open("", "_blank");
+            if (printWindow) {
+                printWindow.document.write(`
+<html>
+  <head>
+    <title>Room Facilities Report</title>
+    <style>
+      body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
+      h1 { font-size: 24px; margin-bottom: 0; color: #2c3e50; }
+      h3 { font-size: 16px; margin-top: 5px; margin-bottom: 20px; color: #7f8c8d; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { border: 1px solid #333; padding: 8px; font-size: 12px; }
+      th { background: #2980b9; color: white; }
+      tr:nth-child(even) { background: #f2f2f2; }
+    </style>
+  </head>
+  <body>
+    <h1>Grand Ocean View Hotel</h1>
+    <h3>Room Facilities Report</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>SL</th>
+          <th>Facility Name</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${exportData.map(row => `
+          <tr>
+            <td>${row.sl}</td>
+            <td>${row.facilityName}</td>
+          </tr>`).join("")}
+      </tbody>
+    </table>
+  </body>
+</html>
+            `);
+                printWindow.document.close();
+                printWindow.print();
+            }
+        }
     };
 
     // Add facility
