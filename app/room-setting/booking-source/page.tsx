@@ -780,15 +780,7 @@ export default function BookingSourcePage() {
                                                         >
                                                             <Edit className="w-4 h-4 text-blue-600" />
                                                         </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => handlePay(source)}
-                                                            className="h-8 w-8 p-0 rounded-full border-green-200 hover:bg-green-50 hover:border-green-300 shadow-sm"
-                                                            disabled={isSubmitting}
-                                                        >
-                                                            <DollarSign className="w-4 h-4 text-green-600" />
-                                                        </Button>
+                                                        
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
@@ -973,11 +965,20 @@ export default function BookingSourcePage() {
                                     <SelectValue placeholder="Select booking type..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {bookingTypes.map((type) => (
-                                        <SelectItem key={type.id} value={type.id.toString()}>
-                                            {type.name}
-                                        </SelectItem>
-                                    ))}
+                                    {bookingTypes
+                                        .filter(
+                                            (type) =>
+                                                !bookingSources.some(
+                                                    (source) =>
+                                                        source.bookingTypeId === type.id &&
+                                                        type.id.toString() !== formData.bookingTypeId // always allow current value
+                                                ) || type.id.toString() === formData.bookingTypeId
+                                        )
+                                        .map((type) => (
+                                            <SelectItem key={type.id} value={type.id.toString()}>
+                                                {type.name}
+                                            </SelectItem>
+                                        ))}
                                 </SelectContent>
                             </Select>
                         </div>

@@ -152,24 +152,7 @@ const mockExistingCustomers: ExistingCustomer[] = [];
 
 // Fallback room types
 const roomTypes = {
-    "single": {
-        name: "Single Room",
-        nightlyRate: 25000,
-        hourlyRate: 1500,
-        rooms: ["101", "102", "103"]
-    },
-    "double": {
-        name: "Double Room",
-        nightlyRate: 35000,
-        hourlyRate: 2000,
-        rooms: ["201", "202", "203"]
-    },
-    "suite": {
-        name: "Suite",
-        nightlyRate: 75000,
-        hourlyRate: 4500,
-        rooms: ["301", "302", "303"]
-    }
+   
 };
 
 // Fallback complimentary items
@@ -1164,9 +1147,17 @@ export default function NewReservationPage() {
                                             <SelectValue placeholder={isLoadingFormData ? "Loading..." : "Select room type"} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {availableRoomTypes.map(type => (
-                                                <SelectItem key={type.id} value={type.roomType}>{type.roomType}</SelectItem>
-                                            ))}
+                                            {availableRoomTypes.length === 0 ? (
+                                                <div className="px-3 py-2 text-muted-foreground text-sm">
+                                                    No room types available
+                                                </div>
+                                            ) : (
+                                                availableRoomTypes.map(type => (
+                                                    <SelectItem key={type.id} value={type.roomType}>
+                                                        {type.roomType}
+                                                    </SelectItem>
+                                                ))
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>

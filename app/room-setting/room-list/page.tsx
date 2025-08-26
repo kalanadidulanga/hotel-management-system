@@ -1076,9 +1076,7 @@ export default function RoomListPage() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="bedType" className="text-sm font-medium">
-                                    Bed Type * <span className="text-red-500">{
-                                        bedTypes.length === 0 ? <Link href="/room-setting/bed-list">Click here to add bed types first</Link> : ""
-                                        }</span>
+                                    Bed Type 
                                 </Label>
                                 <Select value={formData.bedTypeId} onValueChange={(value) => setFormData(prev => ({ ...prev, bedTypeId: value }))}>
                                     <SelectTrigger className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent">
@@ -1087,6 +1085,8 @@ export default function RoomListPage() {
                                     <SelectContent>
                                         {bedTypesLoading ? (
                                             <SelectItem value="" disabled>Loading...</SelectItem>
+                                        ) : bedTypes.length === 0 ? (
+                                            <div className="px-3 py-2 text-sm text-muted-foreground">No bed types available</div>
                                         ) : (
                                             bedTypes.map((type) => (
                                                 <SelectItem key={type.id} value={type.id.toString()}>

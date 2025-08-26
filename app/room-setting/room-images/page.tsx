@@ -946,17 +946,27 @@ export default function RoomImagesPage() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {roomTypes.map((roomType) => (
-                                            <SelectItem key={roomType.id} value={roomType.roomType}>
-                                                <div className="flex items-center gap-2">
-                                                    {getRoomTypeIcon(roomType.roomType)}
-                                                    <span>{roomType.roomType}</span>
-                                                    <span className="text-xs text-muted-foreground">
-                                                        ({roomType.bedType.name} bed, {roomType.capacity} capacity)
-                                                    </span>
-                                                </div>
-                                            </SelectItem>
-                                        ))}
+                                        {roomTypes
+                                            .filter(
+                                                (roomType) =>
+                                                    // Include if not already used in another image, or if it's the current value
+                                                    !roomImages.some(
+                                                        (image) =>
+                                                            image.room.roomType === roomType.roomType &&
+                                                            image.room.roomType !== editingRoomImage.room.roomType
+                                                    ) || roomType.roomType === editingRoomImage.room.roomType
+                                            )
+                                            .map((roomType) => (
+                                                <SelectItem key={roomType.id} value={roomType.roomType}>
+                                                    <div className="flex items-center gap-2">
+                                                        {getRoomTypeIcon(roomType.roomType)}
+                                                        <span>{roomType.roomType}</span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            ({roomType.bedType.name} bed, {roomType.capacity} capacity)
+                                                        </span>
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
                                     </SelectContent>
                                 </Select>
                             </div>

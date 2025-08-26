@@ -801,11 +801,11 @@ export default function ComplementaryPage() {
                                     <SelectValue placeholder={isLoadingRoomTypes ? "Loading room types..." : "Select room type"} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {roomTypes.map(type => (
+                                    {roomTypes.filter(type => !complementaryItems.some(item => item.roomType === type.roomType)).map(type => (
                                         <SelectItem key={type.id} value={type.roomType}>{type.roomType}</SelectItem>
                                     ))}
-                                    {roomTypes.length === 0 && !isLoadingRoomTypes && (
-                                        <SelectItem value="" disabled>No room types available</SelectItem>
+                                    {roomTypes.filter(type => !complementaryItems.some(item => item.roomType === type.roomType)).length === 0 && !isLoadingRoomTypes && (
+                                        <div className="text-sm text-muted-foreground p-2">No available room types</div>
                                     )}
                                 </SelectContent>
                             </Select>
@@ -893,14 +893,25 @@ export default function ComplementaryPage() {
                                     <SelectTrigger className="rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent">
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent>
-                                        {roomTypes.map(type => (
-                                            <SelectItem key={type.id} value={type.roomType}>{type.roomType}</SelectItem>
-                                        ))}
-                                        {roomTypes.length === 0 && !isLoadingRoomTypes && (
-                                            <SelectItem value="" disabled>No room types available</SelectItem>
-                                        )}
-                                    </SelectContent>
+                                  <SelectContent>
+    {roomTypes
+      .filter(type => 
+        // Include the room type if it's the current editing item's room type
+        // or if it's not used in any other complementary item
+        type.roomType === editingItem.roomType || 
+        !complementaryItems.some(item => 
+          item.roomType === type.roomType && item.id !== editingItem.id
+        )
+      )
+      .map(type => (
+        <SelectItem key={type.id} value={type.roomType}>
+          {type.roomType}
+        </SelectItem>
+      ))}
+    {roomTypes.length === 0 && !isLoadingRoomTypes && (
+      <SelectItem value="" disabled>No room types available</SelectItem>
+    )}
+  </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">

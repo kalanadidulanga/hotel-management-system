@@ -1,5 +1,3 @@
-// schema.prisma
-
 generator client {
   provider = "prisma-client-js"
   output   = "../lib/generated/prisma"
@@ -11,7 +9,6 @@ datasource db {
 }
 
 enum Role {
-  
   ADMIN
   MANAGER
   CASHIER
@@ -27,73 +24,68 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
-
 model Room_Facility_List {
   id        Int                          @id @default(autoincrement())
   name      String                       @unique
-  details   Room_Facilities_Details_List[] 
+  details   Room_Facilities_Details_List[]
 }
 
 model Room_Facilities_Details_List {
-  id             Int                @id @default(autoincrement())
-  facilityType   String
-  facility_type  Room_Facility_List @relation(fields: [facilityType], references: [name])
-  facility_name  String  @unique
-  description    String
-   roomAssignments RoomFacilityAssignment[]
-
+  id              Int                @id @default(autoincrement())
+  facilityType    String
+  facility_type   Room_Facility_List @relation(fields: [facilityType], references: [name], onDelete: Cascade)
+  facility_name   String  @unique
+  description     String
+  roomAssignments RoomFacilityAssignment[]
 }
 
-model Room_Size_List{
-    id             Int                @id @default(autoincrement())
-    name     String    @unique
+model Room_Size_List {
+  id   Int    @id @default(autoincrement())
+  name String @unique
 }
-
-
-
 
 model Customer {
-  id               Int          @id @default(autoincrement())
-  title            String?
-  firstName        String
-  lastName         String?
-  gender           String
-  dateOfBirth      DateTime
-  anniversary      DateTime?
-  nationality      Nationality
-  isVip            Boolean      @default(false)
-  occupation       String?                         // ✅ was 'profession'
-  email            String       @unique
-  countryCode      String
-  phone            String       @unique             // ✅ matches 'mobile' in UI
-  contactType      String?
-  country          String?
-  state            String?
-  city             String?
-  zipcode          String?
-  address          String
-  identityType     String?
-  identityNumber   String       @unique             // ✅ was 'nationalId'
-  frontIdUrl       String?
-  backIdUrl        String?
-  guestImageUrl    String?
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-    reservations    Reservation[]
-  wakeUpCalls      WakeUpCall[] 
+  id             Int          @id @default(autoincrement())
+  title          String?
+  firstName      String
+  lastName       String?
+  gender         String
+  dateOfBirth    DateTime
+  anniversary    DateTime?
+  nationality    Nationality
+  isVip          Boolean      @default(false)
+  occupation     String?
+  email          String       @unique
+  countryCode    String
+  phone          String       @unique
+  contactType    String?
+  country        String?
+  state          String?
+  city           String?
+  zipcode        String?
+  address        String
+  identityType   String?
+  identityNumber String       @unique
+  frontIdUrl     String?
+  backIdUrl      String?
+  guestImageUrl  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  reservations   Reservation[]
+  wakeUpCalls    WakeUpCall[]
 }
 
 model WakeUpCall {
-  id             Int       @id @default(autoincrement())
-  customerId     Int
-  customer       Customer  @relation(fields: [customerId], references: [id])
-  customerName   String
-  customerPhone  String
-  date           DateTime
-  time           String
-  remarks        String?
-  status         WakeUpCallStatus @default(Pending)
-  createdAt      DateTime @default(now())
+  id            Int       @id @default(autoincrement())
+  customerId    Int
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerName  String
+  customerPhone String
+  date          DateTime
+  time          String
+  remarks       String?
+  status        WakeUpCallStatus @default(Pending)
+  createdAt     DateTime @default(now())
 }
 
 enum WakeUpCallStatus {
@@ -102,30 +94,23 @@ enum WakeUpCallStatus {
   Cancelled
 }
 
-
-
-
-
 enum Nationality {
   native
   foreigner
 }
 
-
 model ComplementaryItem {
-  id            Int     @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   roomType      String
   complementary String
   rate          Int
-  room_type     RoomList @relation(fields: [roomType], references: [roomType])
+  room_type     RoomList  @relation(fields: [roomType], references: [roomType], onDelete: Cascade)
   reservations  Reservation[] @relation("ReservationToComplementary")
 }
 
-
-
 model Reservation {
   id                 Int       @id @default(autoincrement())
-   bookingNumber      String    @unique
+  bookingNumber      String    @unique
   checkInDate        DateTime
   checkOutDate       DateTime
   checkInTime        String
@@ -136,147 +121,133 @@ model Reservation {
   remarks            String?
 
   roomType           String
-  roomTypeDetails   RoomList  @relation(fields: [roomType], references: [roomType])
+  roomTypeDetails    RoomList  @relation(fields: [roomType], references: [roomType], onDelete: Cascade)
   roomNumber         Int
-  room               Room      @relation(fields: [roomNumber], references: [roomNumber])
+  room               Room      @relation(fields: [roomNumber], references: [roomNumber], onDelete: Cascade)
+
   adults             Int?
   children           Int?
   roomPrice          Int
-  billingType        String     // "nightly" or "hourly"
+  billingType        String
 
-  // RELATION to ComplementaryItem
   complementaryItems ComplementaryItem[] @relation("ReservationToComplementary")
-
   customerId         Int
-  customer           Customer   @relation(fields: [customerId], references: [id])
+  customer           Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
   discountReason     String?
   discountAmount     Int        @default(0)
-
   commissionPercent  Int        @default(0)
   commissionAmount   Int        @default(0)
-
   bookingCharge      Int        @default(0)
   tax                Int        @default(0)
   serviceCharge      Int        @default(0)
-
   paymentMode        String
   advanceRemarks     String?
   advanceAmount      Int        @default(0)
-   total              Int        @default(0) // ✅ NEW
-  balanceAmount      Int        @default(0) // ✅ NEW
+  total              Int        @default(0)
+  balanceAmount      Int        @default(0)
 
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 }
 
-
-
 model BedType {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-rooms     RoomList[]  // Relation to RoomList
-
+  id      Int        @id @default(autoincrement())
+  name    String     @unique
+  rooms   RoomList[] @relation("BedTypeToRoomList")
 }
 
 model BookingType {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  bookingSources BookingSource[]
+  id              Int             @id @default(autoincrement())
+  name            String          @unique
+  bookingSources  BookingSource[]
 }
 
 model BookingSource {
   id              Int          @id @default(autoincrement())
-  bookingType     BookingType  @relation(fields: [bookingTypeId], references: [id])
   bookingTypeId   Int
-
+  bookingType     BookingType  @relation(fields: [bookingTypeId], references: [id], onDelete: Cascade)
   bookingSource   String
   commissionRate  Float @default(0.0)
   totalBalance    Float @default(0.0)
   paidAmount      Float @default(0.0)
   dueAmount       Float @default(0.0)
 }
-  
 
- 
 model RoomList {
-  id               Int      @id @default(autoincrement())
-  roomType         String   @unique
-  rate             Float
-  bedCharge        Float
-  hourlyCharge     Float
-  personCharge     Float
-  capacity         Int
-  extraCapability  Boolean  
-  roomSize         String   
-  bedNo            Int
-  bedTypeId        Int       
-  bedType          BedType   @relation(fields: [bedTypeId], references: [id])
-  roomDescription  String?
-  reserveCondition String?
-  createdAt        DateTime  @default(now())
-  roomImages       RoomImage[] 
-  promocodes       Promocode[] 
-  complementaryItems ComplementaryItem[] 
-  rooms            Room[] 
-  
+  id                 Int      @id @default(autoincrement())
+  roomType           String   @unique
+  rate               Float
+  bedCharge          Float
+  hourlyCharge       Float
+  personCharge       Float
+  capacity           Int
+  extraCapability    Boolean
+  roomSize           String
+  bedNo              Int
+  bedTypeId          Int
+  bedType            BedType   @relation("BedTypeToRoomList", fields: [bedTypeId], references: [id], onDelete: Cascade)
+  roomDescription    String?
+  reserveCondition   String?
+  createdAt          DateTime  @default(now())
+
+  roomImages         RoomImage[]
+  promocodes         Promocode[]
+  complementaryItems ComplementaryItem[]
+  rooms              Room[]
   facilityAssignments RoomFacilityAssignment[]
-  reservations         Reservation[]
+  reservations       Reservation[]
 }
 
 model RoomFacilityAssignment {
-  id         Int                          @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   roomId     Int
   facilityId Int
+  room       RoomList @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  facility   Room_Facilities_Details_List @relation(fields: [facilityId], references: [id], onDelete: Cascade)
 
-  room       RoomList                     @relation(fields: [roomId], references: [id])
-  facility   Room_Facilities_Details_List @relation(fields: [facilityId], references: [id])
-
-  @@unique([roomId, facilityId]) // Prevent duplicate assignments
+  @@unique([roomId, facilityId])
 }
 
 model RoomImage {
-  id          Int      @id @default(autoincrement())
-  roomType    String
-  imageUrl    String
-  createdAt   DateTime @default(now())
-
-  room        RoomList @relation(fields: [roomType], references: [roomType])
+  id        Int      @id @default(autoincrement())
+  roomType  String
+  imageUrl  String
+  createdAt DateTime @default(now())
+  room      RoomList @relation(fields: [roomType], references: [roomType], onDelete: Cascade)
 }
 
-
 model Floor {
-  id           Int          @id @default(autoincrement())
-  name         String       @unique
-  floorLists   FloorList[]  // one-to-many relation
+  id         Int          @id @default(autoincrement())
+  name       String       @unique
+  floorLists FloorList[]
 }
 
 model FloorList {
   id           Int        @id @default(autoincrement())
-  floorName    String     // foreign key to Floor
-  floor       Floor      @relation(fields: [floorName], references: [name])
+  floorName    String
+  floor        Floor      @relation(fields: [floorName], references: [name], onDelete: Cascade)
   noOfRoom     Int
   startRoomNo  Int
   createdAt    DateTime   @default(now())
-    rooms       Room[] 
+  rooms        Room[]
 }
 
 model Room {
   id          Int        @id @default(autoincrement())
-  roomNumber  Int      @unique  // actual room number (e.g., 101, 102, etc.)
+  roomNumber  Int        @unique
   floorListId Int
-  floorList   FloorList  @relation(fields: [floorListId], references: [id])
+  floorList   FloorList  @relation(fields: [floorListId], references: [id], onDelete: Cascade)
   isAvailable Boolean    @default(true)
-  roomType    String?    // optional link to RoomList.roomType if needed
-  roomList   RoomList?  @relation(fields: [roomType], references: [roomType])
+  roomType    String?
+  roomList    RoomList?  @relation(fields: [roomType], references: [roomType], onDelete: SetNull)
   reservations Reservation[]
-
 }
 
 model Promocode {
   id         Int       @id @default(autoincrement())
   roomType   String
-  room       RoomList  @relation(fields: [roomType], references: [roomType])
+  room       RoomList  @relation(fields: [roomType], references: [roomType], onDelete: Cascade)
   fromDate   DateTime
   toDate     DateTime
   discount   Int

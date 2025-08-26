@@ -898,14 +898,17 @@ export default function PromocodeListPage() {
                                     <SelectValue placeholder={isLoadingRooms ? "Loading room types..." : "Select room type"} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {roomTypes.map((room) => (
-                                        <SelectItem key={room.id} value={room.roomType}>
-                                            <div className="flex items-center gap-2">
-                                                <Tag className="w-4 h-4 text-blue-500" />
-                                                <span>{room.roomType}</span>
-                                            </div>
-                                        </SelectItem>
-                                    ))}
+                                    {roomTypes
+                                        .filter(room => !promocodes.some(p => p.roomType === room.roomType))
+                                        .map((room) => (
+                                            <SelectItem key={room.id} value={room.roomType}>
+                                                <div className="flex items-center gap-2">
+                                                    <Tag className="w-4 h-4 text-blue-500" />
+                                                    <span>{room.roomType}</span>
+                                                </div>
+                                            </SelectItem>
+                                        ))
+                                    }
                                 </SelectContent>
                             </Select>
                         </div>
@@ -1050,14 +1053,25 @@ export default function PromocodeListPage() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {roomTypes.map((room) => (
-                                            <SelectItem key={room.id} value={room.roomType}>
-                                                <div className="flex items-center gap-2">
-                                                    <Tag className="w-4 h-4 text-blue-500" />
-                                                    <span>{room.roomType}</span>
-                                                </div>
-                                            </SelectItem>
-                                        ))}
+                                        {roomTypes
+                                            .filter(
+                                                room =>
+                                                    // Allow the current value (editingPromocode.roomType) and
+                                                    // exclude other room types already used in promocodes (except current)
+                                                    room.roomType === editingPromocode.roomType ||
+                                                    !promocodes.some(
+                                                        p => p.roomType === room.roomType && p.roomType !== editingPromocode.roomType
+                                                    )
+                                            )
+                                            .map((room) => (
+                                                <SelectItem key={room.id} value={room.roomType}>
+                                                    <div className="flex items-center gap-2">
+                                                        <Tag className="w-4 h-4 text-blue-500" />
+                                                        <span>{room.roomType}</span>
+                                                    </div>
+                                                </SelectItem>
+                                            ))
+                                        }
                                     </SelectContent>
                                 </Select>
                             </div>
