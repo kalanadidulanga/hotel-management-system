@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { differenceInDays, differenceInHours, format } from "date-fns";
 import {
@@ -150,18 +149,9 @@ interface Complimentary {
 const mockCustomers: Customer[] = [];
 const mockExistingCustomers: ExistingCustomer[] = [];
 
-// Fallback room types
-const roomTypes = {
-   
-};
-
 // Fallback complimentary items
 const complimentaryItems: Complimentary[] = [
-    { id: "welcome-drink", roomType: "Single Room", complementary: "Welcome Drink", rate: 500 },
-    { id: "breakfast", roomType: "Double Room", complementary: "Breakfast", rate: 1200 },
-    { id: "airport-transfer", roomType: "Suite", complementary: "Airport Transfer", rate: 3000 },
-    { id: "late-checkout", roomType: "Single Room", complementary: "Late Checkout", rate: 1500 },
-    { id: "early-checkin", roomType: "Double Room", complementary: "Early Check-in", rate: 2000 },
+
 ];
 
 const fetcher = (url: string) => fetch(url).then(res => {
@@ -197,7 +187,7 @@ export default function NewReservationPage() {
 
     // Customer data
     const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
-    console.log("Customers:", customers[0]?.name);
+
     // Payment details
     const [discountReason, setDiscountReason] = useState("");
     const [discountAmount, setDiscountAmount] = useState(0);
@@ -255,15 +245,7 @@ export default function NewReservationPage() {
         }))
         : complimentaryItems;
 
-    const availableRoomTypes = roomTypesData.length > 0 ? roomTypesData : Object.entries(roomTypes).map(([key, value]) => ({
-        id: key,
-        roomType: value.name,
-        rate: value.nightlyRate,
-        hourlyCharge: value.hourlyRate,
-        capacity: 2,
-        bedNo: 1,
-        bedType: "Single"
-    }));
+    const availableRoomTypes = roomTypesData;
 
     // Fetch available rooms when room type or dates change
     useEffect(() => {
@@ -292,43 +274,11 @@ export default function NewReservationPage() {
                     const data = await response.json();
                     setAvailableRooms(data.availableRooms || []);
                 } else {
-                    // Fallback to mock data
-                    const mockRooms = getAvailableRooms(roomType);
-                    setAvailableRooms(mockRooms.map((room, index) => ({
-                        id: index + 1,
-                        roomNumber: parseInt(room),
-                        floorListId: 1,
-                        isAvailable: true,
-                        roomType: roomType,
-                        floorList: {
-                            id: 1,
-                            floorName: `Floor ${Math.floor(parseInt(room) / 100)}`,
-                            floor: {
-                                id: 1,
-                                name: `Floor ${Math.floor(parseInt(room) / 100)}`
-                            }
-                        }
-                    })));
+                    setAvailableRooms([]);
                 }
             } catch (error) {
                 console.error('Error fetching available rooms:', error);
-                // Fallback to mock data on error
-                const mockRooms = getAvailableRooms(roomType);
-                setAvailableRooms(mockRooms.map((room, index) => ({
-                    id: index + 1,
-                    roomNumber: parseInt(room),
-                    floorListId: 1,
-                    isAvailable: true,
-                    roomType: roomType,
-                    floorList: {
-                        id: 1,
-                        floorName: `Floor ${Math.floor(parseInt(room) / 100)}`,
-                        floor: {
-                            id: 1,
-                            name: `Floor ${Math.floor(parseInt(room) / 100)}`
-                        }
-                    }
-                })));
+                setAvailableRooms([]);
             } finally {
                 setIsLoadingRooms(false);
             }
@@ -375,22 +325,7 @@ export default function NewReservationPage() {
     const calculateRoomPrice = () => {
         if (!roomType || !checkInDate || !checkOutDate) return 0;
 
-        // Try API data first, then fallback to mock data
-        let roomInfo;
-        if (roomTypesData.length > 0) {
-            roomInfo = roomTypesData.find(rt => rt.roomType === roomType);
-        } else {
-            const mockRoomKey = Object.keys(roomTypes).find(key =>
-                roomTypes[key as keyof typeof roomTypes].name === roomType
-            );
-            if (mockRoomKey) {
-                const mockRoom = roomTypes[mockRoomKey as keyof typeof roomTypes];
-                roomInfo = {
-                    rate: mockRoom.nightlyRate,
-                    hourlyCharge: mockRoom.hourlyRate
-                };
-            }
-        }
+        const roomInfo = roomTypesData.find(rt => rt.roomType === roomType);
 
         if (!roomInfo) return 0;
 
@@ -470,26 +405,6 @@ export default function NewReservationPage() {
             const nights = totalNights <= 0 ? 1 : totalNights;
             return `${nights} night${nights > 1 ? 's' : ''}`;
         }
-    };
-
-    // Get available room numbers for selected room type (fallback)
-    const getAvailableRooms = (selectedRoomType: string) => {
-        const mockRoomKey = Object.keys(roomTypes).find(key =>
-            roomTypes[key as keyof typeof roomTypes].name === selectedRoomType
-        );
-
-        if (mockRoomKey) {
-            return roomTypes[mockRoomKey as keyof typeof roomTypes].rooms;
-        }
-
-        const mockRooms = {
-            "Standard Room": ["101", "102", "103", "201", "202", "203"],
-            "Deluxe Room": ["301", "302", "303", "401", "402"],
-            "Executive Suite": ["501", "502", "601", "602"],
-            "VIP Suite": ["701", "702", "801"],
-            "Presidential Suite": ["901"]
-        };
-        return mockRooms[selectedRoomType as keyof typeof mockRooms] || [];
     };
 
     // Handle file upload
@@ -1147,17 +1062,9 @@ export default function NewReservationPage() {
                                             <SelectValue placeholder={isLoadingFormData ? "Loading..." : "Select room type"} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {availableRoomTypes.length === 0 ? (
-                                                <div className="px-3 py-2 text-muted-foreground text-sm">
-                                                    No room types available
-                                                </div>
-                                            ) : (
-                                                availableRoomTypes.map(type => (
-                                                    <SelectItem key={type.id} value={type.roomType}>
-                                                        {type.roomType}
-                                                    </SelectItem>
-                                                ))
-                                            )}
+                                            {availableRoomTypes.map(type => (
+                                                <SelectItem key={type.id} value={type.roomType}>{type.roomType}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
