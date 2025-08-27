@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
         isVip: formData.get("isVip") === "true",
         occupation: formData.get("occupation") as string,
         email: formData.get("email") as string,
-        countryCode: formData.get("countryCode") as string,
+        // countryCode: formData.get("countryCode") as string,
         phone: formData.get("mobile") as string,
         contactType: formData.get("contactType") as string,
         country: formData.get("country") as string,
@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
 
     const customer = await prisma.customer.findUnique({
       where: {
-        phone: mobile.trim(),
+        identityNumber: mobile.trim(),
       },
     });
 

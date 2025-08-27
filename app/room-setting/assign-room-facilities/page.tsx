@@ -1,70 +1,38 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-    Home,
-    Settings,
-    Wifi,
-    Plus,
-    Search,
-    CheckCircle2,
-    Circle
-} from "lucide-react";
-import useSWR from "swr";
+import { Home, Settings, Wifi, Plus, Search, CheckCircle2, Circle } from "lucide-react";
 import { toast } from "sonner";
+import useSWR from "swr";
 
-// Interface for room types
 interface RoomType {
     id: number;
     roomType: string;
-    rate: number;
-    capacity: number;
+    rate?: number;
+    capacity?: number;
 }
 
-// Interface for facilities
 interface Facility {
     id: number;
     facilityType: string;
     facility_name: string;
-    description: string;
-    facility_type: {
-        name: string;
-    };
+    description?: string;
 }
 
-// Interface for existing assignments
-interface FacilityAssignment {
-    id: number;
-    roomId: number;
-    facilityId: number;
-    facility: Facility;
-}
-
-// Fetcher function
 const fetcher = (url: string) => fetch(url).then(res => {
     if (!res.ok) throw new Error('Failed to fetch');
     return res.json();
 });
 
-export default function AssignRoomFacilityPage() {
-    const [selectedRoomType, setSelectedRoomType] = useState<string>("");
-    const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
-    const [selectedFacilities, setSelectedFacilities] = useState<number[]>([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [facilitySearchTerm, setFacilitySearchTerm] = useState("");
-    const [roomTypeSearchTerm, setRoomTypeSearchTerm] = useState("");
-
-    // Fetch room types data
+export default function AssignRoomFacilities() {
     const { data: roomTypes = [], error: roomTypesError, isLoading: roomTypesLoading } = useSWR<RoomType[]>(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/room-list`,
+        "/api/room-setting/room-list",
         fetcher,
         {
             revalidateOnFocus: false,
@@ -72,9 +40,8 @@ export default function AssignRoomFacilityPage() {
         }
     );
 
-    // Fetch facilities data
     const { data: facilities = [], error: facilitiesError, isLoading: facilitiesLoading } = useSWR<Facility[]>(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-facilities/room-facilities-details-list`,
+        "/api/room-facilities/room-facilities-details-list",
         fetcher,
         {
             revalidateOnFocus: false,
@@ -82,46 +49,51 @@ export default function AssignRoomFacilityPage() {
         }
     );
 
-    // Fetch existing facility assignments for selected room
-    const { data: existingAssignments = [], error: assignmentsError, isLoading: assignmentsLoading, mutate } = useSWR<FacilityAssignment[]>(
-        selectedRoomId ? `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/assign-facility/${selectedRoomId}` : null,
-        fetcher,
-        {
-            revalidateOnFocus: false,
-            revalidateOnReconnect: false,
-        }
+    const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null);
+    const { data: assignedFacilities = [], isLoading: assignedLoading, mutate } = useSWR<number[]>(
+        selectedRoomId ? `/api/room-setting/assign-facility?roomId=${selectedRoomId}` : null,
+        fetcher
     );
 
-    // Filter room types based on search
-    const filteredRoomTypes = useMemo(() => {
-        if (!roomTypeSearchTerm) return roomTypes;
-        return roomTypes.filter(roomType =>
-            roomType.roomType.toLowerCase().includes(roomTypeSearchTerm.toLowerCase())
-        );
-    }, [roomTypes, roomTypeSearchTerm]);
+    const [selectedFacilities, setSelectedFacilities] = useState<number[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Sync selectedFacilities with assigned facilities - Fixed with proper dependency
+    useEffect(() => {
+        if (assignedFacilities && Array.isArray(assignedFacilities)) {
+            setSelectedFacilities([...assignedFacilities]);
+        }
+    }, [selectedRoomId, assignedFacilities.length]); // Only depend on selectedRoomId and array length
+
+    // Reset selectedFacilities when room changes
+    useEffect(() => {
+        if (selectedRoomId) {
+            setSelectedFacilities([]);
+        }
+    }, [selectedRoomId]);
 
     // Filter facilities based on search
     const filteredFacilities = useMemo(() => {
-        if (!facilitySearchTerm) return facilities;
+        if (!searchQuery) return facilities;
         return facilities.filter(facility =>
-            facility.facility_name.toLowerCase().includes(facilitySearchTerm.toLowerCase()) ||
-            facility.facilityType.toLowerCase().includes(facilitySearchTerm.toLowerCase()) ||
-            facility.description.toLowerCase().includes(facilitySearchTerm.toLowerCase())
+            facility.facility_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            facility.facilityType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (facility.description?.toLowerCase() ?? "").includes(searchQuery.toLowerCase())
         );
-    }, [facilities, facilitySearchTerm]);
+    }, [searchQuery, facilities]);
 
     // Group facilities by type
     const facilitiesByType = useMemo(() => {
         const grouped: Record<string, Facility[]> = {};
         filteredFacilities.forEach(facility => {
-            const type = facility.facility_type?.name || facility.facilityType;
+            const type = facility.facilityType;
             if (!grouped[type]) {
                 grouped[type] = [];
             }
             grouped[type].push(facility);
         });
 
-        // Sort facilities within each type
         Object.keys(grouped).forEach(type => {
             grouped[type].sort((a, b) => a.facility_name.localeCompare(b.facility_name));
         });
@@ -129,97 +101,61 @@ export default function AssignRoomFacilityPage() {
         return grouped;
     }, [filteredFacilities]);
 
-    // Get existing facility IDs for the selected room
-    const existingFacilityIds = useMemo(() => {
-        return existingAssignments.map(assignment => assignment.facilityId);
-    }, [existingAssignments]);
+    // Handle room selection
+    const handleRoomChange = useCallback((roomId: string) => {
+        setSelectedRoomId(Number(roomId));
+        setSelectedFacilities([]); // Reset facilities when room changes
+    }, []);
 
-    // Update selected facilities when existing assignments load
-    useEffect(() => {
-        if (existingFacilityIds.length > 0) {
-            setSelectedFacilities(existingFacilityIds);
-        }
-    }, [existingFacilityIds]);
+    // Handle facility toggle
+    const handleFacilityToggle = useCallback((facilityId: number) => {
+        setSelectedFacilities(prev => {
+            if (prev.includes(facilityId)) {
+                return prev.filter(id => id !== facilityId);
+            } else {
+                return [...prev, facilityId];
+            }
+        });
+    }, []);
 
-    // Handle room type selection
-    const handleRoomTypeSelect = (roomTypeValue: string) => {
-        setSelectedRoomType(roomTypeValue);
-        const selectedRoom = roomTypes.find(room => room.roomType === roomTypeValue);
-        setSelectedRoomId(selectedRoom?.id || null);
-        setSelectedFacilities([]); // Reset facility selection
-    };
-
-    // Handle facility selection
-    const handleFacilitySelect = (facilityId: number, checked: boolean) => {
-        if (checked) {
-            setSelectedFacilities(prev => [...prev, facilityId]);
-        } else {
-            setSelectedFacilities(prev => prev.filter(id => id !== facilityId));
-        }
-    };
-
-    // Handle save assignments
-    const handleSaveAssignments = async () => {
+    // Handle assign/unassign
+    const handleSave = async () => {
         if (!selectedRoomId) {
             toast.error("Please select a room type");
             return;
         }
 
-        setIsSubmitting(true);
+        setLoading(true);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-setting/assign-facility`, {
+            const response = await fetch("/api/room-setting/assign-facility", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    roomId: selectedRoomId,
-                    facilityIds: selectedFacilities,
-                }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ roomId: selectedRoomId, facilityIds: selectedFacilities })
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || "Failed to assign facilities");
+                throw new Error("Failed to save assignments");
             }
 
-            const result = await response.json();
-            await mutate(); // Refresh the assignments data
-            toast.success(`Facilities assigned successfully to ${selectedRoomType}!`);
+            await mutate();
+            toast.success("Facility assignments saved successfully!");
         } catch (error) {
-            console.error("Assign facilities error:", error);
-            toast.error(error instanceof Error ? error.message : "Failed to assign facilities. Please try again.");
+            toast.error("Failed to save assignments. Please try again.");
         } finally {
-            setIsSubmitting(false);
+            setLoading(false);
         }
     };
 
     // Loading skeleton
     const LoadingSkeleton = () => (
-        <div className="space-y-6 p-4">
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-6 w-48" />
-                </CardHeader>
-                <CardContent>
-                    <Skeleton className="h-10 w-80" />
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <Skeleton className="h-6 w-32" />
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-3">
-                        {Array.from({ length: 8 }).map((_, idx) => (
-                            <div key={idx} className="flex items-center space-x-2">
-                                <Skeleton className="h-4 w-4" />
-                                <Skeleton className="h-4 w-32" />
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+        <div className="space-y-4 p-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 py-3">
+                    <Skeleton className="h-4 w-4" />
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-32" />
+                </div>
+            ))}
         </div>
     );
 
@@ -269,230 +205,174 @@ export default function AssignRoomFacilityPage() {
                         </BreadcrumbList>
                     </Breadcrumb>
 
-                    {/* Title */}
+                    {/* Title & Save Button */}
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                             <Wifi className="w-6 h-6 text-primary" />
                             <div>
-                                <h1 className="text-2xl font-bold text-foreground">Assign Room Facilities</h1>
+                                <h1 className="text-xl font-semibold text-foreground">Assign Room Facilities</h1>
                                 <p className="text-sm text-muted-foreground">Select room type and assign facilities</p>
                             </div>
                         </div>
                         <Button
-                            onClick={handleSaveAssignments}
-                            disabled={!selectedRoomId || isSubmitting}
-                            className="h-10 px-6 rounded-full shadow-md flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                            onClick={handleSave}
+                            className="h-10 px-6 rounded-full shadow-md flex items-center gap-2"
+                            disabled={!selectedRoomId || loading}
                         >
                             <Plus className="w-4 h-4" />
-                            {isSubmitting ? "Adding..." : "Add"}
+                            {loading ? "Saving..." : "Save Assignments"}
                         </Button>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="flex-1 overflow-auto">
-                <div className="p-6 space-y-6">
-                    {/* Room Type Selection */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Settings className="w-5 h-5" />
-                                Room Type Selection
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2">
-                                <Label className="text-sm font-medium">
-                                    Room Type *
-                                </Label>
-                                <Select
-                                    value={selectedRoomType}
-                                    onValueChange={handleRoomTypeSelect}
-                                    disabled={roomTypesLoading || isSubmitting}
-                                >
-                                    <SelectTrigger className="w-full md:w-80">
-                                        <SelectValue placeholder={roomTypesLoading ? "Loading room types..." : "Select Room Type"} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <div className="p-2">
-                                            <div className="relative">
-                                                <Search className="w-4 h-4 absolute left-2 top-2.5 text-muted-foreground" />
-                                                <Input
-                                                    placeholder="Search room types..."
-                                                    value={roomTypeSearchTerm}
-                                                    onChange={(e) => setRoomTypeSearchTerm(e.target.value)}
-                                                    className="pl-8 h-8"
-                                                />
-                                            </div>
-                                        </div>
-                                        {filteredRoomTypes.map((roomType) => (
-                                            <SelectItem key={roomType.id} value={roomType.roomType}>
-                                                <div className="flex items-center justify-between w-full">
-                                                    <span className="font-medium">{roomType.roomType}</span>
-                                                    <div className="flex items-center gap-4 ml-4 text-sm text-muted-foreground">
-                                                        <span>Rs. {roomType.rate.toLocaleString()}</span>
-                                                        <span>{roomType.capacity} guests</span>
+            {/* Controls Section */}
+            <div className="flex-shrink-0 bg-white shadow-lg border-b border-border/50">
+                <div className="px-4 py-4 space-y-4">
+                    <div className="flex flex-wrap items-center gap-4">
+                        {/* Room Type Selection */}
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">Room Type:</span>
+                            <Select
+                                value={selectedRoomId ? String(selectedRoomId) : ""}
+                                onValueChange={handleRoomChange}
+                                disabled={roomTypesLoading || loading}
+                            >
+                                <SelectTrigger className="w-64 h-9 text-sm rounded-lg border-border/50 shadow-sm">
+                                    <SelectValue placeholder={roomTypesLoading ? "Loading..." : "Select Room Type"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {roomTypes.map(room => (
+                                        <SelectItem key={room.id} value={String(room.id)}>
+                                            <div className="flex items-center justify-between w-full">
+                                                <span className="font-medium">{room.roomType}</span>
+                                                {room.rate && room.capacity && (
+                                                    <div className="flex items-center gap-2 ml-4 text-sm text-muted-foreground">
+                                                        <span>Rs. {room.rate.toLocaleString()}</span>
+                                                        <span>{room.capacity} guests</span>
                                                     </div>
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                        {filteredRoomTypes.length === 0 && (
-                                            <div className="p-4 text-center text-sm text-muted-foreground">
-                                                No room types found
+                                                )}
                                             </div>
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                                {selectedRoomType && (
-                                    <p className="text-sm text-muted-foreground mt-2">
-                                        Selected: <span className="font-medium">{selectedRoomType}</span>
-                                        {selectedFacilities.length > 0 && (
-                                            <span className="ml-2 px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
-                                                {selectedFacilities.length} facilit{selectedFacilities.length > 1 ? 'ies' : 'y'} selected
-                                            </span>
-                                        )}
-                                    </p>
-                                )}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Search Bar */}
+                        <div className="flex items-center gap-2 ml-auto">
+                            <span className="text-sm font-medium text-muted-foreground">Search:</span>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    type="text"
+                                    placeholder="Search facilities..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-10 h-9 w-64 text-sm rounded-lg border-border/50 focus:ring-1 focus:ring-ring focus:border-transparent shadow-sm"
+                                    disabled={facilitiesLoading}
+                                />
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Facility Checklist */}
-                    {roomTypesLoading || facilitiesLoading || assignmentsLoading ? (
-                        <LoadingSkeleton />
-                    ) : selectedRoomType && Object.keys(facilitiesByType).length === 0 ? (
-                        <Card>
-                            <CardContent className="text-center py-12">
-                                <Wifi className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-foreground mb-2">No Facilities Available</h3>
-                                <p className="text-sm text-muted-foreground">No facilities found in the system</p>
-                            </CardContent>
-                        </Card>
-                    ) : selectedRoomType ? (
-                        <Card>
-                            <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Wifi className="w-5 h-5" />
-                                        Facility Checklist
-                                    </CardTitle>
-                                    <div className="relative w-64">
-                                        <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
-                                        <Input
-                                            placeholder="Search facilities..."
-                                            value={facilitySearchTerm}
-                                            onChange={(e) => setFacilitySearchTerm(e.target.value)}
-                                            className="pl-9 h-9"
-                                        />
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                {Object.keys(facilitiesByType).length === 0 ? (
-                                    <div className="text-center py-8">
-                                        <p className="text-sm text-muted-foreground">No facilities match your search</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-6">
-                                        {Object.entries(facilitiesByType).map(([facilityType, facilities]) => (
-                                            <div key={facilityType}>
-                                                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                                    {facilityType}
-                                                </h3>
-                                                <div className="space-y-2 ml-4">
-                                                    {facilities.map(facility => {
-                                                        const isSelected = selectedFacilities.includes(facility.id);
-                                                        const wasPreAssigned = existingFacilityIds.includes(facility.id);
-
-                                                        return (
-                                                            <div
-                                                                key={facility.id}
-                                                                className={`
-                                                                    flex items-start space-x-3 p-3 rounded-lg transition-all duration-200 cursor-pointer hover:bg-accent/50
-                                                                    ${isSelected ? 'bg-primary/5 border border-primary/20' : 'border border-transparent'}
-                                                                `}
-                                                                onClick={() => handleFacilitySelect(facility.id, !isSelected)}
-                                                            >
-                                                                <div className="flex-shrink-0 mt-0.5">
-                                                                    {isSelected ? (
-                                                                        <CheckCircle2 className="w-5 h-5 text-primary" />
-                                                                    ) : (
-                                                                        <Circle className="w-5 h-5 text-muted-foreground" />
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <Label
-                                                                        className={`text-sm cursor-pointer block ${isSelected ? 'font-semibold text-primary' : 'font-medium'
-                                                                            }`}
-                                                                    >
-                                                                        {facility.facility_name}
-                                                                        {wasPreAssigned && (
-                                                                            <span className="ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
-                                                                                Previously assigned
-                                                                            </span>
-                                                                        )}
-                                                                    </Label>
-                                                                    {facility.description && (
-                                                                        <p className="text-xs text-muted-foreground mt-1">
-                                                                            {facility.description}
-                                                                        </p>
-                                                                    )}
-                                                                </div>
-                                                                <Checkbox
-                                                                    checked={isSelected}
-                                                                    onCheckedChange={(checked) => handleFacilitySelect(facility.id, !!checked)}
-                                                                    disabled={isSubmitting}
-                                                                    className="mt-0.5 pointer-events-none"
-                                                                />
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <Card>
-                            <CardContent className="text-center py-12">
-                                <Settings className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-foreground mb-2">Select Room Type</h3>
-                                <p className="text-sm text-muted-foreground">Please select a room type to view and assign facilities</p>
-                            </CardContent>
-                        </Card>
-                    )}
+                        </div>
+                    </div>
 
                     {/* Assignment Summary */}
-                    {selectedRoomType && selectedFacilities.length > 0 && (
-                        <Card className="border-primary/20 bg-primary/5">
-                            <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
-                                            <Wifi className="w-4 h-4 text-primary" />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-medium text-foreground">Facility Assignment Summary</h3>
-                                            <p className="text-sm text-muted-foreground">
-                                                {selectedFacilities.length} facilit{selectedFacilities.length > 1 ? 'ies' : 'y'} will be assigned to <strong>{selectedRoomType}</strong>
-                                            </p>
+                    {selectedRoomId && (
+                        <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                            <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center">
+                                <Wifi className="w-4 h-4 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-foreground">
+                                    {selectedFacilities.length === 0
+                                        ? "No facilities will be assigned (all will be unassigned)"
+                                        : `${selectedFacilities.length} facilit${selectedFacilities.length > 1 ? 'ies' : 'y'} will be assigned`
+                                    }
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    Check/uncheck facilities to assign/unassign them
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Facilities Section */}
+            <div className="flex-1 overflow-hidden">
+                <div className="h-full overflow-auto">
+                    <div className="bg-white shadow-lg p-6">
+                        {!selectedRoomId ? (
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <Settings className="w-12 h-12 text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-medium text-foreground mb-2">Select Room Type</h3>
+                                <p className="text-sm text-muted-foreground">Please select a room type to view and assign facilities</p>
+                            </div>
+                        ) : facilitiesLoading || assignedLoading ? (
+                            <LoadingSkeleton />
+                        ) : Object.keys(facilitiesByType).length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <Wifi className="w-12 h-12 text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-medium text-foreground mb-2">No Facilities Available</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    {searchQuery ? "No facilities match your search" : "No facilities found in the system"}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                {Object.entries(facilitiesByType).map(([facilityType, facilities]) => (
+                                    <div key={facilityType}>
+                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 border-b pb-2">
+                                            {facilityType}
+                                        </h3>
+                                        <div className="space-y-2 ml-4">
+                                            {facilities.map(facility => {
+                                                const isSelected = selectedFacilities.includes(facility.id);
+                                                const wasAssigned = assignedFacilities.includes(facility.id);
+
+                                                return (
+                                                    <div
+                                                        key={facility.id}
+                                                        className={`
+                                                            flex items-start space-x-3 p-3 rounded-lg transition-all duration-200 cursor-pointer hover:bg-accent/50
+                                                            ${isSelected ? 'bg-primary/5 border border-primary/20' : 'border border-transparent'}
+                                                        `}
+                                                        onClick={() => handleFacilityToggle(facility.id)}
+                                                    >
+                                                        <div className="flex-shrink-0 mt-0.5">
+                                                            {isSelected ? (
+                                                                <CheckCircle2 className="w-5 h-5 text-primary" />
+                                                            ) : (
+                                                                <Circle className="w-5 h-5 text-muted-foreground" />
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <Label
+                                                                className={`text-sm cursor-pointer block ${isSelected ? 'font-semibold text-primary' : 'font-medium'
+                                                                    }`}
+                                                            >
+                                                                {facility.facility_name}
+                                                                {wasAssigned && (
+                                                                    <span className="ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                                                                        Previously assigned
+                                                                    </span>
+                                                                )}
+                                                            </Label>
+                                                            {facility.description && (
+                                                                <p className="text-xs text-muted-foreground mt-1">
+                                                                    {facility.description}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
-                                    <Button
-                                        onClick={handleSaveAssignments}
-                                        disabled={isSubmitting}
-                                        className="px-6 bg-green-600 hover:bg-green-700"
-                                    >
-                                        <Plus className="w-4 h-4 mr-2" />
-                                        {isSubmitting ? "Adding..." : "Confirm Assignment"}
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

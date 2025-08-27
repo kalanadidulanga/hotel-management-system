@@ -56,7 +56,7 @@ model Customer {
   isVip          Boolean      @default(false)
   occupation     String?
   email          String       @unique
-  countryCode    String
+  countryCode    String?
   phone          String       @unique
   contactType    String?
   country        String?

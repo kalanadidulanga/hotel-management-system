@@ -766,9 +766,17 @@ export default function RoomFacilitiesDetailsListPage() {
                                         <SelectValue placeholder="Select facility type" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {facilityTypes?.map(type => (
-                                            <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
-                                        ))}
+                                        {facilityTypes && facilityTypes.length > 0 ? (
+                                            facilityTypes
+                                                .filter(type => !facilityDetails?.some(facility => facility.facilityType === type.name))
+                                                .map(type => (
+                                                    <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
+                                                ))
+                                        ) : (
+                                            <div className="px-3 py-2 text-sm text-muted-foreground">
+                                                No facility types available
+                                            </div>
+                                        )}
                                     </SelectContent>
                                 </Select>
                             </div>

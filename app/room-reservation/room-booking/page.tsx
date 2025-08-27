@@ -1450,11 +1450,11 @@ export default function NewReservationPage() {
                             <CardContent className="space-y-4">
                                 <div className="flex gap-3">
                                     <div className="flex-1 space-y-2">
-                                        <Label>Mobile Number</Label>
+                                        <Label>NIC </Label>
                                         <Input
                                             value={searchMobile}
                                             onChange={(e) => setSearchMobile(e.target.value)}
-                                            placeholder="Enter mobile number"
+                                            placeholder="Enter NIC"
                                             onKeyDown={(e) => e.key === 'Enter' && handleSearchCustomer()}
                                         />
                                     </div>
@@ -1596,7 +1596,7 @@ export default function NewReservationPage() {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <div className="space-y-2">
+                                    {/* <div className="space-y-2">
                                         <Label>Country Code</Label>
                                         <Select value={newCustomer.countryCode} onValueChange={(value) => setNewCustomer(prev => ({ ...prev, countryCode: value }))}>
                                             <SelectTrigger>
@@ -1608,7 +1608,7 @@ export default function NewReservationPage() {
                                                 <SelectItem value="+94">+94 (Sri Lanka)</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                    </div>
+                                    </div> */}
                                     <div className="space-y-2">
                                         <Label>Mobile No</Label>
                                         <Input value={newCustomer.mobile} onChange={(e) => setNewCustomer(prev => ({ ...prev, mobile: e.target.value }))} />
