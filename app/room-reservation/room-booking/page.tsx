@@ -844,7 +844,7 @@ export default function NewReservationPage() {
             {/* Header Section */}
             <div className="flex-shrink-0 bg-white/80 backdrop-blur-sm sticky top-0 z-10 border-b border-border/50">
                 <div className="px-4 py-4 space-y-4">
-                    <button
+                    {/* <button
                         onClick={() => window.history.back()}
                         className="flex items-center text-sm font-medium text-secondary hover:text-primary gap-2"
                     >
@@ -858,7 +858,7 @@ export default function NewReservationPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
                         Back
-                    </button>
+                    </button> */}
 
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
