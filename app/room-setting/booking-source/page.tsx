@@ -653,7 +653,7 @@ export default function BookingSourcePage() {
                                     columns.map(c => c.key);
                                 setVisibleCols(next);
                             }}
-                            className="h-9 px-4 rounded-lg text-sm shadow-sm bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                            className="h-9 px-4 rounded-lg text-sm shadow-sm"
                             disabled={isLoading}
                         >
                             <Eye className="w-4 h-4 mr-2" />

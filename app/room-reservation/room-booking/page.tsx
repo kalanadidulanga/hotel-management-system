@@ -788,9 +788,9 @@ export default function NewReservationPage() {
             toast.success(`Reservation saved successfully!`);
 
             // Optional: Reset form or redirect
-            const resetForm = window.confirm("Would you like to create another reservation?");
+            // const resetForm = window.confirm("Would you like to create another reservation?");
 
-            if (resetForm) {
+           
                 // Reset all form fields
                 setCheckInDate(undefined);
                 setCheckOutDate(undefined);
@@ -816,10 +816,7 @@ export default function NewReservationPage() {
                 setPaymentMode("");
                 setAdvanceAmount(0);
                 setAdvanceRemarks("");
-            } else {
-                // Redirect to reservations list or dashboard
-                window.location.href = '/reservations';
-            }
+          
 
         } catch (error) {
             console.error("Error saving reservation:", error);
