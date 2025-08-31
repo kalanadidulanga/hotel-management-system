@@ -19,7 +19,7 @@ import {
     Search,
     Eye,
     Edit,
-    Trash2,
+    Ban,
     Copy,
     FileText,
     Printer,
@@ -395,9 +395,10 @@ export default function CustomerListPage() {
         }
     };
 
-    // Delete customer
-    const handleDelete = async (id: number, name: string) => {
-        if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+    // Ban customer
+    const handleBan = async (id: number, name: string) => {
+        toast.info(`Are you sure you want to block "${name}"?`);
+        if (!confirm(`Are you sure you want to block "${name}"?`)) return;
 
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/customer/customer-list`, {
@@ -412,15 +413,45 @@ export default function CustomerListPage() {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || "Failed to delete customer");
+                throw new Error(errorData.message || "Failed to ban customer");
             }
 
             // Refresh the data
             await mutateCustomers();
-            toast.success("Customer deleted successfully!");
+            toast.success("Customer blocked successfully!");
         } catch (error) {
-            console.error("Delete customer error:", error);
-            toast.error(error instanceof Error ? error.message : "Failed to delete customer. Please try again.");
+            console.error("Ban customer error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to ban customer. Please try again.");
+        }
+    };
+    const handleUnban = async (id: number, name: string) => {
+        toast.info(`Are you sure you want to unblock "${name}"?`);
+        if (!confirm(`Are you sure you want to unblock "${name}"?`)) return;
+
+        
+
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/customer/customer-list/unban`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    id: id
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || "Failed to ban customer");
+            }
+
+            // Refresh the data
+            await mutateCustomers();
+            toast.success("Customer unblocked successfully!");
+        } catch (error) {
+            console.error("Unblock customer error:", error);
+            toast.error(error instanceof Error ? error.message : "Failed to unblock customer. Please try again.");
         }
     };
 
@@ -461,8 +492,6 @@ export default function CustomerListPage() {
         switch (status) {
             case 'Active':
                 return <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-200">Active</Badge>;
-            case 'Inactive':
-                return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200">Inactive</Badge>;
             case 'Blocked':
                 return <Badge className="bg-red-100 text-red-800 border-red-200 hover:bg-red-200">Blocked</Badge>;
             default:
@@ -857,15 +886,27 @@ export default function CustomerListPage() {
                                                                 <Eye className="w-4 h-4 text-blue-600" />
                                                             </Button>
                                                         </Link>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => handleDelete(customer.id, `${customer.firstName} ${customer.lastName}`)}
-                                                            className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
-                                                            disabled={customersLoading}
-                                                        >
-                                                            <Trash2 className="w-4 h-4 text-red-600" />
-                                                        </Button>
+                                                        {customer.status === "Active" ? (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => handleBan(customer.id, `${customer.firstName} ${customer.lastName}`)}
+                                                                className="h-8 w-8 p-0 rounded-full border-red-200 hover:bg-red-50 hover:border-red-300 shadow-sm"
+                                                                disabled={customersLoading}
+                                                            >
+                                                                <Ban className="w-4 h-4 text-red-600" />
+                                                            </Button>
+                                                        ) : (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => handleUnban(customer.id, `${customer.firstName} ${customer.lastName}`)}
+                                                                    className="h-8 w-8 p-0 rounded-full border-green-200 hover:bg-green-50 hover:border-green-300 shadow-sm"
+                                                                    disabled={customersLoading}
+                                                                >
+                                                                    <Check className="w-4 h-4 text-green-600" />
+                                                                </Button>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             )}

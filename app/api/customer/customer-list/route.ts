@@ -21,10 +21,8 @@ export async function GET(req: NextRequest) {
           OR: [
             { firstName: { contains: trimmedSearch, mode: "insensitive" } },
             { lastName: { contains: trimmedSearch, mode: "insensitive" } },
-            { email: { contains: trimmedSearch, mode: "insensitive" } },
+            { identityNumber: { contains: trimmedSearch, mode: "insensitive" } },
             { phone: { contains: trimmedSearch, mode: "insensitive" } },
-            { occupation: { contains: trimmedSearch, mode: "insensitive" } },
-            { city: { contains: trimmedSearch, mode: "insensitive" } },
           ],
         }
       : {
@@ -102,7 +100,7 @@ export async function GET(req: NextRequest) {
       email: customer.email,
       phone: customer.phone,
       balance: 0, // Since balance isn't in your schema, defaulting to 0
-      status: customer.isActive ? "Active" : "Inactive", // Map based on your business logic
+      status: customer.isActive ? "Active" : "Blocked", // Map based on your business logic
       createdAt: customer.createdAt.toISOString(),
       // Include additional fields for detailed view
       title: customer.title,
@@ -433,18 +431,18 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete customer
+    // Ban customer by setting isActive to false
     const customer = await prisma.customer.update({
       where: { id },
       data: { isActive: false },
     });
 
     return NextResponse.json(
-      { message: "Customer deleted successfully", customer },
+      { message: "Customer banned successfully", customer },
       { status: 200 }
     );
   } catch (error: any) {
-    console.error("Error deleting customer:", error);
+    console.error("Error banning customer:", error);
 
     if (error.code === "P2025") {
       return NextResponse.json(
