@@ -1,44 +1,40 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
-    Home,
-    Plus,
-    Search,
-    Eye,
-    Edit,
-    Trash2,
-    Copy,
-    FileText,
-    Printer,
-    Settings,
-    ChevronUp,
     ChevronDown,
-    Users,
-    MessageSquare,
-    Phone,
-    Mail,
+    ChevronUp,
+    Copy,
     CreditCard,
-    User,
+    Edit,
+    Eye,
+    FileText,
+    Home,
     Loader2,
-    RotateCcw
+    Mail,
+    Phone,
+    Plus,
+    Printer,
+    RotateCcw,
+    Search,
+    Trash2,
+    Users
 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
-import Link from "next/link";
-import autoTable from "jspdf-autotable";
-import jsPDF from "jspdf";
 
 interface Guest {
     id: number;
@@ -468,7 +464,6 @@ export default function GuestListPage() {
         }
     };
 
-
     // Delete guest
     const handleDelete = async (id: number) => {
         if (!confirm("Are you sure you want to delete this guest?")) return;
@@ -562,14 +557,14 @@ export default function GuestListPage() {
                             <h1 className="text-xl font-semibold text-foreground">Guest List</h1>
                             {isLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
                         </div>
-                        <Button 
+                        {/* <Button 
                             onClick={() => setShowAddModal(true)}
                             className="h-10 px-6 rounded-full shadow-md flex items-center gap-2"
                             disabled={isLoading}
                         >
                             <Plus className="w-4 h-4" />
                             Add New Guest
-                        </Button>
+                        </Button> */}
                     </div>
                 </div>
             </div>
@@ -776,16 +771,18 @@ export default function GuestListPage() {
                                             {visibleCols.includes("action") && (
                                                 <TableCell className="py-3">
                                                     <div className="flex items-center gap-2">
+                                                        <Link href={`/customer/guest-list/update/${guest.id}`} >
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
-                                                            onClick={() => handleEditClick(guest)}
+                                                          
                                                             className="h-8 w-8 p-0 rounded-full border-blue-200 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
                                                             disabled={isLoading}
                                                         >
                                                             <Edit className="w-4 h-4 text-blue-600" />
                                                         </Button>
-                                                        <Button
+                                                            </Link>
+                                                        {/* <Button
                                                             size="sm"
                                                             variant="outline"
                                                             onClick={() => handleDelete(guest.id)}
@@ -793,7 +790,7 @@ export default function GuestListPage() {
                                                             disabled={isLoading}
                                                         >
                                                             <Trash2 className="w-4 h-4 text-red-600" />
-                                                        </Button>
+                                                        </Button> */}
                                                     </div>
                                                 </TableCell>
                                             )}

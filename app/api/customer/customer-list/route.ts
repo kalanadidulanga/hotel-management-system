@@ -10,26 +10,26 @@ export async function GET(req: NextRequest) {
     const sortOrder = searchParams.get("sortOrder") || "asc";
     const search = searchParams.get("search") || "";
 
-    
-
     const skip = (page - 1) * limit;
 
     // Build where clause for search
-  const trimmedSearch = search.trim();
+    const trimmedSearch = search.trim();
 
-  const whereClause = trimmedSearch
-    ? {
-        OR: [
-          { firstName: { contains: trimmedSearch } },
-          { lastName: { contains: trimmedSearch } },
-          { email: { contains: trimmedSearch } },
-          { phone: { contains: trimmedSearch } },
-          { occupation: { contains: trimmedSearch } },
-          { city: { contains: trimmedSearch } },
-        ],
-      }
-    : {};
-
+    const whereClause = trimmedSearch
+      ? {
+          
+          OR: [
+            { firstName: { contains: trimmedSearch, mode: "insensitive" } },
+            { lastName: { contains: trimmedSearch, mode: "insensitive" } },
+            { email: { contains: trimmedSearch, mode: "insensitive" } },
+            { phone: { contains: trimmedSearch, mode: "insensitive" } },
+            { occupation: { contains: trimmedSearch, mode: "insensitive" } },
+            { city: { contains: trimmedSearch, mode: "insensitive" } },
+          ],
+        }
+      : {
+          
+        };
 
     // Build orderBy clause
     let orderBy: any = {};
@@ -75,6 +75,7 @@ export async function GET(req: NextRequest) {
           gender: true,
           dateOfBirth: true,
           nationality: true,
+          isActive: true,
           isVip: true,
           occupation: true,
           countryCode: true,
@@ -101,7 +102,7 @@ export async function GET(req: NextRequest) {
       email: customer.email,
       phone: customer.phone,
       balance: 0, // Since balance isn't in your schema, defaulting to 0
-      status: customer.isVip ? "Active" : "Active", // Map based on your business logic
+      status: customer.isActive ? "Active" : "Inactive", // Map based on your business logic
       createdAt: customer.createdAt.toISOString(),
       // Include additional fields for detailed view
       title: customer.title,
@@ -169,15 +170,12 @@ export async function POST(req: NextRequest) {
       guestImageUrl,
     } = body;
 
-  
-
     if (!firstName || typeof firstName !== "string") {
       return NextResponse.json(
         { message: "Valid 'firstName' is required" },
         { status: 400 }
       );
     }
-
 
     if (!dateOfBirth) {
       return NextResponse.json(
@@ -207,19 +205,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-
-
-
-  
-
     if (!address || typeof address !== "string") {
       return NextResponse.json(
         { message: "Valid 'address' is required" },
         { status: 400 }
       );
     }
-
- 
 
     if (!identityNumber || typeof identityNumber !== "string") {
       return NextResponse.json(
@@ -231,6 +222,7 @@ export async function POST(req: NextRequest) {
     // Create customer
     const created = await prisma.customer.create({
       data: {
+        customerID: `${Date.now()}-${Math.floor(Math.random() * 10000)}`, // or use your own logic to generate a unique customerID
         title,
         firstName,
         lastName: lastName || null,
@@ -276,7 +268,6 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
 
 export async function PUT(
   request: NextRequest,
@@ -418,12 +409,10 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
-    const id = parseInt(params.id);
+    const body = await request.json();
+    const { id } = body;
 
     if (isNaN(id)) {
       return NextResponse.json(
@@ -445,8 +434,9 @@ export async function DELETE(
     }
 
     // Delete customer
-    const customer = await prisma.customer.delete({
+    const customer = await prisma.customer.update({
       where: { id },
+      data: { isActive: false },
     });
 
     return NextResponse.json(

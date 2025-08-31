@@ -434,7 +434,7 @@ export default function NewReservationPage() {
             }
         } catch (err) {
             console.error(err);
-            setSearchError("Something went wrong");
+            // setSearchError("Something went wrong");
         } finally {
             setIsSearching(false);
         }
@@ -446,7 +446,7 @@ export default function NewReservationPage() {
             // Check if customer already exists
             const existingCustomer = customers.find(c => c.id === foundCustomer.id);
             if (existingCustomer) {
-                alert("This customer is already added to the reservation.");
+                toast.error("This customer is already added to the reservation.");
                 return;
             }
 
@@ -479,19 +479,36 @@ export default function NewReservationPage() {
 
     // Handle new customer save
     const handleSaveNewCustomer = async () => {
-        if (!newCustomer.firstName || !newCustomer.mobile) {
-            alert("First name and mobile are required.");
+        // Validation for required fields
+        const requiredFields = [
+            { field: newCustomer.firstName, label: "First name" },
+            { field: newCustomer.mobile, label: "Mobile number" },
+            { field: newCustomer.countryCode, label: "Country code" },
+            { field: newCustomer.title, label: "Title" },
+            { field: newCustomer.gender, label: "Gender" },
+            { field: newCustomer.dateOfBirth, label: "Date of birth" },
+            { field: newCustomer.nationality, label: "Nationality" },
+            { field: newCustomer.email, label: "Email" },
+            { field: newCustomer.address, label: "Address" },
+            { field: newCustomer.identityType, label: "Identity type" },
+            { field: newCustomer.identityNumber, label: "Identity number" },
+        ];
+
+        const missingFields = requiredFields
+            .filter(item => !item.field || (typeof item.field === "string" && item.field.trim() === ""))
+            .map(item => item.label);
+
+        if (missingFields.length > 0) {
+            toast.error("Please fill the following required fields:\n" + missingFields.join(", "));
             return;
         }
 
-        // Check if customer with same mobile already exists in current reservation
         const existingCustomer = customers.find(c => c.mobile === newCustomer.mobile);
         if (existingCustomer) {
-            alert("A customer with this mobile number is already added to the reservation.");
+            toast.error("A customer with this mobile number is already added to the reservation.");
             return;
         }
 
-        // Check if we already have a customer (since we only allow one)
         if (customers.length > 0) {
             const replaceCustomer = window.confirm(
                 `A customer is already added to this reservation.\nDo you want to replace them with ${newCustomer.firstName} ${newCustomer.lastName}?`
@@ -510,14 +527,12 @@ export default function NewReservationPage() {
             formData.append("lastName", newCustomer.lastName || "");
             formData.append("gender", newCustomer.gender);
             formData.append("occupation", newCustomer.occupation || "");
-
             if (newCustomer.dateOfBirth) {
                 formData.append("dateOfBirth", newCustomer.dateOfBirth.toISOString());
             }
             if (newCustomer.anniversary) {
                 formData.append("anniversary", newCustomer.anniversary.toISOString());
             }
-
             formData.append("nationality", newCustomer.nationality);
             formData.append("isVip", newCustomer.isVip.toString());
             formData.append("contactType", newCustomer.contactType);
@@ -529,27 +544,30 @@ export default function NewReservationPage() {
             formData.append("address", newCustomer.address);
             formData.append("identityType", newCustomer.identityType);
             formData.append("identityNumber", newCustomer.identityNumber);
-
-            if (newCustomer.frontSideImage) {
-                formData.append("frontSideImage", newCustomer.frontSideImage);
-            }
-            if (newCustomer.backSideImage) {
-                formData.append("backSideImage", newCustomer.backSideImage);
-            }
-            if (newCustomer.guestImage) {
-                formData.append("guestImage", newCustomer.guestImage);
-            }
+            if (newCustomer.frontSideImage) formData.append("frontSideImage", newCustomer.frontSideImage);
+            if (newCustomer.backSideImage) formData.append("backSideImage", newCustomer.backSideImage);
+            if (newCustomer.guestImage) formData.append("guestImage", newCustomer.guestImage);
 
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/room-reservation/new-customer`, {
                 method: "POST",
                 body: formData,
             });
 
-            if (!res.ok) throw new Error("Failed to save customer.");
-
             const result = await res.json();
-            console.log("Customer saved:", result);
 
+            // Handle API errors by status
+            if (!res.ok) {
+                if (res.status === 403) {
+                    toast.error(result.message || "This customer is banned and cannot be registered.");
+                } else if (res.status === 409) {
+                    toast.error(result.message || "Customer already exists.");
+                } else {
+                    toast.error(result.message || "Failed to save customer.");
+                }
+                return;
+            }
+
+            // Success - add the new customer
             const customer: Customer = {
                 id: result.customer.id,
                 name: `${newCustomer.firstName} ${newCustomer.lastName}`,
@@ -558,7 +576,6 @@ export default function NewReservationPage() {
                 checkOut: checkOutDate ? format(checkOutDate, "yyyy-MM-dd") + " " + checkOutTime : "",
             };
 
-            // Replace existing customer or add new one
             setCustomers([customer]);
             setIsNewCustomerModalOpen(false);
 
@@ -590,12 +607,13 @@ export default function NewReservationPage() {
                 comments: "",
             });
 
-            alert("Customer saved and added to reservation successfully!");
+            toast.success("Customer saved and added to reservation successfully!");
         } catch (error) {
             console.error("Error saving customer:", error);
-            alert("Failed to save customer. See console for details.");
+            toast.error("Failed to save customer. See console for details.");
         }
     };
+
 
     const handleSaveNewReservation = async () => {
         try {
@@ -691,7 +709,7 @@ export default function NewReservationPage() {
 
             // Show validation errors if any
             if (validationErrors.length > 0) {
-                alert("Please fix the following errors:\n\n" + validationErrors.join("\n"));
+                toast.error("Please fix the following errors:\n\n" + validationErrors.join("\n"));
                 return;
             }
 
@@ -959,15 +977,14 @@ export default function NewReservationPage() {
                                             <SelectValue placeholder={isLoadingFormData ? "Loading..." : "Select booking type"} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {bookingTypes.map(type => (
-                                                <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
-                                            ))}
-                                            {bookingTypes.length === 0 && !isLoadingFormData && (
-                                                <>
-                                                    <SelectItem value="online">Online</SelectItem>
-                                                    <SelectItem value="walk-in">Walk-in</SelectItem>
-                                                    <SelectItem value="phone">Phone</SelectItem>
-                                                </>
+                                            {bookingTypes.length > 0 ? (
+                                                bookingTypes.map(type => (
+                                                    <SelectItem key={type.id} value={type.name}>{type.name}</SelectItem>
+                                                ))
+                                            ) : (
+                                                <div className="px-4 py-2 text-muted-foreground text-sm">
+                                                    No booking types available
+                                                </div>
                                             )}
                                         </SelectContent>
                                     </Select>
@@ -1059,9 +1076,15 @@ export default function NewReservationPage() {
                                             <SelectValue placeholder={isLoadingFormData ? "Loading..." : "Select room type"} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {availableRoomTypes.map(type => (
-                                                <SelectItem key={type.id} value={type.roomType}>{type.roomType}</SelectItem>
-                                            ))}
+                                            {availableRoomTypes.length > 0 ? (
+                                                availableRoomTypes.map(type => (
+                                                    <SelectItem key={type.id} value={type.roomType}>{type.roomType}</SelectItem>
+                                                ))
+                                            ) : (
+                                                <div className="px-4 py-2 text-muted-foreground text-sm">
+                                                    No room types available
+                                                </div>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>

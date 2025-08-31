@@ -34,12 +34,46 @@ async function saveFile(fieldName: string, formData: FormData) {
 
 
 
-
 export async function POST(req: NextRequest) {
   try {
     await ensureUploadDirExists();
 
     const formData = await req.formData();
+
+    const identityNumber = formData.get("identityNumber") as string;
+    
+
+    // Check if customer already exists
+    const existingCustomer = await prisma.customer.findFirst({
+      where: {
+        
+          identityNumber: identityNumber.trim() 
+          
+        
+      },
+    });
+
+    if (existingCustomer) {
+      if (!existingCustomer.isActive) {
+        // Customer is banned/inactive
+        return NextResponse.json(
+          {
+            success: false,
+            message: "This customer is banned and cannot be registered.",
+          },
+          { status: 403 }
+        );
+      } else {
+        // Customer already exists and is active
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Customer with this identity or phone already exists.",
+          },
+          { status: 409 }
+        );
+      }
+    }
 
     const frontIdUrl = await saveFile("frontSideImage", formData);
     const backIdUrl = await saveFile("backSideImage", formData);
@@ -47,6 +81,7 @@ export async function POST(req: NextRequest) {
 
     const customer = await prisma.customer.create({
       data: {
+        customerID: `${Date.now()}-${Math.floor(Math.random() * 10000)}`,
         title: formData.get("title") as string,
         firstName: formData.get("firstName") as string,
         lastName: formData.get("lastName") as string,
@@ -59,7 +94,6 @@ export async function POST(req: NextRequest) {
         isVip: formData.get("isVip") === "true",
         occupation: formData.get("occupation") as string,
         email: formData.get("email") as string,
-        // countryCode: formData.get("countryCode") as string,
         phone: formData.get("mobile") as string,
         contactType: formData.get("contactType") as string,
         country: formData.get("country") as string,
@@ -68,10 +102,11 @@ export async function POST(req: NextRequest) {
         zipcode: formData.get("zipcode") as string,
         address: formData.get("address") as string,
         identityType: formData.get("identityType") as string,
-        identityNumber: formData.get("identityNumber") as string,
+        identityNumber: identityNumber,
         frontIdUrl,
         backIdUrl,
         guestImageUrl,
+        isActive: true, // default active
       },
     });
 
@@ -86,13 +121,12 @@ export async function POST(req: NextRequest) {
 }
 
 
-
-
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const mobile = searchParams.get("mobile");
 
+    // Validate mobile input
     if (!mobile || mobile.trim() === "") {
       return NextResponse.json(
         { error: "Mobile number is required" },
@@ -100,19 +134,23 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const customer = await prisma.customer.findUnique({
+    // Look for the customer with matching identity number AND active status
+    const customer = await prisma.customer.findFirst({
       where: {
         identityNumber: mobile.trim(),
+        isActive: true,
       },
     });
 
+    // If no active customer found
     if (!customer) {
       return NextResponse.json(
-        { error: "Customer not found" },
+        { error: "Customer not found or inactive" },
         { status: 404 }
       );
     }
 
+    // Return found customer
     return NextResponse.json({ customer });
   } catch (err: any) {
     console.error("Error searching customer:", err);

@@ -46,6 +46,8 @@ model Room_Size_List {
 
 model Customer {
   id             Int          @id @default(autoincrement())
+  customerID     String       @unique
+  isActive       Boolean      @default(true)
   title          String?
   firstName      String
   lastName       String?
@@ -57,7 +59,7 @@ model Customer {
   occupation     String?
   email          String       @unique
   countryCode    String?
-  phone          String       @unique
+  phone          String       
   contactType    String?
   country        String?
   state          String?
