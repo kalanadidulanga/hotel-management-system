@@ -14,14 +14,86 @@ enum Role {
   CASHIER
 }
 
+enum AssetType {
+  FIXED_ASSET
+  UTENSIL
+}
+
+enum AssetStatus {
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+  DAMAGED
+  OUT_OF_ORDER
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  CANCELLED
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum StaffDepartment {
+  MAINTENANCE
+  HOUSEKEEPING
+  KITCHEN
+  RECEPTION
+  SECURITY
+  MANAGEMENT
+  ACCOUNTING
+}
+
+enum StaffClass {
+  TECHNICIAN
+  SUPERVISOR
+  MANAGER
+  ASSISTANT
+  SPECIALIST
+}
+
+enum WakeUpCallStatus {
+  Pending
+  Completed
+  Cancelled
+}
+
+enum Nationality {
+  native
+  foreigner
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(CASHIER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 Int      @id @default(autoincrement())
+  email              String   @unique
+  password           String
+  name               String
+  role               Role     @default(CASHIER)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  // Enhanced user fields for asset management
+  department         StaffDepartment?
+  staffClass         StaffClass?
+  fullName           String?
+  nic                String?  @unique // National Identity Card
+  dateOfBirth        DateTime?
+  contact            String?
+  address            String?
+  isDedicated        Boolean  @default(false) // Dedicated maintenance staff
+  
+  // Relations
+  assetNotifications AssetNotification[]
+  maintenanceLogs    MaintenanceLog[]
+  assignedAssets     Asset[] // Assets assigned to this staff member
 }
 
 model Room_Facility_List {
@@ -88,17 +160,6 @@ model WakeUpCall {
   remarks       String?
   status        WakeUpCallStatus @default(Pending)
   createdAt     DateTime @default(now())
-}
-
-enum WakeUpCallStatus {
-  Pending
-  Completed
-  Cancelled
-}
-
-enum Nationality {
-  native
-  foreigner
 }
 
 model ComplementaryItem {
@@ -202,8 +263,6 @@ model RoomList {
   roomOffers         RoomOffer[] @relation("RoomOfferToRoomList")
 }
 
-
-
 model RoomFacilityAssignment {
   id         Int      @id @default(autoincrement())
   roomId     Int
@@ -249,8 +308,6 @@ model Room {
   reservations Reservation[]
 }
 
-
-
 model Promocode {
   id         Int       @id @default(autoincrement())
   roomType   String
@@ -262,9 +319,6 @@ model Promocode {
   status     String
   createdAt  DateTime  @default(now())
 }
-
-
-
 
 model RoomOffer {
   id           Int       @id @default(autoincrement())
@@ -279,4 +333,205 @@ model RoomOffer {
   updatedAt    DateTime  @updatedAt
 
   @@unique([roomType, date])
+}
+
+// Asset Categories for better organization
+model AssetCategory {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique // "Furniture", "Electronics", "Kitchen Equipment", "Cleaning Tools"
+  description String?
+  assetType   AssetType
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  assets      Asset[]
+}
+
+// Enhanced Asset Model
+model Asset {
+  id                    Int       @id @default(autoincrement())
+  assetId               String    @unique // Custom asset ID like "FURN-001", "UTIL-001"
+  name                  String    // Asset name
+  code                  String    @unique // Searchable code
+  description           String?
+  
+  // Type and Category
+  type                  AssetType
+  categoryId            Int?
+  category              AssetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  // Purchase Information
+  purchasePrice         Float
+  purchaseDate          DateTime
+  supplier              String?
+  warrantyPeriod        Int?      // Warranty period in months
+  warrantyExpiry        DateTime?
+  
+  // Physical Details
+  quantity              Int       @default(1) // For utensils: 100 spoons, 200 plates
+  unit                  String?   // "pieces", "sets", "kg"
+  location              String?   // Where the asset is located
+  serialNumber          String?
+  model                 String?
+  brand                 String?
+  
+  // Status and Condition
+  status                AssetStatus @default(ACTIVE)
+  condition             String?   // "Excellent", "Good", "Fair", "Poor"
+  currentValue          Float?    // Depreciated value
+  depreciationRate      Float?    // Annual depreciation percentage
+  
+  // Maintenance Information
+  maintenanceDate       DateTime  // Next maintenance due date
+  lastMaintenanceDate   DateTime?
+  maintenanceInterval   Int       @default(365) // Days between maintenance
+  maintenanceCost       Float     @default(0) // Annual maintenance cost estimate
+  
+  // Assignment
+  assignedToId          Int?
+  assignedTo            User?     @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  
+  // Documentation
+  imageUrl              String?
+  documentUrl           String?   // Purchase receipt, manual, warranty
+  qrCode                String?   // For easy mobile scanning
+  
+  // Timestamps
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  // Relations
+  maintenanceLogs       MaintenanceLog[]
+  notifications         AssetNotification[]
+  transfers             AssetTransfer[]
+  depreciations         AssetDepreciation[]
+}
+
+// Enhanced Maintenance Log Model
+model MaintenanceLog {
+  id                Int       @id @default(autoincrement())
+  maintenanceId     String    @unique // Custom maintenance ID
+  
+  // Asset Information
+  assetId           Int
+  asset             Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  // Staff Information
+  staffId           Int
+  staff             User      @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  // Maintenance Details
+  maintenanceDate   DateTime
+  description       String    // What was done
+  cost              Float     @default(0)
+  
+  // Service Information
+  serviceProvider   String?   // Internal staff or external company
+  serviceType       String?   // "Preventive", "Corrective", "Emergency"
+  priority          MaintenancePriority @default(MEDIUM)
+  
+  // Status Tracking
+  status            MaintenanceStatus @default(COMPLETED)
+  scheduledDate     DateTime?
+  startTime         DateTime?
+  endTime           DateTime?
+  
+  // Next Maintenance
+  nextMaintenanceDate DateTime?
+  
+  // Parts and Materials
+  partsUsed         String?   // JSON string or comma-separated list
+  partsCost         Float     @default(0)
+  laborCost         Float     @default(0)
+  
+  // Quality Control
+  inspectedBy       String?   // Who verified the maintenance
+  qualityRating     Int?      // 1-5 rating
+  
+  // Documentation
+  beforeImages      String?   // JSON array of image URLs
+  afterImages       String?   // JSON array of image URLs
+  workOrderNumber   String?
+  
+  // Additional Notes
+  remarks           String?
+  issuesFound       String?
+  recommendations   String?
+  
+  // Timestamps
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// Enhanced Asset Notifications Model
+model AssetNotification {
+  id              Int       @id @default(autoincrement())
+  notificationId  String    @unique // Custom notification ID
+  
+  // Asset and User
+  assetId         Int
+  asset           Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  userId          Int?
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  // Notification Details
+  type            String    // "MAINTENANCE_DUE", "MAINTENANCE_OVERDUE", "WARRANTY_EXPIRING", "ASSET_DAMAGED"
+  title           String
+  message         String
+  priority        MaintenancePriority @default(MEDIUM)
+  
+  // Status
+  isRead          Boolean   @default(false)
+  isActionTaken   Boolean   @default(false)
+  
+  // Scheduling
+  scheduledFor    DateTime
+  sentAt          DateTime?
+  acknowledgedAt  DateTime?
+  
+  // Auto-escalation
+  escalationLevel Int       @default(0)
+  escalatedTo     String?   // JSON array of user IDs to escalate to
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// Asset Transfer/Movement Log
+model AssetTransfer {
+  id            Int      @id @default(autoincrement())
+  transferId    String   @unique
+  
+  assetId       Int
+  asset         Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  fromLocation  String
+  toLocation    String
+  fromUserId    Int?
+  toUserId      Int?
+  
+  reason        String
+  transferDate  DateTime
+  approvedBy    String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Asset Depreciation Schedule
+model AssetDepreciation {
+  id              Int      @id @default(autoincrement())
+  assetId         Int
+  asset           Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  year            Int
+  openingValue    Float
+  depreciationAmount Float
+  closingValue    Float
+  method          String   // "STRAIGHT_LINE", "REDUCING_BALANCE"
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([assetId, year])
 }
