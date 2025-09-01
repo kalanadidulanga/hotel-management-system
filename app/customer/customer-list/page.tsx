@@ -84,7 +84,7 @@ const columns = [
     { key: "lastName", label: "Last Name" },
     { key: "email", label: "Email" },
     { key: "phone", label: "Phone" },
-    { key: "balance", label: "Balance" },
+   
     { key: "status", label: "Status" },
     { key: "action", label: "Action" }
 ];
@@ -278,14 +278,14 @@ export default function CustomerListPage() {
 
         // ---- CSV ----
         if (type === "CSV") {
-            const headers = ["SL", "First Name", "Last Name", "Email", "Phone", "Balance", "Status", "Created At"];
+            const headers = ["SL", "First Name", "Last Name", "Email", "Phone", "Status", "Created At"];
             const rows = exportData.map(row => [
                 row.sl,
                 row.firstName,
                 row.lastName,
                 row.email,
                 row.phone,
-                row.balance,
+             
                 row.status,
                 row.createdAt,
             ]);
@@ -314,14 +314,14 @@ export default function CustomerListPage() {
 
             autoTable(doc, {
                 startY: 40,
-                head: [["SL", "First Name", "Last Name", "Email", "Phone", "Balance", "Status", "Created At"]],
+                head: [["SL", "First Name", "Last Name", "Email", "Phone", "Status", "Created At"]],
                 body: exportData.map(row => [
                     row.sl,
                     row.firstName,
                     row.lastName,
                     row.email,
                     row.phone,
-                    row.balance,
+                  
                     row.status,
                     row.createdAt,
                 ]),
@@ -364,7 +364,7 @@ export default function CustomerListPage() {
           <th>Last Name</th>
           <th>Email</th>
           <th>Phone</th>
-          <th>Balance</th>
+        
           <th>Status</th>
           <th>Created At</th>
         </tr>
@@ -378,7 +378,7 @@ export default function CustomerListPage() {
             <td>${row.lastName}</td>
             <td>${row.email}</td>
             <td>${row.phone}</td>
-            <td>${row.balance}</td>
+         
             <td>${row.status}</td>
             <td>${row.createdAt}</td>
           </tr>
@@ -954,9 +954,7 @@ export default function CustomerListPage() {
                                 <p className="text-sm text-blue-700">
                                     Email: {selectedCustomerForPayment.email}
                                 </p>
-                                <p className="text-sm text-blue-700">
-                                    Balance: ${selectedCustomerForPayment.balance.toFixed(2)}
-                                </p>
+                              
                             </div>
                         )}
 

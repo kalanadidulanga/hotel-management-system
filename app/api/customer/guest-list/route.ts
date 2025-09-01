@@ -16,31 +16,12 @@ export async function GET(req: NextRequest) {
     // Build where clause for search
     const whereClause = search
       ? {
+          isActive: true, // only active customers
           OR: [
-            {
-              firstName: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-            {
-              lastName: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-            {
-              phone: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-            {
-              email: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
+            { firstName: { contains: search, mode: "insensitive" as const } },
+            { lastName: { contains: search, mode: "insensitive" as const } },
+            { phone: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
             {
               identityNumber: {
                 contains: search,
@@ -48,14 +29,13 @@ export async function GET(req: NextRequest) {
               },
             },
             {
-              identityType: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
+              identityType: { contains: search, mode: "insensitive" as const },
             },
           ],
         }
-      : {};
+      : {
+          isActive: true, // only active customers
+        };
 
     // Build orderBy clause
     let orderBy: any = { id: sortDir };
@@ -166,163 +146,53 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
+
+
+
+export async function DELETE(request: NextRequest) {
   try {
-    const body = await req.json();
-    const {
-      firstName,
-      lastName,
-      gender,
-      dateOfBirth,
-      nationality,
-      email,
-      phone,
-      address,
-      identityType,
-      identityNumber,
-      title,
-      anniversary,
-      isVip,
-      occupation,
-      countryCode,
-      contactType,
-      country,
-      state,
-      city,
-      zipcode,
-      frontIdUrl,
-      backIdUrl,
-      guestImageUrl,
-    } = body;
-
-    // Validate required inputs
-    if (
-      !firstName ||
-      !gender ||
-      !dateOfBirth ||
-      !nationality ||
-      !email ||
-      !phone ||
-      !address
-    ) {
-      return NextResponse.json(
-        {
-          message:
-            "Required fields: firstName, gender, dateOfBirth, nationality, email, phone, address",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Create customer
-    const customer = await prisma.customer.create({
-      data: {
-        title: title || null,
-        firstName,
-        lastName: lastName || null,
-        gender,
-        dateOfBirth: new Date(dateOfBirth),
-        anniversary: anniversary ? new Date(anniversary) : null,
-        nationality,
-        isVip: isVip || false,
-        occupation: occupation || null,
-        email,
-        countryCode: countryCode || "+1", // default if not provided
-        phone,
-        contactType: contactType || null,
-        country: country || null,
-        state: state || null,
-        city: city || null,
-        zipcode: zipcode || null,
-        address,
-        identityType: identityType || null,
-        identityNumber: identityNumber || null,
-        frontIdUrl: frontIdUrl || null,
-        backIdUrl: backIdUrl || null,
-        guestImageUrl: guestImageUrl || null,
-      },
-    });
-
-    return NextResponse.json(customer, { status: 201 });
-  } catch (error: any) {
-    console.error("Error creating customer:", error);
-
-    // Handle unique constraint violations
-    if (error.code === "P2002") {
-      const field = error.meta?.target?.[0];
-      return NextResponse.json(
-        {
-          message: `${field} already exists. Please use a different ${field}.`,
-        },
-        { status: 409 }
-      );
-    }
-
-    return NextResponse.json(
-      { message: "Internal Server Error", error: error.message },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const { id, ...updateData } = body;
-
-    if (!id || typeof id !== "number") {
-      return NextResponse.json(
-        { message: "Valid 'id' (number) is required" },
-        { status: 400 }
-      );
-    }
-
-    // Update customer
-    const customer = await prisma.customer.update({
-      where: { id },
-      data: {
-        ...updateData,
-        updatedAt: new Date(),
-        // Handle date fields properly
-        dateOfBirth: updateData.dateOfBirth
-          ? new Date(updateData.dateOfBirth)
-          : undefined,
-        anniversary: updateData.anniversary
-          ? new Date(updateData.anniversary)
-          : null,
-      },
-    });
-
-    return NextResponse.json(customer, { status: 200 });
-  } catch (error: any) {
-    console.error("Error updating customer:", error);
-    return NextResponse.json(
-      { message: "Internal Server Error", error: error.message },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(req: NextRequest) {
-  try {
-    const body = await req.json();
+    const body = await request.json();
     const { id } = body;
 
-    if (!id || typeof id !== "number") {
+    if (isNaN(id)) {
       return NextResponse.json(
-        { message: "Valid 'id' (number) is required" },
+        { message: "Invalid customer ID" },
         { status: 400 }
+      );
+    }
+
+    // Check if customer exists
+    const existingCustomer = await prisma.customer.findUnique({
+      where: { id },
+    });
+
+    if (!existingCustomer) {
+      return NextResponse.json(
+        { message: "Customer not found" },
+        { status: 404 }
       );
     }
 
     // Delete customer
-    const deleted = await prisma.customer.delete({
+    const customer = await prisma.customer.update({
       where: { id },
+      data: { isActive: false },
     });
 
-    return NextResponse.json(deleted, { status: 200 });
+    return NextResponse.json(
+      { message: "Customer deleted successfully", customer },
+      { status: 200 }
+    );
   } catch (error: any) {
     console.error("Error deleting customer:", error);
+
+    if (error.code === "P2025") {
+      return NextResponse.json(
+        { message: "Customer not found" },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
       { message: "Internal Server Error", error: error.message },
       { status: 500 }

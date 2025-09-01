@@ -113,6 +113,12 @@ export const sidebarConfig: SidebarItem[] = [
     roles: ["superadmin", "manager"],
     children: [
       {
+        label: "Room Booking",
+        icon: FileText,
+        route: "/room-reservation/room-booking",
+        roles: ["superadmin", "manager"],
+      },
+      {
         label: "Booking List",
         icon: FileText,
         route: "/room-reservation/booking-list",

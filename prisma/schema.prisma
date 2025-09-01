@@ -46,6 +46,8 @@ model Room_Size_List {
 
 model Customer {
   id             Int          @id @default(autoincrement())
+  customerID     String       @unique
+  isActive       Boolean      @default(true)
   title          String?
   firstName      String
   lastName       String?
@@ -57,7 +59,7 @@ model Customer {
   occupation     String?
   email          String       @unique
   countryCode    String?
-  phone          String       @unique
+  phone          String       
   contactType    String?
   country        String?
   state          String?
@@ -197,7 +199,10 @@ model RoomList {
   rooms              Room[]
   facilityAssignments RoomFacilityAssignment[]
   reservations       Reservation[]
+  roomOffers         RoomOffer[] @relation("RoomOfferToRoomList")
 }
+
+
 
 model RoomFacilityAssignment {
   id         Int      @id @default(autoincrement())
@@ -244,6 +249,8 @@ model Room {
   reservations Reservation[]
 }
 
+
+
 model Promocode {
   id         Int       @id @default(autoincrement())
   roomType   String
@@ -254,4 +261,22 @@ model Promocode {
   promocode  String    @unique
   status     String
   createdAt  DateTime  @default(now())
+}
+
+
+
+
+model RoomOffer {
+  id           Int       @id @default(autoincrement())
+  roomType     String
+  room         RoomList  @relation("RoomOfferToRoomList", fields: [roomType], references: [roomType], onDelete: Cascade)
+  date         DateTime
+  originalRate Float
+  offerDiscount Float?   // Stored as percentage (0-100)
+  offerTitle   String?
+  offerText    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([roomType, date])
 }
