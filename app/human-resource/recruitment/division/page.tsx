@@ -52,7 +52,6 @@ import {
   Copy,
   FileText,
   Printer,
-  Settings,
   GitBranch,
   Building2,
   Filter,
