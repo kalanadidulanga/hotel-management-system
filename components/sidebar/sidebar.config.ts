@@ -298,12 +298,6 @@ export const sidebarConfig: SidebarItem[] = [
             roles: ["superadmin", "manager"],
           },
           {
-            label: "Employee Performance",
-            icon: ReceiptEuro,
-            route: "/human-resource/employee/performance",
-            roles: ["superadmin", "manager"],
-          },
-          {
             label: "Manage Employee Salary",
             icon: ReceiptEuro,
             route: "/human-resource/employee/salary",
