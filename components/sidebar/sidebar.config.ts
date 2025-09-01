@@ -288,7 +288,7 @@ export const sidebarConfig: SidebarItem[] = [
           {
             label: "Add Employee",
             icon: Settings,
-            route: "/human-resource/employee/employee-setting",
+            route: "/human-resource/employee/new",
             roles: ["superadmin", "manager"],
           },
           {
