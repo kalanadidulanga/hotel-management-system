@@ -1,16 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Table,
     TableBody,
@@ -20,58 +13,32 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
+    AlertTriangle,
     Bell,
     BellRing,
-    AlertTriangle,
-    Clock,
-    Shield,
-    Wrench,
-    Package,
-    Eye,
+    Calendar,
     Check,
-    CheckCircle2,
-    X,
-    Trash2,
-    MoreHorizontal,
+    Clock,
+    Eye,
     Filter,
+    Loader2,
+    MapPin,
+    Package,
     RefreshCw,
     Settings,
-    Calendar,
+    Shield,
     User,
-    MapPin,
-    ExternalLink,
-    Loader2,
-    Wifi,
-    WifiOff
+    CheckCircle2,
+    Trash2
 } from "lucide-react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface AssetNotification {
@@ -164,83 +131,29 @@ export default function NotificationsPage() {
         priority: "all"
     });
     const [selectedNotification, setSelectedNotification] = useState<AssetNotification | null>(null);
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const [generateLoading, setGenerateLoading] = useState(false);
-    const [isConnected, setIsConnected] = useState(false);
     const [lastUpdate, setLastUpdate] = useState<string>('');
 
-    const wsRef = useRef<WebSocket | null>(null);
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
-    // Initialize WebSocket connection and browser notifications
+    // Initialize browser notifications and background checking
     useEffect(() => {
-        initializeRealTimeNotifications();
         requestNotificationPermission();
+        startBackgroundNotificationCheck();
 
-        return () => {
-            if (wsRef.current) {
-                wsRef.current.close();
-            }
-        };
+        // Check for new notifications every 30 seconds
+        const interval = setInterval(() => {
+            checkForNewNotifications();
+        }, 30000);
+
+        return () => clearInterval(interval);
     }, []);
 
     // Fetch notifications when filters change
     useEffect(() => {
         fetchNotifications();
     }, [filters, pagination.currentPage]);
-
-    const initializeRealTimeNotifications = () => {
-        try {
-            const ws = new WebSocket('ws://localhost:8080');
-            wsRef.current = ws;
-
-            ws.onopen = () => {
-                console.log('🔗 WebSocket connected');
-                setIsConnected(true);
-                toast.success('Real-time notifications enabled');
-            };
-
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                console.log('📡 WebSocket message received:', data);
-
-                if (data.type === 'NEW_NOTIFICATION') {
-                    handleNewNotification(data.notification);
-                } else if (data.type === 'BATCH_UPDATE') {
-                    toast.info(`${data.count} new maintenance alerts received!`, {
-                        action: {
-                            label: "Refresh",
-                            onClick: () => fetchNotifications()
-                        }
-                    });
-                    fetchNotifications();
-                }
-
-                setLastUpdate(new Date().toLocaleTimeString());
-            };
-
-            ws.onclose = () => {
-                console.log('🔌 WebSocket disconnected');
-                setIsConnected(false);
-                toast.warning('Real-time notifications disconnected');
-
-                // Attempt to reconnect after 5 seconds
-                setTimeout(() => {
-                    initializeRealTimeNotifications();
-                }, 5000);
-            };
-
-            ws.onerror = (error) => {
-                console.error('❌ WebSocket error:', error);
-                setIsConnected(false);
-            };
-
-        } catch (error) {
-            console.error('❌ Failed to initialize WebSocket:', error);
-            setIsConnected(false);
-        }
-    };
 
     const requestNotificationPermission = async () => {
         if ('Notification' in window && Notification.permission === 'default') {
@@ -253,9 +166,61 @@ export default function NotificationsPage() {
         }
     };
 
-    const handleNewNotification = (notification: AssetNotification) => {
-        // Show browser notification for critical alerts
-        if (Notification.permission === 'granted' && notification.priority === 'CRITICAL') {
+    const startBackgroundNotificationCheck = async () => {
+        // Automatically generate notifications every 5 minutes
+        const generateInterval = setInterval(async () => {
+            try {
+                console.log('⏰ Running background notification check...');
+                const response = await fetch(`${apiBaseUrl}/api/assets/notifications/scheduler`, {
+                    method: "POST"
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.notifications > 0) {
+                        console.log(`✅ Generated ${data.notifications} new notifications`);
+                        await checkForNewNotifications();
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Background check failed:', error);
+            }
+        }, 5 * 60 * 1000); // 5 minutes
+
+        // Initial check
+        setTimeout(() => {
+            generateNotifications();
+        }, 2000);
+
+        return () => clearInterval(generateInterval);
+    };
+
+    const checkForNewNotifications = async () => {
+        try {
+            const response = await fetch(`${apiBaseUrl}/api/assets/notifications?status=unread&priority=CRITICAL`);
+            if (response.ok) {
+                const data = await response.json();
+                const criticalNotifications = data.notifications.filter((n: AssetNotification) =>
+                    n.priority === 'CRITICAL' && !n.isRead
+                );
+
+                criticalNotifications.forEach((notification: AssetNotification) => {
+                    showBrowserNotification(notification);
+                });
+
+                if (criticalNotifications.length > 0) {
+                    fetchNotifications(); // Refresh the list
+                }
+
+                setLastUpdate(new Date().toLocaleTimeString());
+            }
+        } catch (error) {
+            console.error('Error checking for new notifications:', error);
+        }
+    };
+
+    const showBrowserNotification = (notification: AssetNotification) => {
+        if (Notification.permission === 'granted') {
             const browserNotification = new Notification(notification.title, {
                 body: notification.message,
                 icon: '/favicon.ico',
@@ -265,33 +230,25 @@ export default function NotificationsPage() {
 
             browserNotification.onclick = () => {
                 window.focus();
+                setSelectedNotification(notification);
                 browserNotification.close();
             };
 
-            // Auto-close after 10 seconds
+            // Show toast as well
+            toast.error(`🚨 ${notification.title}`, {
+                description: notification.message,
+                duration: 0, // Don't auto-dismiss
+                action: {
+                    label: "View",
+                    onClick: () => setSelectedNotification(notification)
+                }
+            });
+
+            // Auto-close browser notification after 10 seconds
             setTimeout(() => {
                 browserNotification.close();
             }, 10000);
         }
-
-        // Show toast notification
-        const toastMessage = notification.priority === 'CRITICAL' ?
-            `🚨 CRITICAL: ${notification.title}` :
-            `🔔 ${notification.title}`;
-
-        toast(toastMessage, {
-            description: notification.message,
-            action: {
-                label: "View",
-                onClick: () => {
-                    setSelectedNotification(notification);
-                }
-            },
-            duration: notification.priority === 'CRITICAL' ? 0 : 5000, // Critical stays until dismissed
-        });
-
-        // Refresh notifications list
-        fetchNotifications();
     };
 
     const fetchNotifications = async () => {
@@ -305,7 +262,7 @@ export default function NotificationsPage() {
                 )
             });
 
-            const response = await fetch(`${apiBaseUrl}/api/notifications?${params}`);
+            const response = await fetch(`${apiBaseUrl}/api/assets/notifications?${params}`);
             if (!response.ok) throw new Error("Failed to fetch notifications");
 
             const data = await response.json();
@@ -323,15 +280,20 @@ export default function NotificationsPage() {
     const generateNotifications = async () => {
         try {
             setGenerateLoading(true);
-            const response = await fetch(`${apiBaseUrl}/api/scheduler`, {
+            const response = await fetch(`${apiBaseUrl}/api/assets/notifications/scheduler`, {
                 method: "POST"
             });
 
             if (!response.ok) throw new Error("Failed to generate notifications");
 
             const data = await response.json();
-            toast.success(`Generated ${data.notifications} new notifications`);
-            fetchNotifications();
+            if (data.notifications > 0) {
+                toast.success(`Generated ${data.notifications} new notifications`);
+                fetchNotifications();
+                await checkForNewNotifications(); // Check for critical ones
+            } else {
+                toast.info("No new notifications to generate");
+            }
         } catch (error) {
             console.error("Error generating notifications:", error);
             toast.error("Failed to generate notifications");
@@ -343,7 +305,7 @@ export default function NotificationsPage() {
     const markAsRead = async (notificationIds: number[]) => {
         try {
             setActionLoading(true);
-            const response = await fetch(`${apiBaseUrl}/api/notifications`, {
+            const response = await fetch(`${apiBaseUrl}/api/assets/notifications`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -368,7 +330,7 @@ export default function NotificationsPage() {
     const markAllAsRead = async () => {
         try {
             setActionLoading(true);
-            const response = await fetch(`${apiBaseUrl}/api/notifications`, {
+            const response = await fetch(`${apiBaseUrl}/api/assets/notifications`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -392,7 +354,7 @@ export default function NotificationsPage() {
     const takeAction = async (notificationIds: number[]) => {
         try {
             setActionLoading(true);
-            const response = await fetch(`${apiBaseUrl}/api/notifications`, {
+            const response = await fetch(`${apiBaseUrl}/api/assets/notifications`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -417,7 +379,7 @@ export default function NotificationsPage() {
     const deleteNotifications = async (notificationIds: number[]) => {
         try {
             setActionLoading(true);
-            const response = await fetch(`${apiBaseUrl}/api/notifications`, {
+            const response = await fetch(`${apiBaseUrl}/api/assets/notifications`, {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ notificationIds: notificationIds.map(String) })
@@ -427,7 +389,6 @@ export default function NotificationsPage() {
 
             toast.success("Notifications deleted successfully");
             setSelectedNotifications([]);
-            setIsDeleteDialogOpen(false);
             fetchNotifications();
         } catch (error) {
             console.error("Error deleting notifications:", error);
@@ -532,31 +493,24 @@ export default function NotificationsPage() {
 
     return (
         <div className="p-6 space-y-6 max-w-7xl mx-auto">
-            {/* Header with Connection Status */}
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight flex items-center">
                         <BellRing className="w-8 h-8 text-blue-600 mr-3" />
                         Maintenance Notifications
                         <div className="flex items-center ml-4">
-                            {isConnected ? (
-                                <div className="flex items-center text-green-600">
-                                    <Wifi className="w-4 h-4 mr-1" />
-                                    <span className="text-sm font-medium">Live</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-center text-red-600">
-                                    <WifiOff className="w-4 h-4 mr-1" />
-                                    <span className="text-sm font-medium">Disconnected</span>
-                                </div>
-                            )}
+                            <div className="flex items-center text-green-600">
+                                <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse mr-2"></div>
+                                <span className="text-sm font-medium">Auto-monitoring</span>
+                            </div>
                         </div>
                     </h1>
                     <p className="text-gray-600 mt-1">
-                        🚀 Automatic notifications • Real-time updates • Push alerts
+                         • 5-day advance notice
                         {lastUpdate && (
                             <span className="ml-2 text-xs text-gray-500">
-                                Last update: {lastUpdate}
+                                Last check: {lastUpdate}
                             </span>
                         )}
                     </p>
@@ -573,7 +527,7 @@ export default function NotificationsPage() {
                         ) : (
                             <Settings className="w-4 h-4 mr-2" />
                         )}
-                        Force Check
+                        Check Now
                     </Button>
                     <Button onClick={fetchNotifications} variant="outline" size="sm">
                         <RefreshCw className="w-4 h-4 mr-2" />
@@ -582,7 +536,6 @@ export default function NotificationsPage() {
                 </div>
             </div>
 
-            {/* Rest of your existing UI components */}
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card>
@@ -604,7 +557,7 @@ export default function NotificationsPage() {
                                 <p className="text-sm font-medium text-gray-600">Unread</p>
                                 <p className="text-2xl font-bold text-orange-600">{stats.unread}</p>
                             </div>
-                            <BellRing className="w-8 h-8 text-orange-600" />
+                            <BellRing className={`w-8 h-8 text-orange-600 ${stats.unread > 0 ? 'animate-pulse' : ''}`} />
                         </div>
                     </CardContent>
                 </Card>
@@ -616,7 +569,7 @@ export default function NotificationsPage() {
                                 <p className="text-sm font-medium text-gray-600">Critical</p>
                                 <p className="text-2xl font-bold text-red-600">{stats.critical}</p>
                             </div>
-                            <AlertTriangle className="w-8 h-8 text-red-600" />
+                            <AlertTriangle className={`w-8 h-8 text-red-600 ${stats.critical > 0 ? 'animate-pulse' : ''}`} />
                         </div>
                     </CardContent>
                 </Card>
@@ -628,14 +581,116 @@ export default function NotificationsPage() {
                                 <p className="text-sm font-medium text-gray-600">Overdue</p>
                                 <p className="text-2xl font-bold text-red-600">{stats.overdue}</p>
                             </div>
-                            <Clock className="w-8 h-8 text-red-600" />
+                            <Clock className={`w-8 h-8 text-red-600 ${stats.overdue > 0 ? 'animate-pulse' : ''}`} />
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Add your existing filters, table, and other components here */}
-            {/* I'll include the key ones for completeness */}
+            {/* Filters */}
+            <Card>
+                <CardContent className="p-6">
+                    <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2">
+                            <Filter className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm font-medium">Filters:</span>
+                        </div>
+
+                        <Select
+                            value={filters.type}
+                            onValueChange={(value) => setFilters(prev => ({ ...prev, type: value }))}
+                        >
+                            <SelectTrigger className="w-48">
+                                <SelectValue placeholder="All Types" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Types</SelectItem>
+                                <SelectItem value="maintenance-due">Maintenance Due</SelectItem>
+                                <SelectItem value="maintenance-overdue">Overdue</SelectItem>
+                                <SelectItem value="warranty-expiring">Warranty Expiring</SelectItem>
+                                <SelectItem value="asset-damaged">Asset Damaged</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <Select
+                            value={filters.status}
+                            onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                        >
+                            <SelectTrigger className="w-32">
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Status</SelectItem>
+                                <SelectItem value="read">Read</SelectItem>
+                                <SelectItem value="unread">Unread</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <Select
+                            value={filters.priority}
+                            onValueChange={(value) => setFilters(prev => ({ ...prev, priority: value }))}
+                        >
+                            <SelectTrigger className="w-32">
+                                <SelectValue placeholder="Priority" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Priority</SelectItem>
+                                <SelectItem value="critical">Critical</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="low">Low</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <div className="flex-1" />
+
+                        {/* Bulk Actions */}
+                        {selectedNotifications.length > 0 && (
+                            <div className="flex items-center space-x-2">
+                                <span className="text-sm text-gray-600">
+                                    {selectedNotifications.length} selected
+                                </span>
+                                <Button
+                                    onClick={() => markAsRead(selectedNotifications)}
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={actionLoading}
+                                >
+                                    <Check className="w-4 h-4 mr-1" />
+                                    Mark Read
+                                </Button>
+                                <Button
+                                    onClick={() => takeAction(selectedNotifications)}
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={actionLoading}
+                                >
+                                    <CheckCircle2 className="w-4 h-4 mr-1" />
+                                    Take Action
+                                </Button>
+                                <Button
+                                    onClick={() => deleteNotifications(selectedNotifications)}
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={actionLoading}
+                                >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    Delete
+                                </Button>
+                            </div>
+                        )}
+
+                        <Button
+                            onClick={markAllAsRead}
+                            variant="outline"
+                            size="sm"
+                            disabled={actionLoading || stats.unread === 0}
+                        >
+                            Mark All Read
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Notifications Table */}
             <Card>
@@ -793,15 +848,49 @@ export default function NotificationsPage() {
                             <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                             <h3 className="text-lg font-medium text-gray-900 mb-2">No notifications</h3>
                             <p className="text-gray-600 mb-4">
-                                🎉 You're all caught up! The system is automatically monitoring for maintenance alerts.
+                                🎉 All caught up! System is monitoring maintenance schedules automatically.
                             </p>
                             <p className="text-sm text-gray-500">
-                                Automatic checks run every 30 minutes • Real-time alerts enabled
+                                Auto-checks run every 5 minutes • Browser alerts for critical issues • 5-day advance warnings
                             </p>
                         </div>
                     )}
                 </CardContent>
             </Card>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm text-gray-600">
+                                Showing {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} to {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} of {pagination.totalItems} notifications
+                            </p>
+                            <div className="flex items-center space-x-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
+                                    disabled={pagination.currentPage === 1}
+                                >
+                                    Previous
+                                </Button>
+                                <span className="text-sm text-gray-600">
+                                    Page {pagination.currentPage} of {pagination.totalPages}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
+                                    disabled={pagination.currentPage === pagination.totalPages}
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }

@@ -1,13 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { PrismaClient } from "@/lib/generated/prisma";
 
 const prisma = new PrismaClient();
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
+    console.log("🔄 Starting automatic notification generation...");
+
     const currentDate = new Date();
     const fiveDaysFromNow = new Date();
     fiveDaysFromNow.setDate(currentDate.getDate() + 5);
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(currentDate.getDate() + 30);
 
     const notifications = [];
 
@@ -51,7 +55,7 @@ export async function POST(request: NextRequest) {
             assetId: asset.id,
             userId: asset.assignedToId,
             type: "MAINTENANCE_DUE",
-            title: `Maintenance Due: ${asset.name}`,
+            title: `🔧 Maintenance Due: ${asset.name}`,
             message: `Maintenance for ${asset.name} (${
               asset.assetId
             }) is due in ${daysUntilMaintenance} days. Location: ${
@@ -97,7 +101,6 @@ export async function POST(request: NextRequest) {
     });
 
     for (const asset of assetsOverdueMaintenance) {
-      // Skip if overdue notification already created today
       if (asset.notifications.length === 0) {
         const daysOverdue = Math.ceil(
           (currentDate.getTime() - asset.maintenanceDate.getTime()) /
@@ -110,8 +113,8 @@ export async function POST(request: NextRequest) {
             assetId: asset.id,
             userId: asset.assignedToId,
             type: "MAINTENANCE_OVERDUE",
-            title: `Maintenance Overdue: ${asset.name}`,
-            message: `Maintenance for ${asset.name} (${asset.assetId}) is overdue by ${daysOverdue} days. Immediate attention required!`,
+            title: `🚨 OVERDUE: ${asset.name}`,
+            message: `URGENT: Maintenance for ${asset.name} (${asset.assetId}) is overdue by ${daysOverdue} days. Immediate attention required!`,
             priority: daysOverdue > 7 ? "CRITICAL" : "HIGH",
             scheduledFor: asset.maintenanceDate,
             escalationLevel: Math.min(Math.floor(daysOverdue / 7), 3),
@@ -123,9 +126,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Generate warranty expiring notifications (30 days before)
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(currentDate.getDate() + 30);
-
     const assetsWarrantyExpiring = await prisma.asset.findMany({
       where: {
         warrantyExpiry: {
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
             assetId: asset.id,
             userId: asset.assignedToId,
             type: "WARRANTY_EXPIRING",
-            title: `Warranty Expiring: ${asset.name}`,
+            title: `🛡️ Warranty Expiring: ${asset.name}`,
             message: `Warranty for ${asset.name} (${asset.assetId}) expires in ${daysUntilExpiry} days. Consider renewal or replacement.`,
             priority: daysUntilExpiry <= 7 ? "HIGH" : "MEDIUM",
             scheduledFor: asset.warrantyExpiry,
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
           where: {
             type: "ASSET_DAMAGED",
             createdAt: {
-              gte: new Date(currentDate.getTime() - 24 * 60 * 60 * 1000),
+              gte: new Date(currentDate.getTime() - 24 * 60 * 60 * 1000), // Last 24 hours
             },
           },
         },
@@ -205,10 +205,12 @@ export async function POST(request: NextRequest) {
             assetId: asset.id,
             userId: asset.assignedToId,
             type: "ASSET_DAMAGED",
-            title: `Asset Damaged: ${asset.name}`,
+            title: `⚠️ Asset ${asset.status}: ${asset.name}`,
             message: `${asset.name} (${
               asset.assetId
-            }) is marked as ${asset.status.toLowerCase()}. Requires immediate attention.`,
+            }) is marked as ${asset.status.toLowerCase()}. Location: ${
+              asset.location || "N/A"
+            }. Requires immediate attention!`,
             priority: asset.status === "OUT_OF_ORDER" ? "CRITICAL" : "HIGH",
             scheduledFor: currentDate,
             escalationLevel: 0,
@@ -219,8 +221,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log(
+      `✅ Generated ${notifications.length} notifications automatically`
+    );
+
     return NextResponse.json({
-      message: `Generated ${notifications.length} notifications`,
+      success: true,
+      message: `Generated ${notifications.length} notifications automatically`,
       notifications: notifications.length,
       types: {
         maintenance_due: notifications.filter(
@@ -235,17 +242,17 @@ export async function POST(request: NextRequest) {
         asset_damaged: notifications.filter((n) => n.type === "ASSET_DAMAGED")
           .length,
       },
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("Generate notifications API error:", error);
+    console.error("❌ Automatic notification generation failed:", error);
     return NextResponse.json(
-      { error: "Failed to generate notifications" },
+      {
+        success: false,
+        error: "Failed to generate notifications automatically",
+        timestamp: new Date().toISOString(),
+      },
       { status: 500 }
     );
   }
-}
-
-// GET method for automatic generation (can be called by cron jobs)
-export async function GET(request: NextRequest) {
-  return POST(request);
 }
