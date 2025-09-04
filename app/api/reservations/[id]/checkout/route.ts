@@ -6,10 +6,11 @@ const prisma = new PrismaClient();
 // GET - Fetch reservation data for checkout
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const reservationId = parseInt(params.id);
+    const { id } = await context.params; // ✅ await params
+    const reservationId = parseInt(id);
 
     if (isNaN(reservationId)) {
       return NextResponse.json(
@@ -346,7 +347,7 @@ export async function POST(
           paymentType: "CHECKOUT_PAYMENT",
           paymentStatus: "COMPLETED",
           remarks: paymentRemarks || "Checkout payment",
-          createdAt: new Date(),
+          // Remove createdAt as it's auto-generated
         },
       });
     }
@@ -357,11 +358,16 @@ export async function POST(
         data: {
           reservationId: reservationId,
           roomId: reservation.roomId,
+          customerId: reservation.customerId,
           incidentType: "DAMAGE",
-          description: damageDescription,
+          title: "Room Damage - Checkout", // Added required title field
+          description: damageDescription || "Damage reported during checkout",
           amount: damageFee,
           status: "RESOLVED",
-          createdAt: new Date(),
+          severity: "MEDIUM",
+          isPaid: true,
+          // Remove createdAt as it's auto-generated with @default(now())
+          // Remove other auto-generated timestamp fields
         },
       });
     }

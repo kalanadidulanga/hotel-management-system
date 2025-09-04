@@ -168,10 +168,11 @@ export async function GET(
 // PUT - Update reservation status
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const reservationId = parseInt(params.id);
+    const { id } = await context.params; // ✅ await params
+    const reservationId = parseInt(id);
     const body = await request.json();
 
     if (isNaN(reservationId)) {

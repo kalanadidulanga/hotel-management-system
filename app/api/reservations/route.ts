@@ -7,6 +7,11 @@ const prisma = new PrismaClient();
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    console.log(
+      "API: Received search params:",
+      Object.fromEntries(searchParams.entries())
+    );
+
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const status = searchParams.get("status") || "";
@@ -30,77 +35,92 @@ export async function GET(request: NextRequest) {
 
     // Date range filter - Fixed to handle overlapping reservations properly
     if (dateFrom && dateTo) {
+      const fromDate = new Date(dateFrom);
+      const toDate = new Date(dateTo);
+
+      // Validate dates
+      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid date format", success: false },
+          { status: 400 }
+        );
+      }
+
       whereConditions.OR = [
         {
           checkInDate: {
-            gte: new Date(dateFrom),
-            lte: new Date(dateTo),
+            gte: fromDate,
+            lte: toDate,
           },
         },
         {
           checkOutDate: {
-            gte: new Date(dateFrom),
-            lte: new Date(dateTo),
+            gte: fromDate,
+            lte: toDate,
           },
         },
         {
           AND: [
-            { checkInDate: { lte: new Date(dateFrom) } },
-            { checkOutDate: { gte: new Date(dateTo) } },
+            { checkInDate: { lte: fromDate } },
+            { checkOutDate: { gte: toDate } },
           ],
         },
       ];
     } else if (dateFrom) {
-      whereConditions.checkInDate = { gte: new Date(dateFrom) };
+      const fromDate = new Date(dateFrom);
+      if (!isNaN(fromDate.getTime())) {
+        whereConditions.checkInDate = { gte: fromDate };
+      }
     } else if (dateTo) {
-      whereConditions.checkOutDate = { lte: new Date(dateTo) };
+      const toDate = new Date(dateTo);
+      if (!isNaN(toDate.getTime())) {
+        whereConditions.checkOutDate = { lte: toDate };
+      }
     }
 
-    // Search filter - Fixed to handle combined filters properly
-    if (search) {
+    // Search filter - FIXED: Removed mode parameter that was causing errors
+    if (search && search.trim().length > 0) {
+      const searchTerm = search.trim();
+      console.log("API: Applying search filter for:", searchTerm);
+
       const searchConditions = [
         {
           bookingNumber: {
-            contains: search,
-            mode: "insensitive" as any,
+            contains: searchTerm,
           },
         },
         {
           customer: {
             firstName: {
-              contains: search,
-              mode: "insensitive" as any,
+              contains: searchTerm,
             },
           },
         },
         {
           customer: {
             lastName: {
-              contains: search,
-              mode: "insensitive" as any,
+              contains: searchTerm,
             },
           },
         },
         {
           customer: {
             phone: {
-              contains: search,
+              contains: searchTerm,
             },
           },
         },
         {
           customer: {
             email: {
-              contains: search,
-              mode: "insensitive" as any,
+              contains: searchTerm,
             },
           },
         },
         {
           room: {
             roomNumber: {
-              contains: search,
-              mode: "insensitive" as any,
+              contains: searchTerm,
             },
           },
         },
@@ -118,10 +138,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    console.log(
+      "API: Final where conditions:",
+      JSON.stringify(whereConditions, null, 2)
+    );
+
     // Get total count for pagination
     const totalCount = await prisma.reservation.count({
       where: whereConditions,
     });
+
+    console.log("API: Total count:", totalCount);
 
     // Fetch reservations with comprehensive related data
     const reservations = await prisma.reservation.findMany({
@@ -187,6 +214,8 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
+    console.log("API: Found reservations:", reservations.length);
+
     // Calculate dashboard statistics
     const stats = await calculateReservationStats();
 
@@ -216,7 +245,7 @@ export async function GET(request: NextRequest) {
         reservation.adults + reservation.children + reservation.infants, // Computed field
     }));
 
-    return NextResponse.json({
+    const response = {
       reservations: transformedReservations,
       stats,
       success: true,
@@ -228,9 +257,24 @@ export async function GET(request: NextRequest) {
         hasNext: page < Math.ceil(totalCount / limit),
         hasPrev: page > 1,
       },
-    });
+    };
+
+    console.log(
+      "API: Sending response with",
+      transformedReservations.length,
+      "reservations"
+    );
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Reservations fetch error:", error);
+
+    // More detailed error logging
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
+
     return NextResponse.json(
       {
         error: "Failed to fetch reservations",
@@ -339,10 +383,8 @@ async function calculateReservationStats() {
         },
       }),
 
-      // Total active rooms
-      prisma.room.count({
-        where: { isActive: true },
-      }),
+      // Total active rooms - Fixed to handle missing isActive field
+      prisma.room.count().catch(() => 0),
 
       // Currently occupied rooms
       prisma.reservation.count({

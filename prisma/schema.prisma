@@ -87,6 +87,9 @@ enum PaymentMethod {
   CARD
   ONLINE
   BANK_TRANSFER
+  CREDIT_CARD
+  DEBIT_CARD
+  MOBILE_PAYMENT
 }
 
 enum DiscountType {
@@ -98,6 +101,39 @@ enum BillingType {
   NIGHT_STAY
   DAY_USE
   HOURLY
+}
+
+enum PaymentType {
+  ADVANCE_PAYMENT
+  CHECKOUT_PAYMENT
+  REFUND
+  PENALTY
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum IncidentType {
+  DAMAGE
+  COMPLAINT
+  MAINTENANCE_REQUEST
+  SECURITY
+  NOISE
+  CLEANLINESS
+  SERVICE
+}
+
+enum IncidentStatus {
+  REPORTED
+  INVESTIGATING
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
 }
 
 // ========== USER MANAGEMENT (Enhanced for Front Office) ==========
@@ -127,6 +163,9 @@ model User {
   reservations       Reservation[] @relation("StaffReservations")
   quickOrders        QuickOrder[]
   cashFlows          CashFlow[]
+  payments           Payment[]
+  reportedIncidents  IncidentLog[]
+  assignedIncidents  IncidentLog[] @relation("AssignedIncidents")
 }
 
 // ========== MODULE 03: CUSTOMER MANAGEMENT ==========
@@ -141,7 +180,7 @@ model Customer {
   lastName       String?
   fullName       String?      // Computed field for display
   gender         String
-  dateOfBirth    DateTime
+  dateOfBirth    DateTime?
   anniversary    DateTime?
   nationality    Nationality
   
@@ -183,6 +222,8 @@ model Customer {
   reservations   Reservation[]
   wakeUpCalls    WakeUpCall[]
   quickOrders    QuickOrder[] // Orders made while staying
+  payments       Payment[]
+  incidents      IncidentLog[]
   
   @@index([identityNumber]) // Fast NIC search (requirement 1.4)
   @@index([isVip])          // VIP customer highlighting
@@ -271,6 +312,7 @@ model Room {
   // Relations
   reservations    Reservation[]
   facilities      RoomFacilityAssignment[]
+  incidents       IncidentLog[]
   
   @@index([roomNumber]) // Fast room search (requirement 7.1)
   @@index([status])     // Filter by availability
@@ -391,6 +433,8 @@ model Reservation {
   // Relations
   quickOrders        QuickOrder[] // Orders made during stay (requirement 1.5)
   complementaryItems ComplementaryItem[] @relation("ReservationToComplementary")
+  payments           Payment[]
+  incidents          IncidentLog[]
   
   @@index([checkInDate, checkOutDate]) // Date range searches
   @@index([reservationStatus])         // Status filtering
@@ -424,6 +468,90 @@ model QuickOrder {
   // Timestamps
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+}
+
+// Payment Management
+model Payment {
+  id            Int           @id @default(autoincrement())
+  paymentId     String        @unique @default(cuid()) // Auto-generated payment ID
+  
+  // Related entities
+  reservationId Int?
+  reservation   Reservation?  @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  customerId    Int
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // Payment details
+  amount        Float
+  paymentMethod PaymentMethod
+  paymentType   PaymentType
+  paymentStatus PaymentStatus @default(PENDING)
+  
+  // Transaction details
+  transactionRef String?       // Bank reference, card transaction ID, etc.
+  receiptNumber String?        // Internal receipt number
+  
+  // Additional info
+  remarks       String?
+  processedBy   Int?          // Staff who processed payment
+  processedByStaff User?      @relation(fields: [processedBy], references: [id], onDelete: SetNull)
+  
+  // Timestamps
+  paymentDate   DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@index([reservationId])
+  @@index([paymentDate])
+  @@index([paymentStatus])
+}
+
+// Incident/Damage Logging
+model IncidentLog {
+  id            Int           @id @default(autoincrement())
+  incidentId    String        @unique @default(cuid())
+  
+  // Related entities
+  reservationId Int?
+  reservation   Reservation?  @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  roomId        Int?
+  room          Room?         @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  customerId    Int?
+  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  
+  // Incident details
+  incidentType  IncidentType
+  title         String
+  description   String
+  severity      MaintenancePriority @default(MEDIUM)
+  status        IncidentStatus @default(REPORTED)
+  
+  // Financial impact
+  amount        Float         @default(0) // Damage cost, compensation, etc.
+  isPaid        Boolean       @default(false)
+  
+  // Staff handling
+  reportedBy    Int?          // Staff who reported
+  reportedByStaff User?       @relation(fields: [reportedBy], references: [id], onDelete: SetNull)
+  assignedTo    Int?          // Staff assigned to resolve
+  assignedToStaff User?       @relation("AssignedIncidents", fields: [assignedTo], references: [id], onDelete: SetNull)
+  
+  // Resolution
+  resolutionNotes String?
+  resolvedAt    DateTime?
+  
+  // Evidence
+  images        String?       // JSON array of image URLs
+  documents     String?       // JSON array of document URLs
+  
+  // Timestamps
+  incidentDate  DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@index([incidentType])
+  @@index([status])
+  @@index([incidentDate])
 }
 
 // Cash Flow Management (Requirement 1.6)
@@ -513,8 +641,7 @@ model WakeUpCall {
   createdAt     DateTime         @default(now())
 }
 
-// Keep your existing asset models as they are...
-// [All your existing Asset, AssetCategory, MaintenanceLog, etc. models remain the same]
+// ========== ASSET MANAGEMENT ==========
 model AssetCategory {
   id          Int       @id @default(autoincrement())
   name        String    @unique
@@ -683,6 +810,3 @@ model AssetDepreciation {
   
   @@unique([assetId, year])
 }
-
-// Remove old models that are now replaced
-// Remove: Room_Facility_List, Room_Facilities_Details_List, Room_Size_List, BedType, BookingType, BookingSource, RoomList, Promocode

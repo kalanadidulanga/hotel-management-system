@@ -291,7 +291,7 @@ export default function NewReservationForm() {
                 setCustomers(data.customers || []);
             }
         } catch (error) {
-            console.error("Error fetching customers:", error);
+            // console.error("Error fetching customers:", error);
             toast.error("Failed to load customers");
         }
     };
@@ -304,7 +304,7 @@ export default function NewReservationForm() {
                 setRoomClasses(data.roomClasses || []);
             }
         } catch (error) {
-            console.error("Error fetching room classes:", error);
+            // console.error("Error fetching room classes:", error);
             toast.error("Failed to load room classes");
         }
     };
@@ -325,7 +325,7 @@ export default function NewReservationForm() {
                 setAvailableRooms(data.rooms || []);
             }
         } catch (error) {
-            console.error("Error fetching available rooms:", error);
+            // console.error("Error fetching available rooms:", error);
             toast.error("Failed to fetch available rooms");
         }
     };
@@ -338,7 +338,7 @@ export default function NewReservationForm() {
                 setComplementaryItems(data.items || []);
             }
         } catch (error) {
-            console.error("Error fetching complementary items:", error);
+            // console.error("Error fetching complementary items:", error);
         }
     };
 
@@ -407,7 +407,7 @@ export default function NewReservationForm() {
 
             toast.success(`Customer ${newCustomer.customerID} created successfully!`);
         } catch (error) {
-            console.error("Error creating customer:", error);
+            // console.error("Error creating customer:", error);
             toast.error(error instanceof Error ? error.message : "Failed to create customer");
         } finally {
             setCreatingCustomer(false);
@@ -569,7 +569,7 @@ export default function NewReservationForm() {
 
             router.push(`/reservations/${data.reservation.id}`);
         } catch (error) {
-            console.error("Error creating reservation:", error);
+            // console.error("Error creating reservation:", error);
             toast.error(
                 error instanceof Error ? error.message : "Failed to create reservation"
             );
