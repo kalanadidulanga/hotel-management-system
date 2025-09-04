@@ -809,7 +809,7 @@ export default function ReservationsDashboard() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-56">
                                                     <DropdownMenuItem asChild>
-                                                        <Link href={`/room-reservation/booking-info/${reservation.id}`}>
+                                                        <Link href={`/reservations/${reservation.id}`}>
                                                             <Eye className="w-4 h-4 mr-2" />
                                                             View Details
                                                         </Link>

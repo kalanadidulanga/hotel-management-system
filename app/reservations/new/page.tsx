@@ -740,23 +740,16 @@ export default function NewReservationForm() {
 
                                                 <div className="space-y-2">
                                                     <Label>Date of Birth *</Label>
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button variant="outline" className="justify-start text-left font-normal w-full">
-                                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                                {newCustomerData.dateOfBirth ? format(newCustomerData.dateOfBirth, "PPP") : "Select date"}
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0" align="start">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={newCustomerData.dateOfBirth || undefined}
-                                                                onSelect={(date) => setNewCustomerData(prev => ({ ...prev, dateOfBirth: date || null }))}
-                                                                disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                                                                initialFocus
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
+                                                    <Input
+                                                        type="date"
+                                                        value={newCustomerData.dateOfBirth ? format(newCustomerData.dateOfBirth, "yyyy-MM-dd") : ""}
+                                                        onChange={(e) => {
+                                                            const date = e.target.value ? new Date(e.target.value) : null;
+                                                            setNewCustomerData(prev => ({ ...prev, dateOfBirth: date }));
+                                                        }}
+                                                        max={format(new Date(), "yyyy-MM-dd")}
+                                                        min="1900-01-01"
+                                                    />
                                                 </div>
                                             </div>
 
@@ -1059,7 +1052,7 @@ export default function NewReservationForm() {
                                     <SelectContent>
                                         <SelectItem value="NIGHT_STAY">Night Stay</SelectItem>
                                         <SelectItem value="DAY_USE">Day Use</SelectItem>
-                                        <SelectItem value="HOURLY">Hourly</SelectItem>
+                                        {/* <SelectItem value="HOURLY">Hourly</SelectItem> */}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -1117,7 +1110,7 @@ export default function NewReservationForm() {
                                             mode="single"
                                             selected={formData.checkInDate || undefined}
                                             onSelect={(date) => setFormData(prev => ({ ...prev, checkInDate: date || null }))}
-                                            disabled={(date) => date < new Date()}
+                                            disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
                                             initialFocus
                                         />
                                     </PopoverContent>
