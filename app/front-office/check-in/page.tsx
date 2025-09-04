@@ -340,7 +340,7 @@ export default function TodayCheckInsPage() {
             </Card> */}
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                     <CardContent className="p-4">
                         <div className="flex items-center">
@@ -365,7 +365,7 @@ export default function TodayCheckInsPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                {/* <Card>
                     <CardContent className="p-4">
                         <div className="flex items-center">
                             <AlertTriangle className="w-8 h-8 text-yellow-600 mr-3" />
@@ -375,7 +375,7 @@ export default function TodayCheckInsPage() {
                             </div>
                         </div>
                     </CardContent>
-                </Card>
+                </Card> */}
 
                 <Card>
                     <CardContent className="p-4">

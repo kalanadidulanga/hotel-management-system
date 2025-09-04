@@ -53,7 +53,8 @@ interface CheckOutReservation {
     bookingNumber: string;
     checkInDate: string;
     checkOutDate: string;
-    actualCheckIn: string;
+    actualCheckIn: string | null;
+    actualCheckOut: string | null;
     numberOfNights: number;
     adults: number;
     children: number;
@@ -63,6 +64,7 @@ interface CheckOutReservation {
     reservationStatus: string;
     paymentStatus: string;
     specialRequests?: string;
+    remarks?: string;
     customer: {
         id: number;
         firstName: string;
@@ -76,6 +78,7 @@ interface CheckOutReservation {
     room: {
         id: number;
         roomNumber: string;
+        status: string;
         floor: {
             name: string;
         } | null;
@@ -133,15 +136,23 @@ export default function TodayCheckOutsPage() {
     const fetchTodayCheckOuts = async () => {
         try {
             setLoading(true);
+            console.log("Fetching today's check-outs...");
+
             const response = await fetch(`${apiBaseUrl}/api/front-office/check-outs/today`);
+            console.log("Response status:", response.status);
 
             if (!response.ok) {
-                throw new Error('Failed to fetch check-outs');
+                const errorText = await response.text();
+                console.error("Response error:", errorText);
+                throw new Error(`Failed to fetch check-outs: ${response.status}`);
             }
 
             const data = await response.json();
+            console.log("Received data:", data);
+
             if (data.success) {
                 setReservations(data.reservations || []);
+                console.log("Set reservations:", data.reservations?.length || 0);
             } else {
                 throw new Error(data.error || 'Failed to load check-outs');
             }
@@ -197,21 +208,46 @@ export default function TodayCheckOutsPage() {
     const handleCheckOut = async (reservationId: number) => {
         try {
             setCheckingOut(reservationId);
+            console.log("Starting check-out for reservation:", reservationId);
+            console.log("API URL:", `${apiBaseUrl}/api/front-office/check-outs/${reservationId}`);
+
+            const requestBody = checkOutData;
+            console.log("Request body:", requestBody);
 
             const response = await fetch(`${apiBaseUrl}/api/front-office/check-outs/${reservationId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(checkOutData),
+                body: JSON.stringify(requestBody),
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to check out guest');
+            console.log("Check-out response status:", response.status);
+            console.log("Check-out response ok:", response.ok);
+
+            // Get response text first to handle both JSON and non-JSON responses
+            const responseText = await response.text();
+            console.log("Raw response:", responseText);
+
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error("Failed to parse JSON response:", parseError);
+                console.error("Response text:", responseText);
+                throw new Error(`Server returned invalid JSON: ${responseText.substring(0, 200)}`);
             }
 
-            const data = await response.json();
+            console.log("Parsed response data:", data);
+
+            if (!response.ok) {
+                console.error("HTTP error:", response.status, response.statusText);
+                console.error("Error data:", data);
+                throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
             if (data.success) {
+                console.log("Check-out successful:", data.message);
                 toast.success("Guest checked out successfully!");
                 setSelectedReservation(null);
                 setCheckOutData({
@@ -221,13 +257,22 @@ export default function TodayCheckOutsPage() {
                     lateCheckoutFee: 0,
                     notes: "",
                 });
-                fetchTodayCheckOuts(); // Refresh the list
+                await fetchTodayCheckOuts(); // Refresh the list
             } else {
+                console.error("Check-out failed:", data.error);
                 throw new Error(data.error || 'Failed to check out guest');
             }
         } catch (error) {
-            console.error("Error checking out guest:", error);
-            toast.error("Failed to check out guest");
+            console.error("Error in handleCheckOut:", error);
+
+            // More detailed error message
+            let errorMessage = "Failed to check out guest";
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+
+            console.error("Final error message:", errorMessage);
+            toast.error(errorMessage);
         } finally {
             setCheckingOut(null);
         }
@@ -262,6 +307,8 @@ export default function TodayCheckOutsPage() {
                 return 'default';
             case 'CHECKED_OUT':
                 return 'secondary';
+            case 'CONFIRMED':
+                return 'outline';
             case 'CANCELLED':
                 return 'destructive';
             default:
@@ -283,16 +330,19 @@ export default function TodayCheckOutsPage() {
         return (selectedReservation.balanceAmount || 0) + calculateTotalCharges();
     };
 
+    const isOverdue = (reservation: CheckOutReservation) => {
+        if (!reservation.checkOutDate || reservation.reservationStatus !== 'CHECKED_IN') return false;
+        const checkoutDate = new Date(reservation.checkOutDate);
+        const now = new Date();
+        checkoutDate.setHours(12, 0, 0, 0); // Assuming 12 PM checkout time
+        return now > checkoutDate;
+    };
+
     // Safe filtering with null checks
     const pendingCheckOuts = filteredReservations.filter(r => r?.reservationStatus === 'CHECKED_IN');
     const checkedOutToday = filteredReservations.filter(r => r?.reservationStatus === 'CHECKED_OUT');
-    const overdueCheckouts = filteredReservations.filter(r => {
-        if (!r?.checkOutDate) return false;
-        const checkoutDate = new Date(r.checkOutDate);
-        const now = new Date();
-        return checkoutDate < now && r.reservationStatus === 'CHECKED_IN';
-    });
-    const pendingPayments = filteredReservations.filter(r => r?.paymentStatus !== 'PAID');
+    const overdueCheckouts = filteredReservations.filter(r => isOverdue(r));
+    const pendingPayments = filteredReservations.filter(r => (r?.balanceAmount || 0) > 0);
 
     return (
         <div className="p-6 space-y-6">
@@ -319,8 +369,24 @@ export default function TodayCheckOutsPage() {
                 </div>
             </div>
 
+            {/* Debug Info - Uncomment for debugging */}
+            {/* <Card className="bg-yellow-50 border-yellow-200">
+                <CardContent className="p-4">
+                    <div className="text-sm text-yellow-800">
+                        <strong>Debug Info:</strong><br />
+                        API Base URL: {apiBaseUrl || "Not set"}<br />
+                        Total Reservations: {reservations.length}<br />
+                        Filtered Reservations: {filteredReservations.length}<br />
+                        Pending Check-outs: {pendingCheckOuts.length}<br />
+                        Loading: {loading ? "Yes" : "No"}
+                        <br />
+                        Sample statuses: {reservations.slice(0, 3).map(r => r.reservationStatus).join(', ')}
+                    </div>
+                </CardContent>
+            </Card> */}
+
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                     <CardContent className="p-4">
                         <div className="flex items-center">
@@ -357,7 +423,7 @@ export default function TodayCheckOutsPage() {
                     </CardContent>
                 </Card>
 
-                <Card>
+                {/* <Card>
                     <CardContent className="p-4">
                         <div className="flex items-center">
                             <DollarSign className="w-8 h-8 text-purple-600 mr-3" />
@@ -367,7 +433,7 @@ export default function TodayCheckOutsPage() {
                             </div>
                         </div>
                     </CardContent>
-                </Card>
+                </Card> */}
             </div>
 
             {/* Filters */}
@@ -468,13 +534,26 @@ export default function TodayCheckOutsPage() {
                             <UserX className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                             <h3 className="text-lg font-semibold text-gray-600 mb-2">No check-outs found</h3>
                             <p className="text-gray-500">
-                                No reservations match your current filters
+                                {reservations.length === 0
+                                    ? "No reservations found for today"
+                                    : "No reservations match your current filters"
+                                }
                             </p>
+                            {reservations.length === 0 && (
+                                <Button
+                                    variant="outline"
+                                    className="mt-4"
+                                    onClick={fetchTodayCheckOuts}
+                                >
+                                    <RefreshCw className="w-4 h-4 mr-2" />
+                                    Try Again
+                                </Button>
+                            )}
                         </div>
                     ) : (
                         <div className="space-y-4">
                             {filteredReservations.map((reservation) => (
-                                <Card key={reservation.id} className="hover:shadow-md transition-shadow">
+                                <Card key={reservation.id} className={`hover:shadow-md transition-shadow ${isOverdue(reservation) ? 'border-red-200 bg-red-50' : ''}`}>
                                     <CardContent className="p-6">
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -485,6 +564,11 @@ export default function TodayCheckOutsPage() {
                                                         <h3 className="font-semibold text-lg">
                                                             {reservation.customer?.firstName || 'Unknown'} {reservation.customer?.lastName || ''}
                                                         </h3>
+                                                        {isOverdue(reservation) && (
+                                                            <Badge variant="destructive" className="text-xs">
+                                                                OVERDUE
+                                                            </Badge>
+                                                        )}
                                                     </div>
                                                     <div className="space-y-1 text-sm text-gray-600">
                                                         <div className="flex items-center">
@@ -518,7 +602,12 @@ export default function TodayCheckOutsPage() {
                                                         <p><strong>Floor:</strong> {reservation.room?.floor?.name || 'Ground Floor'}</p>
                                                         <p><strong>Guests:</strong> {reservation.adults || 0} Adults, {reservation.children || 0} Children</p>
                                                         <p><strong>Nights:</strong> {reservation.numberOfNights || 0}</p>
-                                                        <p><strong>Check-in:</strong> {reservation.actualCheckIn ? format(new Date(reservation.actualCheckIn), "MMM d, yyyy HH:mm") : 'N/A'}</p>
+                                                        <p><strong>Check-in:</strong> {
+                                                            reservation.actualCheckIn
+                                                                ? format(new Date(reservation.actualCheckIn), "MMM d, yyyy HH:mm")
+                                                                : 'Not checked in'
+                                                        }</p>
+                                                        <p><strong>Check-out Due:</strong> {format(new Date(reservation.checkOutDate), "MMM d, yyyy")}</p>
                                                     </div>
                                                 </div>
 
@@ -667,7 +756,7 @@ export default function TodayCheckOutsPage() {
                                                                     <div className="grid grid-cols-2 gap-2 text-sm">
                                                                         <span>Additional Charges:</span>
                                                                         <span className="font-medium">{formatCurrency(calculateTotalCharges())}</span>
-                                                                        <span className="font-semibold">Final Amount:</span>
+                                                                        <span className="font-semibold">Final Amount Due:</span>
                                                                         <span className="font-semibold text-blue-600">{formatCurrency(calculateFinalAmount())}</span>
                                                                     </div>
                                                                 </div>
@@ -689,7 +778,16 @@ export default function TodayCheckOutsPage() {
                                                             <DialogFooter>
                                                                 <Button
                                                                     variant="outline"
-                                                                    onClick={() => setSelectedReservation(null)}
+                                                                    onClick={() => {
+                                                                        setSelectedReservation(null);
+                                                                        setCheckOutData({
+                                                                            extraCharges: 0,
+                                                                            minibarCharges: 0,
+                                                                            damageCharges: 0,
+                                                                            lateCheckoutFee: 0,
+                                                                            notes: "",
+                                                                        });
+                                                                    }}
                                                                 >
                                                                     Cancel
                                                                 </Button>
@@ -701,7 +799,7 @@ export default function TodayCheckOutsPage() {
                                                                     {checkingOut === reservation.id ? (
                                                                         <>
                                                                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                                            Checking Out...
+                                                                            Processing...
                                                                         </>
                                                                     ) : (
                                                                         <>
@@ -719,6 +817,13 @@ export default function TodayCheckOutsPage() {
                                                     <Badge variant="outline" className="justify-center">
                                                         <CheckCircle className="w-3 h-3 mr-1" />
                                                         Checked Out
+                                                    </Badge>
+                                                )}
+
+                                                {reservation.reservationStatus === 'CONFIRMED' && (
+                                                    <Badge variant="outline" className="justify-center">
+                                                        <Clock className="w-3 h-3 mr-1" />
+                                                        Not Checked In
                                                     </Badge>
                                                 )}
                                             </div>
