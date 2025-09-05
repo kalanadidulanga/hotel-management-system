@@ -217,7 +217,7 @@ export default function CreateRoomClassPage() {
             router.push(`/rooms/settings/classes/${data.roomClass.id}`);
 
         } catch (error) {
-            console.error('Create error:', error);
+            // console.error('Create error:', error);
             toast.error('Failed to create room class: ' + (error instanceof Error ? error.message : 'Unknown error'));
         } finally {
             setLoading(false);

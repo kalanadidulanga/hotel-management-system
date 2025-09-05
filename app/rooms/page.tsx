@@ -195,7 +195,7 @@ export default function RoomsManagementPage() {
             setRooms(data.rooms || []);
             setStats(data.stats || {});
         } catch (error) {
-            console.error('Error fetching rooms:', error);
+            // console.error('Error fetching rooms:', error);
             toast.error('Failed to load rooms');
         } finally {
             setLoading(false);
@@ -219,7 +219,7 @@ export default function RoomsManagementPage() {
                 setFloors(floorsData.floors || []);
             }
         } catch (error) {
-            console.error('Error fetching filter options:', error);
+            // console.error('Error fetching filter options:', error);
         }
     };
 
@@ -261,7 +261,7 @@ export default function RoomsManagementPage() {
             toast.success(`Room ${roomToDelete.roomNumber} deleted successfully`);
             fetchRooms();
         } catch (error) {
-            console.error('Delete error:', error);
+            // console.error('Delete error:', error);
             toast.error('Failed to delete room: ' + (error instanceof Error ? error.message : 'Unknown error'));
         } finally {
             setDeleteLoading(false);
@@ -283,7 +283,7 @@ export default function RoomsManagementPage() {
             toast.success('Room status updated successfully');
             fetchRooms();
         } catch (error) {
-            console.error('Status update error:', error);
+            // console.error('Status update error:', error);
             toast.error('Failed to update room status');
         }
     };

@@ -178,7 +178,7 @@ export default function RoomClassDetailsPage() {
             setRoomClass(data.roomClass);
 
         } catch (error) {
-            console.error('Error fetching room class:', error);
+            // console.error('Error fetching room class:', error);
             toast.error('Failed to load room class data');
             router.push('/rooms/settings/classes');
         } finally {
@@ -204,7 +204,7 @@ export default function RoomClassDetailsPage() {
             router.push('/rooms/settings/classes');
 
         } catch (error) {
-            console.error('Delete error:', error);
+            // console.error('Delete error:', error);
             toast.error('Failed to delete room class: ' + (error instanceof Error ? error.message : 'Unknown error'));
         } finally {
             setDeleteLoading(false);

@@ -270,7 +270,7 @@ export default function EditReservationPage() {
                 remarks: res.remarks || "",
             });
         } catch (error) {
-            console.error("Error fetching reservation data:", error);
+            // console.error("Error fetching reservation data:", error);
             toast.error("Failed to load reservation data");
         } finally {
             setLoading(false);
@@ -375,7 +375,7 @@ export default function EditReservationPage() {
             // Redirect to reservation details
             router.push(`/reservations/${reservationId}`);
         } catch (error) {
-            console.error("Error updating reservation:", error);
+            // console.error("Error updating reservation:", error);
             toast.error(error instanceof Error ? error.message : "Failed to update reservation");
         } finally {
             setSaving(false);

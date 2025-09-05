@@ -135,7 +135,7 @@ export default function CustomerSearchPage() {
             }
 
         } catch (error) {
-            console.error('Search error:', error);
+            // console.error('Search error:', error);
             toast.error('Failed to search customers: ' + (error instanceof Error ? error.message : 'Unknown error'));
             setSearchResults([]);
         } finally {

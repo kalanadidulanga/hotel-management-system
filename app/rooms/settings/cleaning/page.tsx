@@ -170,7 +170,7 @@ export default function CleaningSchedulePage() {
 
             await fetchCleaningData();
         } catch (error) {
-            console.error('Error fetching data:', error);
+            // console.error('Error fetching data:', error);
             toast.error('Failed to load cleaning schedule data');
         } finally {
             setLoading(false);
@@ -195,7 +195,7 @@ export default function CleaningSchedulePage() {
             setRooms(data.rooms || []);
             setStats(data.stats || {});
         } catch (error) {
-            console.error('Error fetching cleaning data:', error);
+            // console.error('Error fetching cleaning data:', error);
             toast.error('Failed to load cleaning schedule');
         }
     };
@@ -227,7 +227,7 @@ export default function CleaningSchedulePage() {
             setCleaningDate(new Date());
             await fetchCleaningData();
         } catch (error) {
-            console.error('Error marking room as cleaned:', error);
+            // console.error('Error marking room as cleaned:', error);
             toast.error('Failed to mark room as cleaned');
         } finally {
             setActionLoading(false);
@@ -258,7 +258,7 @@ export default function CleaningSchedulePage() {
             setSelectedRoomClass(null);
             await fetchData();
         } catch (error) {
-            console.error('Error updating cleaning frequency:', error);
+            // console.error('Error updating cleaning frequency:', error);
             toast.error('Failed to update cleaning frequency');
         } finally {
             setActionLoading(false);

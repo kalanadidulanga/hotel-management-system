@@ -186,7 +186,7 @@ export default function EditRoomPage() {
                 isActive: roomData.isActive !== false
             });
         } catch (error) {
-            console.error('Error fetching room data:', error);
+            // console.error('Error fetching room data:', error);
             toast.error('Failed to load room data');
             router.push('/rooms');
         } finally {
@@ -211,7 +211,7 @@ export default function EditRoomPage() {
                 setFloors(floorsData.floors || []);
             }
         } catch (error) {
-            console.error('Error fetching form options:', error);
+            // console.error('Error fetching form options:', error);
         }
     };
 
@@ -265,7 +265,7 @@ export default function EditRoomPage() {
             toast.success(data.message || 'Room updated successfully');
             router.push('/rooms');
         } catch (error) {
-            console.error('Error updating room:', error);
+            // console.error('Error updating room:', error);
             toast.error('Failed to update room: ' + (error instanceof Error ? error.message : 'Unknown error'));
         } finally {
             setSaving(false);
@@ -290,7 +290,7 @@ export default function EditRoomPage() {
             toast.success(data.message || 'Room deleted successfully');
             router.push('/rooms');
         } catch (error) {
-            console.error('Error deleting room:', error);
+            // console.error('Error deleting room:', error);
             toast.error('Failed to delete room: ' + (error instanceof Error ? error.message : 'Unknown error'));
         } finally {
             setDeleteLoading(false);

@@ -211,7 +211,7 @@ export default function ReservationDetailsPage() {
                     const errorData = await response.json();
                     errorMessage = errorData.error || errorMessage;
                 } catch (e) {
-                    console.error("Failed to parse error response:", e);
+                    // console.error("Failed to parse error response:", e);
                 }
                 
                 throw new Error(errorMessage);
@@ -226,7 +226,7 @@ export default function ReservationDetailsPage() {
             
             setReservation(data.reservation);
         } catch (error) {
-            console.error("Error fetching reservation:", error);
+            // console.error("Error fetching reservation:", error);
             toast.error(error instanceof Error ? error.message : "Failed to load reservation details");
         } finally {
             setLoading(false);
@@ -252,7 +252,7 @@ export default function ReservationDetailsPage() {
                     const errorData = await response.json();
                     errorMessage = errorData.error || errorMessage;
                 } catch (e) {
-                    console.error("Failed to parse error response:", e);
+                    // console.error("Failed to parse error response:", e);
                 }
                 throw new Error(errorMessage);
             }
@@ -265,7 +265,7 @@ export default function ReservationDetailsPage() {
                 throw new Error("Invalid response format");
             }
         } catch (error) {
-            console.error("Error updating reservation:", error);
+            // console.error("Error updating reservation:", error);
             toast.error(error instanceof Error ? error.message : "Failed to update reservation");
         } finally {
             setUpdating(false);
@@ -290,7 +290,7 @@ export default function ReservationDetailsPage() {
                     const errorData = await response.json();
                     errorMessage = errorData.error || errorMessage;
                 } catch (e) {
-                    console.error("Failed to parse error response:", e);
+                    // console.error("Failed to parse error response:", e);
                 }
                 throw new Error(errorMessage);
             }
@@ -304,7 +304,7 @@ export default function ReservationDetailsPage() {
                 throw new Error("Invalid response format");
             }
         } catch (error) {
-            console.error("Error cancelling reservation:", error);
+            // console.error("Error cancelling reservation:", error);
             toast.error(error instanceof Error ? error.message : "Failed to cancel reservation");
         } finally {
             setCancelling(false);

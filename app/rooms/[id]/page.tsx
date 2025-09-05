@@ -161,7 +161,7 @@ export default function ViewRoomPage() {
             const data = await response.json();
             setRoom(data.room);
         } catch (error) {
-            console.error('Error fetching room data:', error);
+            // console.error('Error fetching room data:', error);
             toast.error('Failed to load room data');
             router.push('/rooms');
         } finally {
@@ -187,7 +187,7 @@ export default function ViewRoomPage() {
             toast.success(data.message || 'Room deleted successfully');
             router.push('/rooms');
         } catch (error) {
-            console.error('Error deleting room:', error);
+            // console.error('Error deleting room:', error);
             toast.error('Failed to delete room: ' + (error instanceof Error ? error.message : 'Unknown error'));
         } finally {
             setDeleteLoading(false);
@@ -210,7 +210,7 @@ export default function ViewRoomPage() {
             toast.success('Room status updated successfully');
             fetchRoomData(); // Refresh data
         } catch (error) {
-            console.error('Status update error:', error);
+            // console.error('Status update error:', error);
             toast.error('Failed to update room status');
         }
     };

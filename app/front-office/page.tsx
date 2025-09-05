@@ -120,7 +120,7 @@ export default function FrontOfficeDashboard() {
                 throw new Error(data.error || 'Failed to load dashboard');
             }
         } catch (error) {
-            console.error("Error fetching dashboard data:", error);
+
             toast.error("Failed to load dashboard data");
         } finally {
             setLoading(false);

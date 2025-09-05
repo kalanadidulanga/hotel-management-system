@@ -115,7 +115,7 @@ export default function MonthlyCalendarPage() {
                 setRoomClasses(data.roomClasses || []);
             }
         } catch (error) {
-            console.error("Error fetching room classes:", error);
+            // console.error("Error fetching room classes:", error);
         }
     };
 
@@ -147,7 +147,7 @@ export default function MonthlyCalendarPage() {
                 throw new Error(data.error || 'Failed to load calendar');
             }
         } catch (error) {
-            console.error("Error fetching calendar data:", error);
+            // console.error("Error fetching calendar data:", error);
             toast.error("Failed to load calendar data");
         } finally {
             setLoading(false);

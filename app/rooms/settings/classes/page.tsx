@@ -117,7 +117,7 @@ export default function RoomClassesPage() {
             setRoomClasses(data.roomClasses || []);
             setStats(data.stats || {});
         } catch (error) {
-            console.error('Error fetching room classes:', error);
+            // console.error('Error fetching room classes:', error);
             toast.error('Failed to load room classes');
         } finally {
             setLoading(false);
@@ -193,7 +193,7 @@ export default function RoomClassesPage() {
             toast.success(`Room class "${name}" deleted successfully`);
             fetchRoomClasses(); // Refresh the list
         } catch (error) {
-            console.error('Delete error:', error);
+            // console.error('Delete error:', error);
             toast.error('Failed to delete room class: ' + (error instanceof Error ? error.message : 'Unknown error'));
         } finally {
             setDeleteLoading(null);

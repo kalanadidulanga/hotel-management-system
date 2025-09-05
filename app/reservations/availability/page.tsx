@@ -116,7 +116,7 @@ export default function RoomAvailabilityPage() {
                 setFloors(floorsData.floors || []);
             }
         } catch (error) {
-            console.error("Error fetching initial data:", error);
+            // console.error("Error fetching initial data:", error);
             toast.error("Failed to load initial data");
         } finally {
             setLoading(false);
@@ -163,7 +163,7 @@ export default function RoomAvailabilityPage() {
                 throw new Error(data.error || 'Failed to check availability');
             }
         } catch (error) {
-            console.error("Error checking availability:", error);
+            // console.error("Error checking availability:", error);
             toast.error("Failed to check room availability");
             setRooms([]);
         } finally {

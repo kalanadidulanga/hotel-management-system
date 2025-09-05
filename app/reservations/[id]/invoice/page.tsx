@@ -82,7 +82,7 @@ export default function InvoicePage() {
                 throw new Error(data.error || 'Failed to load invoice');
             }
         } catch (error) {
-            console.error('Error fetching invoice:', error);
+            // console.error('Error fetching invoice:', error);
             setError(error instanceof Error ? error.message : 'Unknown error');
             toast.error('Failed to load invoice');
         } finally {

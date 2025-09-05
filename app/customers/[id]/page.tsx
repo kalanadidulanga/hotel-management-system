@@ -120,7 +120,7 @@ export default function CustomerDetailsPage({ params }: { params: Promise<{ id: 
             setCustomer(data.customer);
             setStats(data.stats);
         } catch (error) {
-            console.error('Error fetching customer:', error);
+            // console.error('Error fetching customer:', error);
             toast.error('Failed to load customer details');
             router.push('/customers');
         } finally {

@@ -98,7 +98,7 @@ export default function RoomSettingsPage() {
             setRecentRooms(data.recentRooms || []);
             setStats(data.stats || {});
         } catch (error) {
-            console.error('Error fetching room settings:', error);
+            // console.error('Error fetching room settings:', error);
             toast.error('Failed to load room settings');
         } finally {
             setLoading(false);

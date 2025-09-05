@@ -130,7 +130,7 @@ export default function CustomersPage() {
             setStats(data.stats || {});
             setPagination(data.pagination || {});
         } catch (error) {
-            console.error("Error fetching customers:", error);
+            // console.error("Error fetching customers:", error);
             toast.error("Failed to load customers");
         } finally {
             setLoading(false);

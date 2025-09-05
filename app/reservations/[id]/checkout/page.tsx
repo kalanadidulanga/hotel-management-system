@@ -223,7 +223,7 @@ export default function CheckoutPage() {
             }));
 
         } catch (error) {
-            console.error("Error fetching checkout data:", error);
+            // console.error("Error fetching checkout data:", error);
             toast.error("Failed to load checkout data");
         } finally {
             setLoading(false);
@@ -277,7 +277,7 @@ export default function CheckoutPage() {
             router.push(`/reservations/${reservationId}/invoice`);
 
         } catch (error) {
-            console.error("Checkout error:", error);
+            // console.error("Checkout error:", error);
             toast.error(error instanceof Error ? error.message : "Failed to process checkout");
         } finally {
             setProcessing(false);

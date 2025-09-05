@@ -144,7 +144,8 @@ export default function TodayCheckOutsPage() {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error("Response error:", errorText);
-                throw new Error(`Failed to fetch check-outs: ${response.status}`);
+                toast.error(`Failed to fetch check-outs: ${response.status}`);
+                // throw new Error(`Failed to fetch check-outs: ${response.status}`);
             }
 
             const data = await response.json();
@@ -157,7 +158,7 @@ export default function TodayCheckOutsPage() {
                 throw new Error(data.error || 'Failed to load check-outs');
             }
         } catch (error) {
-            console.error("Error fetching check-outs:", error);
+ 
             toast.error("Failed to load today's check-outs");
             setReservations([]);
         } finally {
@@ -233,17 +234,16 @@ export default function TodayCheckOutsPage() {
             try {
                 data = JSON.parse(responseText);
             } catch (parseError) {
-                console.error("Failed to parse JSON response:", parseError);
-                console.error("Response text:", responseText);
-                throw new Error(`Server returned invalid JSON: ${responseText.substring(0, 200)}`);
+                // console.error("Failed to parse JSON response:", parseError);
+                // console.error("Response text:", responseText);
+                toast.error("Server returned invalid JSON response");
+ 
             }
 
             console.log("Parsed response data:", data);
 
             if (!response.ok) {
-                console.error("HTTP error:", response.status, response.statusText);
-                console.error("Error data:", data);
-                throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+                toast.error(data?.error || `HTTP ${response.status}: ${response.statusText}`);
             }
 
             if (data.success) {
@@ -259,11 +259,11 @@ export default function TodayCheckOutsPage() {
                 });
                 await fetchTodayCheckOuts(); // Refresh the list
             } else {
-                console.error("Check-out failed:", data.error);
-                throw new Error(data.error || 'Failed to check out guest');
+                // console.error("Check-out failed:", data.error);
+                // throw new Error(data.error || 'Failed to check out guest');
             }
         } catch (error) {
-            console.error("Error in handleCheckOut:", error);
+            // console.error("Error in handleCheckOut:", error);
 
             // More detailed error message
             let errorMessage = "Failed to check out guest";
@@ -271,7 +271,7 @@ export default function TodayCheckOutsPage() {
                 errorMessage = error.message;
             }
 
-            console.error("Final error message:", errorMessage);
+            // console.error("Final error message:", errorMessage);
             toast.error(errorMessage);
         } finally {
             setCheckingOut(null);

@@ -232,7 +232,7 @@ export default function CheckinPage() {
             }));
 
         } catch (error) {
-            console.error("Error fetching check-in data:", error);
+            // console.error("Error fetching check-in data:", error);
             toast.error("Failed to load check-in data");
         } finally {
             setLoading(false);
@@ -293,7 +293,7 @@ export default function CheckinPage() {
             router.push(`/reservations/${reservationId}`);
 
         } catch (error) {
-            console.error("Check-in error:", error);
+            // console.error("Check-in error:", error);
             toast.error(error instanceof Error ? error.message : "Failed to process check-in");
         } finally {
             setProcessing(false);

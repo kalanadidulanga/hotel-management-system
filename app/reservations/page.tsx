@@ -367,7 +367,7 @@ export default function ReservationsDashboard() {
             });
 
         } catch (error) {
-            console.error('Error fetching reservations:', error);
+            // console.error('Error fetching reservations:', error);
 
             let errorMessage = 'Unknown error occurred';
 
@@ -403,7 +403,7 @@ export default function ReservationsDashboard() {
                 setRoomClasses(data.roomClasses || []);
             }
         } catch (error) {
-            console.error('Error fetching room classes:', error);
+            // console.error('Error fetching room classes:', error);
             // Don't show error toast for room classes as it's not critical
         }
     };

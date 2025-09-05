@@ -105,7 +105,7 @@ export default function AddRoomPage() {
                 setFloors(floorsData.floors || []);
             }
         } catch (error) {
-            console.error('Error fetching initial data:', error);
+            // console.error('Error fetching initial data:', error);
             toast.error('Failed to load form data');
         } finally {
             setDataLoading(false);
@@ -177,7 +177,7 @@ export default function AddRoomPage() {
             router.push('/rooms');
 
         } catch (error) {
-            console.error('Room creation error:', error);
+            // console.error('Room creation error:', error);
             toast.error('Failed to create room: ' + (error instanceof Error ? error.message : 'Unknown error'));
         } finally {
             setLoading(false);

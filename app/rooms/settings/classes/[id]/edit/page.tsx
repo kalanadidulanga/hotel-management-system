@@ -151,7 +151,7 @@ export default function EditRoomClassPage() {
             });
 
         } catch (error) {
-            console.error('Error fetching room class:', error);
+            // console.error('Error fetching room class:', error);
             toast.error('Failed to load room class data');
             router.push('/rooms/settings/classes');
         } finally {
@@ -291,7 +291,7 @@ export default function EditRoomClassPage() {
             router.push(`/rooms/settings/classes/${roomClassId}`);
 
         } catch (error) {
-            console.error('Update error:', error);
+            // console.error('Update error:', error);
             toast.error('Failed to update room class: ' + (error instanceof Error ? error.message : 'Unknown error'));
         } finally {
             setSaving(false);

@@ -103,12 +103,12 @@ export const sidebarConfig: SidebarItem[] = [
         route: "/reservations/calendar",
         roles: ["superadmin", "manager"],
       },
-      {
-        label: "Quick Orders",
-        icon: Coffee,
-        route: "/reservations/quick-orders",
-        roles: ["superadmin", "manager", "cashier"],
-      },
+      // {
+      //   label: "Quick Orders",
+      //   icon: Coffee,
+      //   route: "/reservations/quick-orders",
+      //   roles: ["superadmin", "manager", "cashier"],
+      // },
     ],
   },
 
@@ -141,12 +141,12 @@ export const sidebarConfig: SidebarItem[] = [
         route: "/rooms/new",
         roles: ["superadmin"],
       },
-      {
-        label: "Cleaning Schedule",
-        icon: Calendar,
-        route: "/rooms/settings/cleaning",
-        roles: ["superadmin"],
-      },
+      // {
+      //   label: "Cleaning Schedule",
+      //   icon: Calendar,
+      //   route: "/rooms/settings/cleaning",
+      //   roles: ["superadmin"],
+      // },
     ],
   },
 
