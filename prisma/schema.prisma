@@ -12,82 +12,55 @@ enum Role {
   ADMIN
   MANAGER
   CASHIER
+  FRONT_OFFICE
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String
-  role      Role     @default(CASHIER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum AssetType {
+  FIXED_ASSET
+  UTENSIL
 }
 
-model Room_Facility_List {
-  id        Int                          @id @default(autoincrement())
-  name      String                       @unique
-  details   Room_Facilities_Details_List[]
+enum AssetStatus {
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+  DAMAGED
+  OUT_OF_ORDER
 }
 
-model Room_Facilities_Details_List {
-  id              Int                @id @default(autoincrement())
-  facilityType    String
-  facility_type   Room_Facility_List @relation(fields: [facilityType], references: [name], onDelete: Cascade)
-  facility_name   String  @unique
-  description     String
-  roomAssignments RoomFacilityAssignment[]
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  CANCELLED
 }
 
-model Room_Size_List {
-  id   Int    @id @default(autoincrement())
-  name String @unique
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
-model Customer {
-  id             Int          @id @default(autoincrement())
-  customerID     String       @unique
-  isActive       Boolean      @default(true)
-  title          String?
-  firstName      String
-  lastName       String?
-  gender         String
-  dateOfBirth    DateTime
-  anniversary    DateTime?
-  nationality    Nationality
-  isVip          Boolean      @default(false)
-  occupation     String?
-  email          String       @unique
-  countryCode    String?
-  phone          String       
-  contactType    String?
-  country        String?
-  state          String?
-  city           String?
-  zipcode        String?
-  address        String
-  identityType   String?
-  identityNumber String       @unique
-  frontIdUrl     String?
-  backIdUrl      String?
-  guestImageUrl  String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  reservations   Reservation[]
-  wakeUpCalls    WakeUpCall[]
+enum StaffDepartment {
+  MAINTENANCE
+  HOUSEKEEPING
+  KITCHEN
+  RECEPTION
+  SECURITY
+  MANAGEMENT
+  ACCOUNTING
+  FRONT_OFFICE
 }
 
-model WakeUpCall {
-  id            Int       @id @default(autoincrement())
-  customerId    Int
-  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  customerName  String
-  customerPhone String
-  date          DateTime
-  time          String
-  remarks       String?
-  status        WakeUpCallStatus @default(Pending)
-  createdAt     DateTime @default(now())
+enum StaffClass {
+  TECHNICIAN
+  SUPERVISOR
+  MANAGER
+  ASSISTANT
+  SPECIALIST
+  RECEPTIONIST
 }
 
 enum WakeUpCallStatus {
@@ -101,182 +74,739 @@ enum Nationality {
   foreigner
 }
 
-model ComplementaryItem {
-  id            Int       @id @default(autoincrement())
-  roomType      String
-  complementary String
-  rate          Int
-  room_type     RoomList  @relation(fields: [roomType], references: [roomType], onDelete: Cascade)
-  reservations  Reservation[] @relation("ReservationToComplementary")
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  CLEANING
+  OUT_OF_ORDER
 }
 
-model Reservation {
-  id                 Int       @id @default(autoincrement())
-  bookingNumber      String    @unique
-  checkInDate        DateTime
-  checkOutDate       DateTime
-  checkInTime        String
-  checkOutTime       String
-  arrivalFrom        String?
-  bookingType        String?
-  purposeOfVisit     String
-  remarks            String?
-
-  roomType           String
-  roomTypeDetails    RoomList  @relation(fields: [roomType], references: [roomType], onDelete: Cascade)
-  roomNumber         Int
-  room               Room      @relation(fields: [roomNumber], references: [roomNumber], onDelete: Cascade)
-
-  adults             Int?
-  children           Int?
-  roomPrice          Int
-  billingType        String
-
-  complementaryItems ComplementaryItem[] @relation("ReservationToComplementary")
-  customerId         Int
-  customer           Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
-
-  discountReason     String?
-  discountAmount     Int        @default(0)
-  commissionPercent  Int        @default(0)
-  commissionAmount   Int        @default(0)
-  bookingCharge      Int        @default(0)
-  tax                Int        @default(0)
-  serviceCharge      Int        @default(0)
-  paymentMode        String
-  advanceRemarks     String?
-  advanceAmount      Int        @default(0)
-  total              Int        @default(0)
-  balanceAmount      Int        @default(0)
-
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+enum PaymentMethod {
+  CASH
+  CARD
+  ONLINE
+  BANK_TRANSFER
+  CREDIT_CARD
+  DEBIT_CARD
+  MOBILE_PAYMENT
 }
 
-model BedType {
-  id      Int        @id @default(autoincrement())
-  name    String     @unique
-  rooms   RoomList[] @relation("BedTypeToRoomList")
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
 }
 
-model BookingType {
-  id              Int             @id @default(autoincrement())
-  name            String          @unique
-  bookingSources  BookingSource[]
+enum BillingType {
+  NIGHT_STAY
+  DAY_USE
+  HOURLY
 }
 
-model BookingSource {
-  id              Int          @id @default(autoincrement())
-  bookingTypeId   Int
-  bookingType     BookingType  @relation(fields: [bookingTypeId], references: [id], onDelete: Cascade)
-  bookingSource   String
-  commissionRate  Float @default(0.0)
-  totalBalance    Float @default(0.0)
-  paidAmount      Float @default(0.0)
-  dueAmount       Float @default(0.0)
+enum PaymentType {
+  ADVANCE_PAYMENT
+  CHECKOUT_PAYMENT
+  REFUND
+  PENALTY
 }
 
-model RoomList {
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum IncidentType {
+  DAMAGE
+  COMPLAINT
+  MAINTENANCE_REQUEST
+  SECURITY
+  NOISE
+  CLEANLINESS
+  SERVICE
+}
+
+enum IncidentStatus {
+  REPORTED
+  INVESTIGATING
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+// ========== USER MANAGEMENT (Enhanced for Front Office) ==========
+model User {
   id                 Int      @id @default(autoincrement())
-  roomType           String   @unique
-  rate               Float
-  bedCharge          Float
-  hourlyCharge       Float
-  personCharge       Float
-  capacity           Int
-  extraCapability    Boolean
-  roomSize           String
-  bedNo              Int
-  bedTypeId          Int
-  bedType            BedType   @relation("BedTypeToRoomList", fields: [bedTypeId], references: [id], onDelete: Cascade)
-  roomDescription    String?
-  reserveCondition   String?
-  createdAt          DateTime  @default(now())
-
-  roomImages         RoomImage[]
-  promocodes         Promocode[]
-  complementaryItems ComplementaryItem[]
-  rooms              Room[]
-  facilityAssignments RoomFacilityAssignment[]
-  reservations       Reservation[]
-  roomOffers         RoomOffer[] @relation("RoomOfferToRoomList")
+  email              String   @unique
+  password           String
+  name               String
+  role               Role     @default(CASHIER)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  // Enhanced user fields
+  department         StaffDepartment?
+  staffClass         StaffClass?
+  fullName           String?
+  nic                String?  @unique
+  dateOfBirth        DateTime?
+  contact            String?
+  address            String?
+  isDedicated        Boolean  @default(false)
+  
+  // Relations
+  assetNotifications AssetNotification[]
+  maintenanceLogs    MaintenanceLog[]
+  assignedAssets     Asset[]
+  reservations       Reservation[] @relation("StaffReservations")
+  quickOrders        QuickOrder[]
+  cashFlows          CashFlow[]
+  payments           Payment[]
+  reportedIncidents  IncidentLog[]
+  assignedIncidents  IncidentLog[] @relation("AssignedIncidents")
 }
 
+// ========== MODULE 03: CUSTOMER MANAGEMENT ==========
+model Customer {
+  id             Int          @id @default(autoincrement())
+  customerID     String       @unique // Auto-generated customer ID
+  isActive       Boolean      @default(true)
+  
+  // Personal Details
+  title          String?      // Mr, Mrs, Ms, Dr
+  firstName      String
+  lastName       String?
+  fullName       String?      // Computed field for display
+  gender         String
+  dateOfBirth    DateTime?
+  anniversary    DateTime?
+  nationality    Nationality
+  
+  // VIP Status (Module 03.2)
+  isVip          Boolean      @default(false)
+  vipLevel       String?      // Gold, Silver, Platinum
+  
+  // Contact Information
+  occupation     String?
+  email          String       @unique
+  countryCode    String?
+  phone          String       
+  alternatePhone String?
+  contactType    String?
+  
+  // Address
+  country        String?
+  state          String?
+  city           String?
+  zipcode        String?
+  address        String
+  
+  // Identity Documents (NIC as per requirement 1.3, 1.4)
+  identityType   String?      // NIC, Passport, Driver's License
+  identityNumber String       @unique // This is the NIC for quick search
+  frontIdUrl     String?      // Identity document front image
+  backIdUrl      String?      // Identity document back image
+  guestImageUrl  String?      // Customer photo
+  
+  // Additional Info
+  specialRequests String?     // Dietary, accessibility needs
+  notes          String?      // Staff notes about customer
+  
+  // Timestamps
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  // Relations
+  reservations   Reservation[]
+  wakeUpCalls    WakeUpCall[]
+  quickOrders    QuickOrder[] // Orders made while staying
+  payments       Payment[]
+  incidents      IncidentLog[]
+  
+  @@index([identityNumber]) // Fast NIC search (requirement 1.4)
+  @@index([isVip])          // VIP customer highlighting
+  @@index([phone])          // Phone search
+}
 
+// ========== MODULE 06: ROOM SETTING ==========
+
+// Room Classes/Types (6.1, 6.2)
+model RoomClass {
+  id                    Int      @id @default(autoincrement())
+  name                  String   @unique // Deluxe, Super Luxury, Single
+  description           String?
+  
+  // Pricing (6.2)
+  ratePerNight          Float    // Night stay rate
+  rateDayUse            Float    // Day use rate
+  hourlyRate            Float?   // Hourly rate if applicable
+  extraPersonCharge     Float    @default(0)
+  childCharge           Float    @default(0)
+  
+  // Capacity
+  maxOccupancy          Int      @default(2)
+  standardOccupancy     Int      @default(2)
+  
+  // Room Details
+  roomSize              String?  // Square footage or size category
+  bedConfiguration      String?  // King, Queen, Twin, etc.
+  
+  // Cleaning Schedule (6.3 - Only Admin can modify)
+  cleaningFrequencyDays Int      @default(1) // How often to clean
+  lastCleaningUpdate    DateTime @default(now())
+  cleaningDueNotification Boolean @default(true)
+  
+  // Features & Amenities
+  amenities             String?  // JSON array of amenities
+  specialFeatures       String?  // Balcony, Sea view, etc.
+  
+  // Status
+  isActive              Boolean  @default(true)
+  
+  // Timestamps
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Relations
+  rooms                 Room[]
+  reservations          Reservation[]
+  roomImages            RoomImage[]
+  roomOffers            RoomOffer[] @relation("RoomOfferToRoomClass")
+  complementaryItems    ComplementaryItem[]
+}
+
+// Individual Rooms
+model Room {
+  id              Int        @id @default(autoincrement())
+  roomNumber      String     @unique // Room identifier (searchable as per 7.1)
+  
+  // Room Classification
+  roomClassId     Int
+  roomClass       RoomClass  @relation(fields: [roomClassId], references: [id], onDelete: Cascade)
+  
+  // Floor Information
+  floorId         Int?
+  floor           Floor?     @relation(fields: [floorId], references: [id], onDelete: SetNull)
+  
+  // Status
+  status          RoomStatus @default(AVAILABLE)
+  isActive        Boolean    @default(true)
+  
+  // Maintenance & Cleaning
+  lastCleaned     DateTime?
+  nextCleaningDue DateTime?
+  cleaningNotes   String?
+  
+  // Special Features for this specific room
+  hasBalcony      Boolean    @default(false)
+  hasSeaView      Boolean    @default(false)
+  hasKitchenette  Boolean    @default(false)
+  specialNotes    String?
+  
+  // Timestamps
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  
+  // Relations
+  reservations    Reservation[]
+  facilities      RoomFacilityAssignment[]
+  incidents       IncidentLog[]
+  
+  @@index([roomNumber]) // Fast room search (requirement 7.1)
+  @@index([status])     // Filter by availability
+}
+
+// Room Facilities Management
+model RoomFacility {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique // WiFi, AC, TV, Mini Bar
+  description String?
+  category    String?  // Electronics, Furniture, Amenity
+  isChargeable Boolean @default(false)
+  chargeAmount Float   @default(0)
+  
+  assignments RoomFacilityAssignment[]
+}
 
 model RoomFacilityAssignment {
-  id         Int      @id @default(autoincrement())
+  id         Int          @id @default(autoincrement())
   roomId     Int
   facilityId Int
-  room       RoomList @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  facility   Room_Facilities_Details_List @relation(fields: [facilityId], references: [id], onDelete: Cascade)
-
+  room       Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  facility   RoomFacility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  isWorking  Boolean      @default(true)
+  notes      String?
+  
   @@unique([roomId, facilityId])
 }
 
 model RoomImage {
-  id        Int      @id @default(autoincrement())
-  roomType  String
-  imageUrl  String
-  createdAt DateTime @default(now())
-  room      RoomList @relation(fields: [roomType], references: [roomType], onDelete: Cascade)
-}
-
-model Floor {
-  id         Int          @id @default(autoincrement())
-  name       String       @unique
-  floorLists FloorList[]
-}
-
-model FloorList {
-  id           Int        @id @default(autoincrement())
-  floorName    String
-  floor        Floor      @relation(fields: [floorName], references: [name], onDelete: Cascade)
-  noOfRoom     Int
-  startRoomNo  Int
-  createdAt    DateTime   @default(now())
-  rooms        Room[]
-}
-
-model Room {
-  id          Int        @id @default(autoincrement())
-  roomNumber  Int        @unique
-  floorListId Int
-  floorList   FloorList  @relation(fields: [floorListId], references: [id], onDelete: Cascade)
-  isAvailable Boolean    @default(true)
-  roomType    String?
-  roomList    RoomList?  @relation(fields: [roomType], references: [roomType], onDelete: SetNull)
-  reservations Reservation[]
-}
-
-
-
-model Promocode {
-  id         Int       @id @default(autoincrement())
-  roomType   String
-  room       RoomList  @relation(fields: [roomType], references: [roomType], onDelete: Cascade)
-  fromDate   DateTime
-  toDate     DateTime
-  discount   Int
-  promocode  String    @unique
-  status     String
-  createdAt  DateTime  @default(now())
-}
-
-
-
-
-model RoomOffer {
   id           Int       @id @default(autoincrement())
-  roomType     String
-  room         RoomList  @relation("RoomOfferToRoomList", fields: [roomType], references: [roomType], onDelete: Cascade)
-  date         DateTime
-  originalRate Float
-  offerDiscount Float?   // Stored as percentage (0-100)
-  offerTitle   String?
-  offerText    String?
+  roomClassId  Int
+  roomClass    RoomClass @relation(fields: [roomClassId], references: [id], onDelete: Cascade)
+  imageUrl     String
+  caption      String?
+  isPrimary    Boolean   @default(false)
   createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+}
 
-  @@unique([roomType, date])
+// ========== MODULE 07: ROOM RESERVATION ==========
+model Reservation {
+  id                 Int       @id @default(autoincrement())
+  bookingNumber      String    @unique // Auto-generated booking reference
+  
+  // Customer Information (7.2)
+  customerId         Int
+  customer           Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // Room Information
+  roomId             Int
+  room               Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomClassId        Int
+  roomClass          RoomClass @relation(fields: [roomClassId], references: [id], onDelete: Cascade)
+  
+  // Booking Dates & Times (7.2)
+  checkInDate        DateTime
+  checkOutDate       DateTime
+  checkInTime        String    @default("14:00")
+  checkOutTime       String    @default("12:00")
+  actualCheckIn      DateTime?
+  actualCheckOut     DateTime?
+  
+  // Guest Information
+  numberOfNights     Int       // Calculated field
+  adults             Int       @default(1)
+  children           Int       @default(0)
+  infants            Int       @default(0)
+  
+  // Booking Details
+  bookingType        String?   // Online, Phone, Walk-in
+  purposeOfVisit     String?   // Business, Leisure, Event
+  arrivalFrom        String?   // Airport, City, etc.
+  specialRequests    String?   // Late check-in, early check-out
+  remarks            String?
+  
+  // Pricing (7.4 - Discount handling)
+  billingType        BillingType @default(NIGHT_STAY)
+  baseRoomRate       Float     // Original room rate per night
+  totalRoomCharge    Float     // Base rate × nights
+  extraCharges       Float     @default(0) // Additional services
+  
+  // Discount Management (7.4)
+  discountType       DiscountType?
+  discountValue      Float     @default(0) // Percentage or fixed amount
+  discountReason     String?   // Reason for discount
+  discountAmount     Float     @default(0) // Calculated discount amount
+  discountApprovedBy String?   // Staff who approved discount
+  
+  // Additional Charges
+  serviceCharge      Float     @default(0)
+  tax                Float     @default(0)
+  commissionPercent  Float     @default(0)
+  commissionAmount   Float     @default(0)
+  
+  // Payment Information (7.2)
+  paymentMethod      PaymentMethod
+  totalAmount        Float     // Final amount after all calculations
+  advanceAmount      Float     @default(0) // Paid advance
+  balanceAmount      Float     @default(0) // Remaining balance
+  
+  // Payment Tracking
+  paymentStatus      String    @default("PENDING") // PENDING, PARTIAL, PAID
+  advanceRemarks     String?   // Notes about advance payment
+  
+  // Staff Information
+  bookedBy           Int?      // Staff who made the booking
+  bookedByStaff      User?     @relation("StaffReservations", fields: [bookedBy], references: [id], onDelete: SetNull)
+  
+  // Status Tracking
+  reservationStatus  String    @default("CONFIRMED") // CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED
+  cancellationReason String?
+  cancellationDate   DateTime?
+  
+  // Timestamps
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  
+  // Relations
+  quickOrders        QuickOrder[] // Orders made during stay (requirement 1.5)
+  complementaryItems ComplementaryItem[] @relation("ReservationToComplementary")
+  payments           Payment[]
+  incidents          IncidentLog[]
+  
+  @@index([checkInDate, checkOutDate]) // Date range searches
+  @@index([reservationStatus])         // Status filtering
+  @@index([bookingNumber])             // Booking search
+}
+
+// Quick Orders (Requirement 1.5)
+model QuickOrder {
+  id            Int         @id @default(autoincrement())
+  reservationId Int
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  customerId    Int
+  customer      Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // Order Details
+  description   String      // What was ordered
+  quantity      Int         @default(1)
+  unitPrice     Float
+  totalAmount   Float
+  
+  // Service Details
+  serviceType   String?     // Room Service, Laundry, Extra Towels
+  deliveredBy   Int?
+  deliveredByStaff User?    @relation(fields: [deliveredBy], references: [id], onDelete: SetNull)
+  
+  // Status
+  orderStatus   String      @default("PENDING") // PENDING, DELIVERED, CANCELLED
+  deliveredAt   DateTime?
+  notes         String?
+  
+  // Timestamps
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// Payment Management
+model Payment {
+  id            Int           @id @default(autoincrement())
+  paymentId     String        @unique @default(cuid()) // Auto-generated payment ID
+  
+  // Related entities
+  reservationId Int?
+  reservation   Reservation?  @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  customerId    Int
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  
+  // Payment details
+  amount        Float
+  paymentMethod PaymentMethod
+  paymentType   PaymentType
+  paymentStatus PaymentStatus @default(PENDING)
+  
+  // Transaction details
+  transactionRef String?       // Bank reference, card transaction ID, etc.
+  receiptNumber String?        // Internal receipt number
+  
+  // Additional info
+  remarks       String?
+  processedBy   Int?          // Staff who processed payment
+  processedByStaff User?      @relation(fields: [processedBy], references: [id], onDelete: SetNull)
+  
+  // Timestamps
+  paymentDate   DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@index([reservationId])
+  @@index([paymentDate])
+  @@index([paymentStatus])
+}
+
+// Incident/Damage Logging
+model IncidentLog {
+  id            Int           @id @default(autoincrement())
+  incidentId    String        @unique @default(cuid())
+  
+  // Related entities
+  reservationId Int?
+  reservation   Reservation?  @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  roomId        Int?
+  room          Room?         @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  customerId    Int?
+  customer      Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  
+  // Incident details
+  incidentType  IncidentType
+  title         String
+  description   String
+  severity      MaintenancePriority @default(MEDIUM)
+  status        IncidentStatus @default(REPORTED)
+  
+  // Financial impact
+  amount        Float         @default(0) // Damage cost, compensation, etc.
+  isPaid        Boolean       @default(false)
+  
+  // Staff handling
+  reportedBy    Int?          // Staff who reported
+  reportedByStaff User?       @relation(fields: [reportedBy], references: [id], onDelete: SetNull)
+  assignedTo    Int?          // Staff assigned to resolve
+  assignedToStaff User?       @relation("AssignedIncidents", fields: [assignedTo], references: [id], onDelete: SetNull)
+  
+  // Resolution
+  resolutionNotes String?
+  resolvedAt    DateTime?
+  
+  // Evidence
+  images        String?       // JSON array of image URLs
+  documents     String?       // JSON array of document URLs
+  
+  // Timestamps
+  incidentDate  DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@index([incidentType])
+  @@index([status])
+  @@index([incidentDate])
+}
+
+// Cash Flow Management (Requirement 1.6)
+model CashFlow {
+  id            Int      @id @default(autoincrement())
+  staffId       Int
+  staff         User     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  date          DateTime @default(now())
+  transactionType String // INFLOW, OUTFLOW
+  amount        Float
+  paymentMethod PaymentMethod
+  
+  // Reference Information
+  referenceType String?  // RESERVATION, QUICK_ORDER, REFUND, EXPENSE
+  referenceId   Int?     // ID of related transaction
+  
+  remarks       String
+  approvedBy    String?  // For large transactions
+  
+  createdAt     DateTime @default(now())
+  
+  @@index([date])          // Date-wise reports
+  @@index([transactionType]) // Income/Expense filtering
+}
+
+// Complementary Items
+model ComplementaryItem {
+  id            Int           @id @default(autoincrement())
+  roomClassId   Int
+  roomClass     RoomClass     @relation(fields: [roomClassId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  rate          Float
+  isOptional    Boolean       @default(true)
+  
+  reservations  Reservation[] @relation("ReservationToComplementary")
+  
+  @@unique([roomClassId, name])
+}
+
+// Room Offers and Promotions
+model RoomOffer {
+  id            Int       @id @default(autoincrement())
+  roomClassId   Int
+  roomClass     RoomClass @relation("RoomOfferToRoomClass", fields: [roomClassId], references: [id], onDelete: Cascade)
+  
+  title         String
+  description   String?
+  validFrom     DateTime
+  validTo       DateTime
+  
+  discountType  DiscountType
+  discountValue Float    // Percentage or amount
+  
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([validFrom, validTo]) // Date range offers
+}
+
+// Floor Management (Supporting structure)
+model Floor {
+  id         Int    @id @default(autoincrement())
+  name       String @unique // Ground Floor, 1st Floor, etc.
+  floorNumber Int   @unique
+  description String?
+  
+  rooms      Room[]
+  
+  createdAt  DateTime @default(now())
+}
+
+// Wake Up Call Service
+model WakeUpCall {
+  id            Int              @id @default(autoincrement())
+  customerId    Int
+  customer      Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerName  String
+  customerPhone String
+  roomNumber    String?
+  date          DateTime
+  time          String
+  remarks       String?
+  status        WakeUpCallStatus @default(Pending)
+  createdAt     DateTime         @default(now())
+}
+
+// ========== ASSET MANAGEMENT ==========
+model AssetCategory {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  assetType   AssetType
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  assets      Asset[]
+}
+
+model Asset {
+  id                    Int       @id @default(autoincrement())
+  assetId               String    @unique
+  name                  String
+  code                  String    @unique
+  description           String?
+  
+  type                  AssetType
+  categoryId            Int?
+  category              AssetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  purchasePrice         Float
+  purchaseDate          DateTime
+  supplier              String?
+  warrantyPeriod        Int?
+  warrantyExpiry        DateTime?
+  
+  quantity              Int       @default(1)
+  unit                  String?
+  location              String?
+  serialNumber          String?
+  model                 String?
+  brand                 String?
+  
+  status                AssetStatus @default(ACTIVE)
+  condition             String?
+  currentValue          Float?
+  depreciationRate      Float?
+  
+  maintenanceDate       DateTime
+  lastMaintenanceDate   DateTime?
+  maintenanceInterval   Int       @default(365)
+  maintenanceCost       Float     @default(0)
+  
+  assignedToId          Int?
+  assignedTo            User?     @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  
+  imageUrl              String?
+  documentUrl           String?
+  qrCode                String?
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  maintenanceLogs       MaintenanceLog[]
+  notifications         AssetNotification[]
+  transfers             AssetTransfer[]
+  depreciations         AssetDepreciation[]
+}
+
+model MaintenanceLog {
+  id                Int       @id @default(autoincrement())
+  maintenanceId     String    @unique
+  
+  assetId           Int
+  asset             Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  staffId           Int
+  staff             User      @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  maintenanceDate   DateTime
+  description       String
+  cost              Float     @default(0)
+  
+  serviceProvider   String?
+  serviceType       String?
+  priority          MaintenancePriority @default(MEDIUM)
+  
+  status            MaintenanceStatus @default(COMPLETED)
+  scheduledDate     DateTime?
+  startTime         DateTime?
+  endTime           DateTime?
+  
+  nextMaintenanceDate DateTime?
+  
+  partsUsed         String?
+  partsCost         Float     @default(0)
+  laborCost         Float     @default(0)
+  
+  inspectedBy       String?
+  qualityRating     Int?
+  
+  beforeImages      String?
+  afterImages       String?
+  workOrderNumber   String?
+  
+  remarks           String?
+  issuesFound       String?
+  recommendations   String?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model AssetNotification {
+  id              Int       @id @default(autoincrement())
+  notificationId  String    @unique
+  
+  assetId         Int
+  asset           Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  userId          Int?
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  type            String
+  title           String
+  message         String
+  priority        MaintenancePriority @default(MEDIUM)
+  
+  isRead          Boolean   @default(false)
+  isActionTaken   Boolean   @default(false)
+  
+  scheduledFor    DateTime
+  sentAt          DateTime?
+  acknowledgedAt  DateTime?
+  
+  escalationLevel Int       @default(0)
+  escalatedTo     String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model AssetTransfer {
+  id            Int      @id @default(autoincrement())
+  transferId    String   @unique
+  
+  assetId       Int
+  asset         Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  fromLocation  String
+  toLocation    String
+  fromUserId    Int?
+  toUserId      Int?
+  
+  reason        String
+  transferDate  DateTime
+  approvedBy    String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model AssetDepreciation {
+  id              Int      @id @default(autoincrement())
+  assetId         Int
+  asset           Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  
+  year            Int
+  openingValue    Float
+  depreciationAmount Float
+  closingValue    Float
+  method          String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([assetId, year])
 }
