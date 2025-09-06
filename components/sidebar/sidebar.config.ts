@@ -19,7 +19,6 @@ import {
   Facebook,
   RotateCcw,
   HelpCircle,
-  Clock,
   CheckCircle,
   XCircle,
   Monitor,
@@ -379,43 +378,23 @@ export const sidebarConfig: SidebarItem[] = [
         icon: FileText,
         route: "/restaurant/pos-invoice",
         roles: ["superadmin", "manager"],
-        children: [
-          {
-            label: "Manage Products",
-            icon: Package,
-            route: "/restaurant/manage-products",
-            roles: ["superadmin", "manager"],
-          },
-          {
-            label: "Manage Categories",
-            icon: Layers3,
-            route: "/restaurant/manage-categories",
-            roles: ["superadmin", "manager"],
-          },
-        ],
+      },
+      {
+        label: "Manage Products",
+        icon: Package,
+        route: "/restaurant/manage-products",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Manage Categories",
+        icon: Layers3,
+        route: "/restaurant/manage-categories",
+        roles: ["superadmin", "manager"],
       },
       {
         label: "Order List",
         icon: List,
         route: "/restaurant/order-list",
-        roles: ["superadmin", "manager"],
-      },
-      {
-        label: "Pending Order",
-        icon: Clock,
-        route: "/restaurant/pending-order",
-        roles: ["superadmin", "manager"],
-      },
-      {
-        label: "Complete Order",
-        icon: CheckCircle,
-        route: "/restaurant/complete-order",
-        roles: ["superadmin", "manager"],
-      },
-      {
-        label: "Cancel Order",
-        icon: XCircle,
-        route: "/restaurant/cancel-order",
         roles: ["superadmin", "manager"],
       },
       {

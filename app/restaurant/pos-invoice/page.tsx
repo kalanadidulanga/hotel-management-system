@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Home, Plus, Search, ShoppingCart, Trash2, Minus, Receipt, RefreshCw, Settings, Edit } from "lucide-react";
+import { Home, Plus, Search, ShoppingCart, Trash2, Minus, RefreshCw, Settings, Edit } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useMemo, useEffect } from "react";
@@ -150,22 +150,21 @@ export default function POSInvoicePage() {
 
     try {
       const orderData = {
+        // API expects these fields (see app/api/restaurant/orders/route.ts)
         customerName: customerName.trim(),
+        customerPhone: '',
         tableId: parseInt(selectedTable),
-        waiterName: waiterName.trim() || 'Default Waiter',
+        orderType: 'DINE_IN',
         items: cart.map(item => ({
           productId: item.id,
           quantity: item.quantity,
-          size: item.size,
-          price: item.price
+          unitPrice: item.price,
         })),
-        subtotal,
-        taxAmount,
-        serviceChargeAmount,
-        discountAmount,
-        total,
-        notes: orderNotes.trim()
-      };
+        notes: orderNotes.trim(),
+        specialRequests: '',
+        takenBy: null,
+        paymentMethod: 'CASH',
+      } as const;
 
       const response = await fetch('/api/restaurant/orders', {
         method: 'POST',
@@ -180,8 +179,8 @@ export default function POSInvoicePage() {
       }
 
       const result = await response.json();
-      
-      toast.success(`Order #${result.invoiceNo} created successfully!`);
+
+      toast.success(`Order #${result.orderNumber} created successfully!`);
       
       // Reset form
       setCart([]);
@@ -285,13 +284,6 @@ export default function POSInvoicePage() {
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Clear Cart
-              </Button>
-              <Button 
-                onClick={handleSubmitOrder}
-                className="h-9 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                <Receipt className="h-4 w-4 mr-2" />
-                Place Order
               </Button>
             </div>
           </div>

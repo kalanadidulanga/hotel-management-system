@@ -27,7 +27,7 @@ export default function ManageCategoriesPage() {
       try {
         const res = await fetch("/api/restaurant/categories");
         setCategories(await res.json());
-      } catch (e) {
+      } catch {
         toast.error("Failed to load categories");
       }
     })();
@@ -120,14 +120,14 @@ export default function ManageCategoriesPage() {
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search category" />
           </div>
 
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {filtered.map((category) => (
               <Card key={category.id} className="p-4">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-start gap-2">
                   <div>
-                    <h3 className="font-semibold">{category.name}</h3>
+                    <h3 className="font-semibold line-clamp-1">{category.name}</h3>
                     {category.description && (
-                      <p className="text-sm text-gray-600">{category.description}</p>
+                      <p className="text-sm text-gray-600 line-clamp-2">{category.description}</p>
                     )}
                   </div>
                   <div className="flex gap-1">

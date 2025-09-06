@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -146,10 +147,18 @@ export default function ManageProductsPage() {
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or category" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {filtered.map((product) => (
               <Card key={product.id} className="p-4">
                 <div className="space-y-3">
+                  <div className="aspect-video relative rounded-md overflow-hidden bg-gray-100">
+                    <Image
+                      src={product.image || "/test.jpg"}
+                      alt={product.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-semibold">{product.name}</h3>
