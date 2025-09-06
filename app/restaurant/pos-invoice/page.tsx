@@ -54,7 +54,8 @@ export default function POSInvoicePage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [waiterName, setWaiterName] = useState("");
-  const [selectedTable, setSelectedTable] = useState("");
+  const [selectedTable, setSelectedTable] = useState(""); // stores table id as string
+  const [tables, setTables] = useState<{ id: number; tableNumber: string; status: string }[]>([]);
   const [orderNotes, setOrderNotes] = useState("");
   const [taxRate] = useState(10);
   const [serviceCharge] = useState(5);
@@ -80,6 +81,19 @@ export default function POSInvoicePage() {
         const productsRes = await fetch('/api/restaurant/products?available=true');
         const productsData = await productsRes.json();
         setProducts(productsData);
+        
+        // Fetch tables
+        const tablesRes = await fetch('/api/restaurant/tables');
+        const tablesData: { id: number; tableNumber: string; status: string }[] = await tablesRes.json();
+        setTables(tablesData);
+        
+        // Preselect from query param ?table=T001 (tableNumber)
+        const url = new URL(window.location.href);
+        const tableParam = url.searchParams.get('table');
+        if (tableParam) {
+          const match = tablesData.find((t) => t.tableNumber === tableParam);
+          if (match) setSelectedTable(String(match.id));
+        }
         
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -415,14 +429,20 @@ export default function POSInvoicePage() {
                   
                   <div>
                     <label className="text-xs font-medium text-gray-700 mb-1 block">
-                      Table Number *
+                      Table *
                     </label>
-                    <Input
-                      placeholder="Table number"
-                      value={selectedTable}
-                      onChange={(e) => setSelectedTable(e.target.value)}
-                      className="h-8 text-sm"
-                    />
+                    <Select value={selectedTable} onValueChange={setSelectedTable}>
+                      <SelectTrigger className="h-8 text-sm">
+                        <SelectValue placeholder="Select table" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64 overflow-y-auto">
+                        {tables.filter(t => t.status !== 'OUT_OF_ORDER').map((t) => (
+                          <SelectItem key={t.id} value={String(t.id)}>
+                            {t.tableNumber} {t.status !== 'AVAILABLE' ? `(${t.status.toLowerCase()})` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div>

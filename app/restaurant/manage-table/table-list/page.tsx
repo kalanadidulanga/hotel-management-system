@@ -10,55 +10,101 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Edit, Plus, Search, RefreshCw, Home, Users, MapPin, Settings, Trash2 } from "lucide-react";
-import { useState, useMemo } from "react";
-import { tables, type Table as TableType } from "@/data/restaurant-data";
+import { useState, useMemo, useEffect } from "react";
+// Using live DB tables via /api/restaurant/tables
 import { toast } from "sonner";
+
+type DBTable = {
+  id: number;
+  tableNumber: string;
+  capacity: number;
+  location?: string | null;
+  status: string; // AVAILABLE, OCCUPIED, RESERVED, OUT_OF_ORDER
+};
 
 export default function TableListPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedTable, setSelectedTable] = useState<TableType | null>(null);
+  const [selectedTable, setSelectedTable] = useState<DBTable | null>(null);
+  const [tables, setTables] = useState<DBTable[]>([]);
   const [newTable, setNewTable] = useState({
     number: "",
     capacity: 4,
     location: "Main Hall",
-    shape: "round" as const
   });
 
+  // Load tables from API
+  useEffect(() => {
+    const loadTables = async () => {
+      try {
+        const res = await fetch('/api/restaurant/tables');
+        if (!res.ok) throw new Error('Failed to load tables');
+        const data = await res.json();
+        setTables(data);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadTables();
+  }, []);
+
   const filteredTables = useMemo(() => {
+    const q = search.toLowerCase();
     return tables.filter(table => {
-      const matchesSearch = table.number.toLowerCase().includes(search.toLowerCase()) ||
-                           table.location.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "All" || table.status === statusFilter.toLowerCase();
+      const matchesSearch = table.tableNumber.toLowerCase().includes(q) ||
+        (table.location?.toLowerCase().includes(q) ?? false);
+      const matchesStatus = statusFilter === "All" || table.status === statusFilter.toUpperCase();
       return matchesSearch && matchesStatus;
     });
-  }, [search, statusFilter]);
+  }, [search, statusFilter, tables]);
 
-  const handleAddTable = () => {
-    toast.success(`Table ${newTable.number} added successfully`);
-    setShowAddModal(false);
-    setNewTable({ number: "", capacity: 4, location: "Main Hall", shape: "round" });
+  const handleAddTable = async () => {
+    if (!newTable.number.trim()) {
+      toast.error('Please enter a table number');
+      return;
+    }
+    try {
+      const res = await fetch('/api/restaurant/tables', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tableNumber: newTable.number.trim(),
+          capacity: newTable.capacity,
+          location: newTable.location,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to add table');
+      toast.success(`Table ${newTable.number} added successfully`);
+      // refresh list
+      const refreshed = await fetch('/api/restaurant/tables').then(r => r.json());
+      setTables(refreshed);
+      setShowAddModal(false);
+      setNewTable({ number: "", capacity: 4, location: "Main Hall" });
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to add table');
+    }
   };
 
   const handleEditTable = () => {
-    toast.success(`Table ${selectedTable?.number} updated successfully`);
+    toast.success(`Table ${selectedTable?.tableNumber} updated successfully`);
     setShowEditModal(false);
     setSelectedTable(null);
   };
 
-  const handleDeleteTable = (table: TableType) => {
-    toast.success(`Table ${table.number} deleted successfully`);
+  const handleDeleteTable = (table: DBTable) => {
+    toast.success(`Table ${table.tableNumber} deleted successfully`);
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'occupied':
+      case 'OCCUPIED':
         return <Badge variant="destructive">Occupied</Badge>;
-      case 'available':
+      case 'AVAILABLE':
         return <Badge variant="secondary" className="bg-green-100 text-green-800">Available</Badge>;
-      case 'reserved':
+      case 'RESERVED':
         return <Badge variant="default">Reserved</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
@@ -104,7 +150,10 @@ export default function TableListPage() {
               <Plus className="w-4 h-4" />
               Add Table
             </Button>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => {
+              // manual refresh
+              fetch('/api/restaurant/tables').then(r=>r.json()).then(setTables);
+            }}>
               <RefreshCw className="w-4 h-4" />
               Refresh
             </Button>
@@ -157,7 +206,7 @@ export default function TableListPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-green-700">Available</p>
-                  <p className="text-2xl font-bold text-green-900">{tables.filter(t => t.status === 'available').length}</p>
+                  <p className="text-2xl font-bold text-green-900">{tables.filter(t => t.status === 'AVAILABLE').length}</p>
                   <p className="text-xs text-green-600">Ready for guests</p>
                 </div>
                 <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
@@ -172,7 +221,7 @@ export default function TableListPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-red-700">Occupied</p>
-                  <p className="text-2xl font-bold text-red-900">{tables.filter(t => t.status === 'occupied').length}</p>
+                  <p className="text-2xl font-bold text-red-900">{tables.filter(t => t.status === 'OCCUPIED').length}</p>
                   <p className="text-xs text-red-600">Currently serving</p>
                 </div>
                 <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
@@ -206,7 +255,6 @@ export default function TableListPage() {
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-gray-600 py-3 px-6">Table</TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-gray-600 py-3">Capacity</TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-gray-600 py-3">Location</TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-gray-600 py-3">Shape</TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-gray-600 py-3">Status</TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-gray-600 py-3">Actions</TableHead>
               </TableRow>
@@ -216,7 +264,7 @@ export default function TableListPage() {
                 <TableRow key={table.id} className="border-b even:bg-gray-50/50 hover:bg-gray-50 transition-colors group">
                   <TableCell className="py-3 px-6">
                     <div className="font-mono text-sm font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded text-center w-fit">
-                      {table.number}
+                      {table.tableNumber}
                     </div>
                   </TableCell>
                   <TableCell className="py-3">
@@ -228,11 +276,8 @@ export default function TableListPage() {
                   <TableCell className="py-3">
                     <div className="flex items-center gap-1">
                       <MapPin className="w-4 h-4 text-gray-500" />
-                      <span>{table.location}</span>
+                      <span>{table.location ?? '-'}</span>
                     </div>
-                  </TableCell>
-                  <TableCell className="py-3">
-                    <span className="capitalize text-gray-700">{table.shape}</span>
                   </TableCell>
                   <TableCell className="py-3">
                     {getStatusBadge(table.status)}
@@ -310,19 +355,7 @@ export default function TableListPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label htmlFor="shape">Table Shape</Label>
-                <Select value={newTable.shape} onValueChange={(value: "round" | "square" | "rectangle") => setNewTable({ ...newTable, shape: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="round">Round</SelectItem>
-                    <SelectItem value="square">Square</SelectItem>
-                    <SelectItem value="rectangle">Rectangle</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Shape is not stored in DB; removed from add UI */}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowAddModal(false)}>
@@ -350,8 +383,8 @@ export default function TableListPage() {
                   <Label htmlFor="edit-table-number">Table Number</Label>
                   <Input
                     id="edit-table-number"
-                    value={selectedTable.number}
-                    onChange={(e) => setSelectedTable({ ...selectedTable, number: e.target.value })}
+                    value={selectedTable.tableNumber}
+                    onChange={(e) => setSelectedTable({ ...selectedTable, tableNumber: e.target.value })}
                   />
                 </div>
                 <div>
@@ -367,7 +400,7 @@ export default function TableListPage() {
                 </div>
                 <div>
                   <Label htmlFor="edit-location">Location</Label>
-                  <Select value={selectedTable.location} onValueChange={(value) => setSelectedTable({ ...selectedTable, location: value })}>
+                  <Select value={selectedTable.location ?? 'Main Hall'} onValueChange={(value) => setSelectedTable({ ...selectedTable, location: value })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -379,30 +412,18 @@ export default function TableListPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="edit-shape">Table Shape</Label>
-                  <Select value={selectedTable.shape} onValueChange={(value: "round" | "square" | "rectangle") => setSelectedTable({ ...selectedTable, shape: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="round">Round</SelectItem>
-                      <SelectItem value="square">Square</SelectItem>
-                      <SelectItem value="rectangle">Rectangle</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Shape not stored in DB; removed from edit UI */}
                 <div>
                   <Label htmlFor="edit-status">Status</Label>
-                  <Select value={selectedTable.status} onValueChange={(value: "available" | "occupied" | "reserved" | "maintenance") => setSelectedTable({ ...selectedTable, status: value })}>
+                  <Select value={selectedTable.status} onValueChange={(value: string) => setSelectedTable({ ...selectedTable, status: value })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="available">Available</SelectItem>
-                      <SelectItem value="occupied">Occupied</SelectItem>
-                      <SelectItem value="reserved">Reserved</SelectItem>
-                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                      <SelectItem value="AVAILABLE">Available</SelectItem>
+                      <SelectItem value="OCCUPIED">Occupied</SelectItem>
+                      <SelectItem value="RESERVED">Reserved</SelectItem>
+                      <SelectItem value="OUT_OF_ORDER">Out of Order</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
