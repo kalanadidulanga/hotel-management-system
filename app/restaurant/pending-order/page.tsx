@@ -8,18 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Clock, Home, Search, Filter, AlertTriangle, ChefHat, Timer, Eye, CheckCircle, Bell, RefreshCw, DollarSign } from "lucide-react";
 import React, { useState, useMemo, useEffect } from "react";
-import { restaurantOrders, kotList, type RestaurantOrder, type KOT } from "@/data/restaurant-data";
-
-const PAGE_SIZE = 10;
+import { restaurantOrders, kotList, type RestaurantOrder } from "@/data/restaurant-data";
 
 // Deterministic date formatter to avoid hydration mismatches
-const formatDate = (value: string | number | Date) =>
-  new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(value));
 
 // Stats card configuration
 const STATS_CONFIG = [
@@ -80,8 +71,6 @@ const STATS_CONFIG = [
 export default function PendingOrderPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [kotGenerating, setKotGenerating] = useState<string[]>([]);
   const [showOrderModal, setShowOrderModal] = useState(false);

@@ -166,6 +166,8 @@ model User {
   payments           Payment[]
   reportedIncidents  IncidentLog[]
   assignedIncidents  IncidentLog[] @relation("AssignedIncidents")
+  ordersTaken        RestaurantOrder[] @relation("OrderTakenBy")
+  ordersServed       RestaurantOrder[] @relation("OrderServedBy")
 }
 
 // ========== MODULE 03: CUSTOMER MANAGEMENT ==========
@@ -224,6 +226,7 @@ model Customer {
   quickOrders    QuickOrder[] // Orders made while staying
   payments       Payment[]
   incidents      IncidentLog[]
+  restaurantOrders RestaurantOrder[]
   
   @@index([identityNumber]) // Fast NIC search (requirement 1.4)
   @@index([isVip])          // VIP customer highlighting
@@ -809,4 +812,177 @@ model AssetDepreciation {
   updatedAt       DateTime @updatedAt
   
   @@unique([assetId, year])
+}
+
+// ========== RESTAURANT MODULE ==========
+
+// Restaurant Categories
+model RestaurantCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  
+  // Relations
+  products    RestaurantProduct[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Restaurant Products/Menu Items
+model RestaurantProduct {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  image       String?
+  
+  // Category
+  categoryId  Int
+  category    RestaurantCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  // Pricing
+  price       Float
+  cost        Float    @default(0) // Cost price for profit calculation
+  
+  // Inventory
+  isAvailable Boolean  @default(true)
+  stockQuantity Int    @default(0)
+  lowStockAlert Int    @default(5)
+  
+  // Product details
+  preparationTime Int  @default(15) // Minutes
+  calories       Int?
+  isVegetarian   Boolean @default(false)
+  isVegan        Boolean @default(false)
+  allergens      String? // JSON array of allergens
+  
+  // Status
+  isActive    Boolean  @default(true)
+  
+  // Relations
+  orderItems  RestaurantOrderItem[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([categoryId])
+  @@index([isAvailable, isActive])
+}
+
+// Restaurant Tables
+model RestaurantTable {
+  id          Int      @id @default(autoincrement())
+  tableNumber String   @unique
+  capacity    Int      @default(4)
+  location    String?  // Section, Floor, etc.
+  
+  // Status
+  status      String   @default("AVAILABLE") // AVAILABLE, OCCUPIED, RESERVED, OUT_OF_ORDER
+  isActive    Boolean  @default(true)
+  
+  // Current occupancy
+  currentGuests Int    @default(0)
+  
+  // Relations
+  orders      RestaurantOrder[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([status])
+}
+
+// Restaurant Orders
+model RestaurantOrder {
+  id          Int      @id @default(autoincrement())
+  orderNumber String   @unique @default(cuid())
+  
+  // Table assignment
+  tableId     Int?
+  table       RestaurantTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  tableNumber String?  // For takeaway/delivery orders
+  
+  // Customer info (optional for walk-in)
+  customerId  Int?
+  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName String?
+  customerPhone String?
+  
+  // Order details
+  orderType   String   @default("DINE_IN") // DINE_IN, TAKEAWAY, DELIVERY
+  status      String   @default("PENDING") // PENDING, PREPARING, READY, SERVED, COMPLETED, CANCELLED
+  
+  // Pricing
+  subtotal    Float    @default(0)
+  tax         Float    @default(0)
+  discount    Float    @default(0)
+  total       Float    @default(0)
+  
+  // Payment
+  paymentMethod PaymentMethod?
+  paymentStatus String @default("PENDING") // PENDING, PAID, PARTIAL
+  paidAmount    Float  @default(0)
+  
+  // Kitchen info
+  kotGenerated Boolean @default(false)
+  kotGeneratedAt DateTime?
+  estimatedTime Int?   // Minutes
+  
+  // Special instructions
+  notes       String?
+  specialRequests String?
+  
+  // Staff
+  takenBy     Int?     // Staff who took the order
+  takenByStaff User?   @relation("OrderTakenBy", fields: [takenBy], references: [id], onDelete: SetNull)
+  servedBy    Int?     // Staff who served the order
+  servedByStaff User?  @relation("OrderServedBy", fields: [servedBy], references: [id], onDelete: SetNull)
+  
+  // Timestamps
+  orderTime   DateTime @default(now())
+  readyTime   DateTime?
+  servedTime  DateTime?
+  completedTime DateTime?
+  
+  // Relations
+  items       RestaurantOrderItem[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([status])
+  @@index([orderTime])
+  @@index([tableId])
+}
+
+// Restaurant Order Items
+model RestaurantOrderItem {
+  id        Int      @id @default(autoincrement())
+  
+  // Order relation
+  orderId   Int
+  order     RestaurantOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // Product relation
+  productId Int
+  product   RestaurantProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  // Item details
+  quantity  Int      @default(1)
+  unitPrice Float    // Price at time of order
+  total     Float    // quantity * unitPrice
+  
+  // Customizations
+  notes     String?  // Special instructions for this item
+  
+  // Kitchen status
+  status    String   @default("PENDING") // PENDING, PREPARING, READY, SERVED
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([orderId])
+  @@index([productId])
 }

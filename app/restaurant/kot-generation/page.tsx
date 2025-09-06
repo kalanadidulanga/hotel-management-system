@@ -11,7 +11,6 @@ import { restaurantOrders, kotList, type RestaurantOrder, type KOT } from "@/dat
 import { toast } from "sonner";
 
 export default function KOTGenerationPage() {
-  const [selectedOrder, setSelectedOrder] = useState<RestaurantOrder | null>(null);
   const [showKOTModal, setShowKOTModal] = useState(false);
   const [generatedKOT, setGeneratedKOT] = useState<KOT | null>(null);
 
@@ -44,7 +43,6 @@ export default function KOTGenerationPage() {
     };
 
     setGeneratedKOT(newKOT);
-    setSelectedOrder(order);
     setShowKOTModal(true);
   };
 
@@ -122,7 +120,6 @@ export default function KOTGenerationPage() {
       toast.success(`KOT generated and sent to printer for ${generatedKOT.orderNumber}`);
       setShowKOTModal(false);
       setGeneratedKOT(null);
-      setSelectedOrder(null);
     }
   };
 

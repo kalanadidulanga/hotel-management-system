@@ -293,6 +293,7 @@ export default function BillPrintingPage() {
     return new Date(dateString).toLocaleString();
   };
 
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50/30">
       <div className="flex-1 p-6 space-y-6">
@@ -514,7 +515,7 @@ export default function BillPrintingPage() {
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="text-sm font-medium text-gray-700">Print Format</label>
-                    <Select value={billFormat} onValueChange={(value: any) => setBillFormat(value)}>
+                    <Select value={billFormat} onValueChange={(value: 'thermal' | 'a4' | 'receipt') => setBillFormat(value)}>
                       <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>

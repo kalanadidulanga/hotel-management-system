@@ -379,6 +379,20 @@ export const sidebarConfig: SidebarItem[] = [
         icon: FileText,
         route: "/restaurant/pos-invoice",
         roles: ["superadmin", "manager"],
+        children: [
+          {
+            label: "Manage Products",
+            icon: Package,
+            route: "/restaurant/manage-products",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Manage Categories",
+            icon: Layers3,
+            route: "/restaurant/manage-categories",
+            roles: ["superadmin", "manager"],
+          },
+        ],
       },
       {
         label: "Order List",

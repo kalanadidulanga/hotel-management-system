@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Eye, Edit, Plus, Search, Filter, RefreshCw, Home, Trash2, Users, MapPin, Settings } from "lucide-react";
+import { Edit, Plus, Search, RefreshCw, Home, Users, MapPin, Settings, Trash2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { tables, type Table as TableType } from "@/data/restaurant-data";
 import { toast } from "sonner";
@@ -215,7 +215,7 @@ export default function TableListPage() {
               {filteredTables.map((table) => (
                 <TableRow key={table.id} className="border-b even:bg-gray-50/50 hover:bg-gray-50 transition-colors group">
                   <TableCell className="py-3 px-6">
-                    <div className="font-mono text-sm font-bold text-gray-900 bg-blue-100 text-blue-800 px-2 py-1 rounded text-center w-fit">
+                    <div className="font-mono text-sm font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded text-center w-fit">
                       {table.number}
                     </div>
                   </TableCell>

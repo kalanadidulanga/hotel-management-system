@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { tables, restaurantOrders, kotList, type Table, type RestaurantOrder, type KOT } from "@/data/restaurant-data";
+import { tables, restaurantOrders, kotList, type Table, type RestaurantOrder } from "@/data/restaurant-data";
 
 export default function CounterDashboardPage() {
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -26,11 +26,10 @@ export default function CounterDashboardPage() {
   const pendingOrders = restaurantOrders.filter(order => order.status === 'pending');
   const preparingOrders = restaurantOrders.filter(order => order.status === 'preparing');
   const readyOrders = restaurantOrders.filter(order => order.status === 'ready');
-  const cancelledToday = 3;
   
-  const occupiedTables = tables.filter(table => table.status === 'occupied').length;
   const availableTables = tables.filter(table => table.status === 'available').length;
   const reservedTables = tables.filter(table => table.status === 'reserved').length;
+  const occupiedTables = tables.filter(table => table.status === 'occupied').length;
 
   // Kitchen efficiency metrics
   const kitchenEfficiency = {
