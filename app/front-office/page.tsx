@@ -1,35 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDistanceToNow } from "date-fns";
 import {
-    Building2,
-    Users,
-    Calendar,
-    DollarSign,
-    Clock,
-    CheckCircle,
-    XCircle,
-    ArrowUp,
-    ArrowDown,
-    Eye,
-    Plus,
-    Search,
-    RefreshCw,
-    Loader2,
-    Bell,
     AlertTriangle,
-    TrendingUp,
-    Home,
-    UserCheck,
-    UserX,
+    ArrowDown,
+    ArrowUp,
+    Bell,
+    Building2,
+    Calendar,
+    CheckCircle,
+    Clock,
     CreditCard,
+    DollarSign,
+    Eye,
+    Home,
+    Loader2,
+    Plus,
+    RefreshCw,
+    Search,
+    TrendingUp,
+    UserCheck,
+    UserX
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
 
 interface DashboardStats {
     occupancy: {

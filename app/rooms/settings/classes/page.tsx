@@ -2,40 +2,8 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-    Building,
-    Plus,
-    Search,
-    Edit,
-    Eye,
-    Trash2,
-    Users,
-    DollarSign,
-    Bed,
-    ArrowLeft,
-    Filter,
-    SortAsc,
-    SortDesc,
-    Star,
-    Clock,
-    CheckCircle,
-    AlertCircle,
-    Settings,
-    Home,
-    Calendar,
-    ImageIcon,
-    Wifi,
-    Car,
-    Coffee,
-    Tv,
-    Wind,
-    Bath
-} from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import {
     Select,
     SelectContent,
@@ -43,6 +11,35 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    ArrowLeft,
+    Bath,
+    Bed,
+    Building,
+    Calendar,
+    Car,
+    CheckCircle,
+    Coffee,
+    DollarSign,
+    Edit,
+    Eye,
+    Filter,
+    Home,
+    Plus,
+    Search,
+    Settings,
+    SortAsc,
+    SortDesc,
+    Star,
+    Trash2,
+    Tv,
+    Users,
+    Wifi,
+    Wind
+} from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface RoomClass {
     id: number;

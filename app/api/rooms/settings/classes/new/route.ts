@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/lib/generated/prisma";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/db";
 
 export async function POST(request: NextRequest) {
     try {
@@ -126,7 +124,7 @@ export async function POST(request: NextRequest) {
     }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
     return NextResponse.json(
         { error: 'Method not allowed. Use POST to create a room class.' },
         { status: 405 }

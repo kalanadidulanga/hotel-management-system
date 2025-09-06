@@ -1,17 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { format } from "date-fns";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Textarea } from "@/components/ui/textarea";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -23,28 +11,40 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { format } from "date-fns";
 import {
+    Activity,
+    AlertTriangle,
+    ArrowLeft,
+    Building,
     CalendarIcon,
-    Phone,
-    Mail,
-    User,
-    Home,
     DollarSign,
     Edit,
-    ArrowLeft,
-    Star,
-    IdCard,
-    Building,
-    UserCheck,
-    LogOut,
-    AlertTriangle,
-    RefreshCw,
     FileText,
-    ShoppingCart,
-    XCircle,
+    Home,
+    IdCard,
     Loader2,
-    Activity,
+    LogOut,
+    Mail,
+    Phone,
+    RefreshCw,
+    ShoppingCart,
+    Star,
+    User,
+    UserCheck,
+    XCircle,
 } from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 // Types based on your Prisma schema
 interface ReservationDetails {

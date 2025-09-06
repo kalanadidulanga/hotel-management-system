@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Select,
     SelectContent,
@@ -12,26 +11,24 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
-    Wrench,
-    Calendar,
-    DollarSign,
-    Users,
-    TrendingUp,
     AlertTriangle,
-    Clock,
     CheckCircle,
-    XCircle,
-    Settings,
-    Package,
-    Utensils,
+    Clock,
+    DollarSign,
     Eye,
+    Package,
     Plus,
-    Filter,
-    Download
+    Settings,
+    TrendingUp,
+    Utensils,
+    Wrench,
+    XCircle
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { toast } from "sonner";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface MaintenanceLog {
     id: number;
@@ -444,11 +441,15 @@ export default function MaintenanceDashboard() {
                                 <div key={log.id} className="flex items-center justify-between p-3 border rounded-lg">
                                     <div className="flex items-center space-x-3">
                                         {log.asset.imageUrl ? (
-                                            <img
-                                                src={log.asset.imageUrl}
-                                                alt={log.asset.name}
-                                                className="w-10 h-10 rounded object-cover"
-                                            />
+                                            <div className="w-10 h-10 rounded overflow-hidden">
+                                                <Image
+                                                    src={log.asset.imageUrl}
+                                                    alt={log.asset.name}
+                                                    width={40}
+                                                    height={40}
+                                                    className="object-cover w-full h-full"
+                                                />
+                                            </div>
                                         ) : (
                                             <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
                                                 {getAssetTypeIcon(log.asset.type)}

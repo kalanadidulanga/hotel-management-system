@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/lib/generated/prisma";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/db";
 
 // GET all reservations with filtering and statistics
 export async function GET(request: NextRequest) {

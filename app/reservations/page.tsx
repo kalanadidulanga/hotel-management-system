@@ -2,18 +2,8 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,40 +11,47 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-    CalendarIcon,
-    Search,
-    Filter,
-    Plus,
-    MoreVertical,
-    Eye,
-    Edit,
-    Trash2,
-    Users,
-    Building,
-    MapPin,
-    Phone,
-    Mail,
-    User,
-    Home,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { format } from "date-fns";
+import {
     Activity,
-    DollarSign,
-    Percent,
-    Loader2,
-    RefreshCw,
-    Download,
+    AlertCircle,
+    ArrowDownRight,
+    ArrowUpRight,
+    Building,
+    CalendarIcon,
     CheckCircle,
     Clock,
-    AlertCircle,
-    ArrowUpRight,
-    ArrowDownRight,
+    DollarSign,
+    Download,
+    Edit,
+    Eye,
+    Filter,
+    Home,
+    Loader2,
+    Mail,
+    MoreVertical,
+    Phone,
+    Plus,
+    RefreshCw,
+    Search,
     Star,
+    User,
+    Users,
     X
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { format } from "date-fns";
 
 interface Customer {
     id: number;

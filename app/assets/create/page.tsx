@@ -16,15 +16,16 @@ import {
     AlertCircle,
     Calendar,
     DollarSign,
+    FileIcon,
     FileText,
+    ImageIcon,
     Package,
     Save,
     Upload,
     Utensils,
-    X,
-    ImageIcon,
-    FileIcon
+    X
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -663,11 +664,15 @@ export default function CreateAssetPage() {
                                     />
                                     {imagePreview && (
                                         <div className="mt-3">
-                                            <img
-                                                src={imagePreview}
-                                                alt="Asset preview"
-                                                className="w-full h-32 object-cover rounded-lg border"
-                                            />
+                                            <div className="relative w-full h-32">
+                                                <Image
+                                                    src={imagePreview}
+                                                    alt="Asset preview"
+                                                    fill
+                                                    className="object-cover rounded-lg border"
+                                                    sizes="100vw"
+                                                />
+                                            </div>
                                         </div>
                                     )}
                                     {!imagePreview && (

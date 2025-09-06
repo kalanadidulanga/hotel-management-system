@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
     Select,
     SelectContent,
@@ -14,26 +12,27 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
-    Package,
-    Utensils,
     ArrowLeft,
-    Save,
-    Upload,
-    X,
-    Eye,
-    Calendar,
     DollarSign,
-    Settings,
+    Edit,
+    Eye,
     FileText,
     MapPin,
+    Package,
+    Save,
+    Settings,
+    Upload,
     User,
+    Utensils,
     Wrench,
-    Edit
+    X
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface Category {
@@ -763,11 +762,16 @@ export default function EditAssetPage() {
                                 <div className="mt-2">
                                     {imagePreview ? (
                                         <div className="relative">
-                                            <img
-                                                src={imagePreview}
-                                                alt="Asset preview"
-                                                className="w-full h-48 object-cover rounded-lg border"
-                                            />
+                                            <div className="w-full h-48 rounded-lg border overflow-hidden">
+                                                <Image
+                                                    src={imagePreview}
+                                                    alt="Asset preview"
+                                                    fill
+                                                    style={{ objectFit: "cover" }}
+                                                    className="rounded-lg"
+                                                    sizes="(max-width: 768px) 100vw, 50vw"
+                                                />
+                                            </div>
                                             <Button
                                                 type="button"
                                                 variant="destructive"

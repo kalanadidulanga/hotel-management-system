@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/lib/generated/prisma";
+import prisma from "@/lib/db";
 
-const prisma = new PrismaClient();
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get all room classes with related data
     const roomClasses = await prisma.roomClass.findMany({
@@ -83,7 +81,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Remove DELETE from here - it belongs in the [id] route
-export async function POST(request: NextRequest) {
+export async function POST() {
   return NextResponse.json(
     {
       error: "Method not allowed. Use GET to fetch room classes.",

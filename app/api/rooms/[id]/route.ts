@@ -1,7 +1,5 @@
+import prisma from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/lib/generated/prisma";
-
-const prisma = new PrismaClient();
 
 // GET specific room by ID
 export async function GET(

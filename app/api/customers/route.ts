@@ -473,9 +473,7 @@
 
 
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/lib/generated/prisma";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/db";
 
 // GET all customers with advanced filtering and pagination
 export async function GET(request: NextRequest) {
@@ -643,7 +641,7 @@ export async function GET(request: NextRequest) {
     const response = {
       customers: customers.map((customer) => ({
         ...customer,
-        dateOfBirth: customer.dateOfBirth.toISOString(),
+        dateOfBirth: customer.dateOfBirth ? customer.dateOfBirth.toISOString() : null,
         createdAt: customer.createdAt.toISOString(),
         updatedAt: customer.updatedAt.toISOString(),
       })),
@@ -840,7 +838,7 @@ export async function POST(request: NextRequest) {
       {
         customer: {
           ...customer,
-          dateOfBirth: customer.dateOfBirth.toISOString(),
+          dateOfBirth: customer.dateOfBirth ? customer.dateOfBirth.toISOString() : null,
           createdAt: customer.createdAt.toISOString(),
         },
         message: `Customer ${customer.customerID} created successfully`,

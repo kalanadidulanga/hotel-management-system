@@ -20,7 +20,7 @@ import {
     Users
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface RoomClass {
@@ -83,27 +83,30 @@ export default function RoomSettingsPage() {
 
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
-    useEffect(() => {
-        fetchRoomSettings();
-    }, []);
+   
 
-    const fetchRoomSettings = async () => {
+    const fetchRoomSettings = useCallback(async () => {
         try {
             setLoading(true);
             const response = await fetch(`${apiBaseUrl}/api/rooms/settings`);
-            if (!response.ok) throw new Error('Failed to fetch room settings');
+            if (!response.ok) throw new Error("Failed to fetch room settings");
 
             const data = await response.json();
             setRoomClasses(data.roomClasses || []);
             setRecentRooms(data.recentRooms || []);
             setStats(data.stats || {});
         } catch (error) {
-            // console.error('Error fetching room settings:', error);
-            toast.error('Failed to load room settings');
+            toast.error("Failed to load room settings");
         } finally {
             setLoading(false);
         }
-    };
+    }, [apiBaseUrl]); 
+
+
+    useEffect(() => {
+        fetchRoomSettings();
+    }, [fetchRoomSettings]);
+
 
     const getStatusIcon = (status: string) => {
         switch (status) {

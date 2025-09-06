@@ -1,14 +1,9 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    Users,
     ArrowLeft,
-    Info,
-    CheckCircle,
-    AlertTriangle
+    Users
 } from "lucide-react";
 import Link from "next/link";
 import CustomerForm from "../components/CustomerForm";

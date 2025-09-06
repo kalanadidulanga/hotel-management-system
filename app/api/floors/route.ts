@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/lib/generated/prisma";
-
-const prisma = new PrismaClient();
-
+import prisma from "@/lib/db";
 // GET all floors
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const floors = await prisma.floor.findMany({
       include: {

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/lib/generated/prisma";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +15,7 @@ export async function POST(request: NextRequest) {
     const trimmedTerm = searchTerm.trim();
 
     // Build search conditions based on search type
-    let searchConditions: any = {
+    const searchConditions: any = {
       isActive: true, // Only search active customers
     };
 
@@ -138,7 +136,7 @@ export async function POST(request: NextRequest) {
     const transformedCustomers = customers.map((customer) => ({
       ...customer,
       // Convert dates to strings for JSON serialization
-      dateOfBirth: customer.dateOfBirth.toISOString(),
+      dateOfBirth: customer.dateOfBirth ? customer.dateOfBirth.toISOString() : null,
       createdAt: customer.createdAt.toISOString(),
       updatedAt: customer.updatedAt.toISOString(),
       anniversary: customer.anniversary
@@ -187,7 +185,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   return NextResponse.json(
     { error: "Method not allowed. Use POST for customer search." },
     { status: 405 }

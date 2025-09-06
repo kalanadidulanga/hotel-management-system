@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/lib/generated/prisma";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/db";
 
 // GET all cleaning schedules and overdue rooms
 export async function GET(request: NextRequest) {
