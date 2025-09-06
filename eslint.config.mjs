@@ -20,6 +20,14 @@ const eslintConfig = [
       "react-hooks/exhaustive-deps": "off",
     },
   },
+  {
+    ignores: [
+      "lib/generated/**/*",
+      "node_modules/**/*",
+      ".next/**/*",
+      "out/**/*"
+    ]
+  }
 ];
 
 export default eslintConfig;
