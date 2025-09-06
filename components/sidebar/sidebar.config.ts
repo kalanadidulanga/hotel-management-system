@@ -268,19 +268,13 @@ export const sidebarConfig: SidebarItem[] = [
           {
             label: "Add Employee",
             icon: Settings,
-            route: "/human-resource/employee/employee-setting",
+            route: "/human-resource/employee/new",
             roles: ["superadmin", "manager"],
           },
           {
             label: "Manage Employee",
             icon: List,
             route: "/human-resource/employee/manage-employee",
-            roles: ["superadmin", "manager"],
-          },
-          {
-            label: "Employee Performance",
-            icon: ReceiptEuro,
-            route: "/human-resource/employee/performance",
             roles: ["superadmin", "manager"],
           },
           {
