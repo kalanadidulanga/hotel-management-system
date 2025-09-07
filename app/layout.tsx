@@ -17,10 +17,9 @@ export default function RootLayout({
   const userRole = "superadmin";
 
   return (
-    <html lang="en">
-      <body
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning
         className="h-screen antialiased overflow-hidden"
-        style={{ backgroundColor: 'var(--background)' }}
       >
         <Toaster
         position="top-right"
