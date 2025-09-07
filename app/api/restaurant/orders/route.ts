@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
       items,
       notes,
       specialRequests,
+      waiterName,
       takenBy,
       paymentMethod,
     } = body;
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
         total,
         notes,
         specialRequests,
+        waiterName: waiterName || null,
         takenBy: takenBy ? parseInt(takenBy) : null,
         paymentMethod: paymentMethod as PaymentMethod,
         items: {

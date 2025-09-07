@@ -271,7 +271,7 @@ export async function GET(request: NextRequest) {
       charts: {
         statusDistribution,
         priorityDistribution,
-        maintenanceByPriority: maintenanceByPriority.map((item: { priority: string; _count: { priority: number }; _sum: { cost?: number } }) => ({
+        maintenanceByPriority: maintenanceByPriority.map((item: { priority: string; _count: { priority: number }; _sum: { cost: number | null } }) => ({
           priority: item.priority,
           count: item._count.priority,
           totalCost: item._sum.cost || 0,

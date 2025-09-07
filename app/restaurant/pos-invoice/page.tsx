@@ -162,6 +162,11 @@ export default function POSInvoicePage() {
       return;
     }
 
+    if (!waiterName.trim()) {
+      toast.error('Waiter name is required');
+      return;
+    }
+
     try {
       const orderData = {
         // API expects these fields (see app/api/restaurant/orders/route.ts)
@@ -176,6 +181,7 @@ export default function POSInvoicePage() {
         })),
         notes: orderNotes.trim(),
         specialRequests: '',
+        waiterName: waiterName.trim(),
         takenBy: null,
         paymentMethod: 'CASH',
       } as const;

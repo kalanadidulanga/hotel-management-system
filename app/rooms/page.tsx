@@ -58,7 +58,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { toast } from "sonner";
 
 interface Room {
@@ -129,7 +129,7 @@ interface RoomStats {
     inactiveRooms: number;
 }
 
-export default function RoomsManagementPage() {
+function RoomsManagementPageContent() {
     const searchParams = useSearchParams();
     const classIdParam = searchParams.get('classId');
 
@@ -896,5 +896,13 @@ export default function RoomsManagementPage() {
                 </AlertDialogContent>
             </AlertDialog>
         </div>
+    );
+}
+
+export default function RoomsManagementPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center p-6"><div className="text-gray-500">Loading...</div></div>}>
+            <RoomsManagementPageContent />
+        </Suspense>
     );
 }

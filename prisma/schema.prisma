@@ -935,6 +935,7 @@ model RestaurantOrder {
   specialRequests String?
   
   // Staff
+  waiterName  String?  // Name of the waiter serving the table
   takenBy     Int?     // Staff who took the order
   takenByStaff User?   @relation("OrderTakenBy", fields: [takenBy], references: [id], onDelete: SetNull)
   servedBy    Int?     // Staff who served the order
@@ -943,7 +944,6 @@ model RestaurantOrder {
   // Timestamps
   orderTime   DateTime @default(now())
   readyTime   DateTime?
-  servedTime  DateTime?
   completedTime DateTime?
   
   // Relations

@@ -380,16 +380,29 @@ export const sidebarConfig: SidebarItem[] = [
         roles: ["superadmin", "manager"],
       },
       {
-        label: "Manage Products",
-        icon: Package,
-        route: "/restaurant/manage-products",
+        label: "Management",
+        icon: Settings,
         roles: ["superadmin", "manager"],
-      },
-      {
-        label: "Manage Categories",
-        icon: Layers3,
-        route: "/restaurant/manage-categories",
-        roles: ["superadmin", "manager"],
+        children: [
+          {
+            label: "Manage Categories",
+            icon: Layers3,
+            route: "/restaurant/manage-categories",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Manage Products",
+            icon: Package,
+            route: "/restaurant/manage-products",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Manage Waiters",
+            icon: Users,
+            route: "/restaurant/manage-waiters",
+            roles: ["superadmin", "manager"],
+          },
+        ],
       },
       {
         label: "Order List",

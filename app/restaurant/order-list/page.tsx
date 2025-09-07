@@ -891,7 +891,7 @@ export default function OrderListPage() {
                 <Button 
                   variant="outline"
                   className="flex-1 h-11 rounded-sm border-red-300 text-red-600 hover:bg-red-50"
-                  onClick={() => handleDeleteOrder(selectedOrder.id)}
+                  onClick={() => handleDeleteOrder(selectedOrder.id.toString())}
                 >
                   Delete Order
                 </Button>
@@ -1017,7 +1017,7 @@ export default function OrderListPage() {
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
                       <div>
-                        <p className="font-semibold text-blue-900">Table {selectedOrder.table.number}</p>
+                        <p className="font-semibold text-blue-900">Table {selectedOrder.table?.tableNumber || selectedOrder.tableId || 'N/A'}</p>
                         <p className="text-sm text-blue-600">Current table assignment</p>
                       </div>
                     </div>
