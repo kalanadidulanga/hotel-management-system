@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { PaymentMethod } from '@/lib/generated/prisma';
+import { PaymentMethod } from '@prisma/client';
 
 // GET /api/restaurant/orders - Get all orders with filters
 export async function GET(request: NextRequest) {
