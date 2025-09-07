@@ -9,31 +9,71 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbS
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Receipt, Home, Printer, FileText, CheckCircle, Search, RefreshCw, Eye, Download, Mail } from "lucide-react";
-import { useState, useMemo } from "react";
-import { restaurantOrders, type RestaurantOrder } from "@/data/restaurant-data";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
+
+type DBOrderItem = {
+  id: number;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  product: { name: string };
+};
+
+type DBOrder = {
+  id: number;
+  orderNumber: string;
+  customerName?: string | null;
+  status: string; // PENDING, PREPARING, READY, SERVED, COMPLETED
+  paymentStatus: string; // PENDING, PAID, PARTIAL
+  paymentMethod?: string | null;
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  orderTime: string;
+  table?: { tableNumber: string } | null;
+  items: DBOrderItem[];
+};
 
 export default function BillPrintingPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedOrder, setSelectedOrder] = useState<RestaurantOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<DBOrder | null>(null);
   const [showBillModal, setShowBillModal] = useState(false);
   const [billFormat, setBillFormat] = useState<'thermal' | 'a4' | 'receipt'>('thermal');
+  const [orders, setOrders] = useState<DBOrder[]>([]);
+
+  async function loadOrders() {
+    try {
+      const res = await fetch('/api/restaurant/orders');
+      if (!res.ok) throw new Error('Failed to load orders');
+      const data: DBOrder[] = await res.json();
+      setOrders(data);
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to load billable orders');
+    }
+  }
+
+  useEffect(() => {
+    loadOrders();
+  }, []);
 
   // Filter orders that can have bills printed (served, completed, paid)
   const billableOrders = useMemo(() => {
-    return restaurantOrders.filter(order => 
-      ['served', 'completed'].includes(order.status) || order.paymentStatus === 'paid'
+    return orders.filter(order => 
+      ['SERVED', 'COMPLETED'].includes(order.status) || order.paymentStatus === 'PAID'
     );
-  }, []);
+  }, [orders]);
 
   // Filter orders based on search and status
   const filteredOrders = useMemo(() => {
     return billableOrders.filter(order => {
       const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.table.number.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "all" || order.paymentStatus === statusFilter;
+                           (order.customerName ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (order.table?.tableNumber ?? '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "all" || order.paymentStatus.toLowerCase() === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [billableOrders, searchTerm, statusFilter]);
@@ -41,16 +81,16 @@ export default function BillPrintingPage() {
   // Calculate stats
   const stats = useMemo(() => {
     const totalBills = billableOrders.length;
-    const paidBills = billableOrders.filter(order => order.paymentStatus === 'paid').length;
-    const pendingBills = billableOrders.filter(order => order.paymentStatus === 'pending').length;
+    const paidBills = billableOrders.filter(order => order.paymentStatus === 'PAID').length;
+    const pendingBills = billableOrders.filter(order => order.paymentStatus === 'PENDING').length;
     const totalRevenue = billableOrders
-      .filter(order => order.paymentStatus === 'paid')
-      .reduce((sum, order) => sum + order.totalAmount, 0);
+      .filter(order => order.paymentStatus === 'PAID')
+      .reduce((sum, order) => sum + order.total, 0);
     
     return { totalBills, paidBills, pendingBills, totalRevenue };
   }, [billableOrders]);
 
-  const generateBill = (order: RestaurantOrder) => {
+  const generateBill = (order: DBOrder) => {
     setSelectedOrder(order);
     setShowBillModal(true);
   };
@@ -100,7 +140,7 @@ export default function BillPrintingPage() {
     setShowBillModal(false);
   };
 
-  const generateBillHTML = (order: RestaurantOrder, format: string) => {
+  const generateBillHTML = (order: DBOrder, format: string) => {
     const isReceipt = format === 'thermal' || format === 'receipt';
     const maxWidth = isReceipt ? '300px' : '210mm';
     const fontSize = isReceipt ? '12px' : '14px';
@@ -189,11 +229,9 @@ export default function BillPrintingPage() {
           
           <div class="bill-info">
             <div><strong>Bill No:</strong> ${order.orderNumber}</div>
-            <div><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}</div>
-            <div><strong>Table:</strong> ${order.table.number}</div>
-            <div><strong>Customer:</strong> ${order.customerName}</div>
-            <div><strong>Waiter:</strong> ${order.waiterName}</div>
-            <div><strong>Customer Type:</strong> ${order.customerType}</div>
+            <div><strong>Date:</strong> ${new Date(order.orderTime).toLocaleString()}</div>
+            <div><strong>Table:</strong> ${order.table?.tableNumber ?? 'N/A'}</div>
+            <div><strong>Customer:</strong> ${order.customerName ?? '-'}</div>
           </div>
           
           <table class="items-table">
@@ -208,14 +246,10 @@ export default function BillPrintingPage() {
             <tbody>
               ${order.items.map(item => `
                 <tr>
-                  <td>
-                    ${item.foodItem.name}
-                    ${item.variant ? `<br><small>(${item.variant.size})</small>` : ''}
-                    ${item.specialInstructions ? `<br><small>Note: ${item.specialInstructions}</small>` : ''}
-                  </td>
+                  <td>${item.product.name}</td>
                   <td>${item.quantity}</td>
                   <td>$${item.unitPrice.toFixed(2)}</td>
-                  <td>$${item.totalPrice.toFixed(2)}</td>
+                  <td>$${item.total.toFixed(2)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -227,12 +261,8 @@ export default function BillPrintingPage() {
               <span>$${order.subtotal.toFixed(2)}</span>
             </div>
             <div class="total-line">
-              <span>Tax (${((order.tax / order.subtotal) * 100).toFixed(1)}%):</span>
+              <span>Tax:</span>
               <span>$${order.tax.toFixed(2)}</span>
-            </div>
-            <div class="total-line">
-              <span>Service Charge:</span>
-              <span>$${order.serviceCharge.toFixed(2)}</span>
             </div>
             ${order.discount > 0 ? `
               <div class="total-line">
@@ -242,7 +272,7 @@ export default function BillPrintingPage() {
             ` : ''}
             <div class="total-line grand-total">
               <span>TOTAL AMOUNT:</span>
-              <span>$${order.totalAmount.toFixed(2)}</span>
+              <span>$${order.total.toFixed(2)}</span>
             </div>
             <div class="total-line">
               <span>Payment Method:</span>
@@ -267,11 +297,11 @@ export default function BillPrintingPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'paid':
+      case 'PAID':
         return <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">Paid</Badge>;
-      case 'pending':
+      case 'PENDING':
         return <Badge variant="default" className="bg-yellow-100 text-yellow-800 border-yellow-200">Pending</Badge>;
-      case 'refunded':
+      case 'REFUNDED':
         return <Badge variant="destructive">Refunded</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
@@ -280,9 +310,9 @@ export default function BillPrintingPage() {
 
   const getOrderStatusBadge = (status: string) => {
     switch (status) {
-      case 'served':
+      case 'SERVED':
         return <Badge variant="default" className="bg-blue-100 text-blue-800 border-blue-200">Served</Badge>;
-      case 'completed':
+      case 'COMPLETED':
         return <Badge variant="default" className="bg-green-100 text-green-800 border-green-200">Completed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
@@ -329,6 +359,7 @@ export default function BillPrintingPage() {
             <Button 
               variant="outline" 
               className="h-9 px-4 border-gray-300 hover:bg-gray-50 transition-all duration-200"
+              onClick={loadOrders}
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
@@ -453,17 +484,16 @@ export default function BillPrintingPage() {
                         <div className="font-mono text-sm font-bold text-gray-900">{order.orderNumber}</div>
                       </TableCell>
                       <TableCell className="py-3">
-                        <div className="font-medium text-gray-900">{order.customerName}</div>
-                        <div className="text-xs text-gray-500 capitalize">{order.customerType}</div>
+                        <div className="font-medium text-gray-900">{order.customerName ?? '-'}</div>
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <span className="font-medium">{order.table.number}</span>
+                          <span className="font-medium">{order.table?.tableNumber ?? 'N/A'}</span>
                         </div>
                       </TableCell>
                       <TableCell className="py-3">
-                        <div className="font-bold text-emerald-600">${order.totalAmount.toFixed(2)}</div>
+                        <div className="font-bold text-emerald-600">${order.total.toFixed(2)}</div>
                       </TableCell>
                       <TableCell className="py-3">
                         {getOrderStatusBadge(order.status)}
@@ -472,7 +502,7 @@ export default function BillPrintingPage() {
                         {getStatusBadge(order.paymentStatus)}
                       </TableCell>
                       <TableCell className="py-3">
-                        <div className="text-sm text-gray-600">{formatDate(order.createdAt)}</div>
+                        <div className="text-sm text-gray-600">{formatDate(order.orderTime)}</div>
                       </TableCell>
                       <TableCell className="py-3">
                         <div className="flex gap-2">
@@ -488,6 +518,7 @@ export default function BillPrintingPage() {
                             size="sm"
                             variant="outline"
                             className="h-8 w-8 p-0 rounded-sm border-gray-200 text-gray-600 hover:bg-gray-50"
+                            onClick={() => generateBill(order)}
                           >
                             <Eye className="w-3 h-3" />
                           </Button>
@@ -537,19 +568,19 @@ export default function BillPrintingPage() {
                     
                     <div className="space-y-1 mb-3 text-xs">
                       <div><strong>Bill:</strong> {selectedOrder.orderNumber}</div>
-                      <div><strong>Table:</strong> {selectedOrder.table.number}</div>
-                      <div><strong>Customer:</strong> {selectedOrder.customerName}</div>
-                      <div><strong>Date:</strong> {formatDate(selectedOrder.createdAt)}</div>
+                      <div><strong>Table:</strong> {selectedOrder.table?.tableNumber ?? 'N/A'}</div>
+                      <div><strong>Customer:</strong> {selectedOrder.customerName ?? '-'}</div>
+                      <div><strong>Date:</strong> {formatDate(selectedOrder.orderTime)}</div>
                     </div>
                     
                     <div className="border-t border-gray-300 pt-2 mb-3">
                       {selectedOrder.items.map((item, index) => (
                         <div key={index} className="flex justify-between text-xs mb-1">
                           <div className="flex-1">
-                            <div>{item.foodItem.name}</div>
+                            <div>{item.product.name}</div>
                             <div className="text-gray-600">{item.quantity} x ${item.unitPrice.toFixed(2)}</div>
                           </div>
-                          <div>${item.totalPrice.toFixed(2)}</div>
+                          <div>${item.total.toFixed(2)}</div>
                         </div>
                       ))}
                     </div>
@@ -563,10 +594,7 @@ export default function BillPrintingPage() {
                         <span>Tax:</span>
                         <span>${selectedOrder.tax.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Service:</span>
-                        <span>${selectedOrder.serviceCharge.toFixed(2)}</span>
-                      </div>
+                      {/* Service charge not tracked in DB order; omit */}
                       {selectedOrder.discount > 0 && (
                         <div className="flex justify-between">
                           <span>Discount:</span>
@@ -575,7 +603,7 @@ export default function BillPrintingPage() {
                       )}
                       <div className="flex justify-between font-bold border-t border-gray-300 pt-1">
                         <span>TOTAL:</span>
-                        <span>${selectedOrder.totalAmount.toFixed(2)}</span>
+                        <span>${selectedOrder.total.toFixed(2)}</span>
                       </div>
                     </div>
                     

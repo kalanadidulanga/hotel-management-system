@@ -6,44 +6,118 @@ import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ChefHat, Home, Printer, Clock, FileText, CheckCircle, AlertCircle } from "lucide-react";
-import { useState, useMemo } from "react";
-import { restaurantOrders, kotList, type RestaurantOrder, type KOT } from "@/data/restaurant-data";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
+type DBOrderItem = {
+  id: number;
+  quantity: number;
+  unitPrice: number;
+  product: { id: number; name: string };
+  notes?: string | null;
+};
+
+type DBOrder = {
+  id: number;
+  orderNumber: string;
+  status: string; // PENDING, PREPARING, etc.
+  total: number;
+  estimatedTime?: number | null;
+  orderTime: string;
+  customerName?: string | null;
+  takenByStaff?: { name?: string | null } | null;
+  table?: { tableNumber: string } | null;
+  items: DBOrderItem[];
+};
+
+type KOTItem = { name: string; quantity: number; specialInstructions?: string };
+type KOT = {
+  id: number;
+  orderNumber: string;
+  tableNumber: string;
+  items: KOTItem[];
+  customerName?: string | null;
+  waiterName?: string | null;
+  orderTime: Date;
+  priority: 'high' | 'normal';
+  status: 'active' | 'done';
+  estimatedTime: number;
+  specialNotes?: string;
+};
 
 export default function KOTGenerationPage() {
   const [showKOTModal, setShowKOTModal] = useState(false);
   const [generatedKOT, setGeneratedKOT] = useState<KOT | null>(null);
+  const [orders, setOrders] = useState<DBOrder[]>([]);
+  const [activeCount, setActiveCount] = useState(0);
+  const [avgPrepMinutes, setAvgPrepMinutes] = useState(0);
 
-  // Filter orders that need KOT generation (pending and preparing)
-  const ordersNeedingKOT = useMemo(() => {
-    return restaurantOrders.filter(order => 
-      order.status === 'pending' || order.status === 'preparing'
-    );
+  async function loadData() {
+    try {
+      const [kotRes, dashRes] = await Promise.all([
+        fetch('/api/restaurant/kot'),
+        fetch('/api/restaurant/dashboard'),
+      ]);
+      if (!kotRes.ok) throw new Error('Failed to load KOT orders');
+      const kotOrders: DBOrder[] = await kotRes.json();
+      setOrders(kotOrders);
+
+      if (dashRes.ok) {
+        const dash = await dashRes.json();
+        setActiveCount(dash.kitchen?.activeKOTs ?? 0);
+        setAvgPrepMinutes(dash.kitchen?.avgPrepTime ?? 0);
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to load KOT data');
+    }
+  }
+
+  useEffect(() => {
+    loadData();
   }, []);
 
-  const generateKOT = (order: RestaurantOrder) => {
-    const kotItems = order.items.map(item => ({
-      name: item.foodItem.name,
-      quantity: item.quantity,
-      specialInstructions: item.specialInstructions || ""
-    }));
+  // Filter orders that need KOT generation (PENDING and PREPARING; not yet generated)
+  const ordersNeedingKOT = useMemo(() => {
+    return orders.filter(order => order.status === 'PENDING' || order.status === 'PREPARING');
+  }, [orders]);
 
-    const newKOT: KOT = {
-      id: Date.now(),
-      orderNumber: order.orderNumber,
-      tableNumber: order.table.number,
-      items: kotItems,
-      customerName: order.customerName,
-      waiterName: order.waiterName,
-      orderTime: new Date(order.createdAt),
-      priority: order.status === 'pending' ? 'high' : 'normal',
-      status: 'active',
-      estimatedTime: order.estimatedTime || 25,
-      specialNotes: "Handle with care"
-    };
+  const generateKOT = async (order: DBOrder) => {
+    try {
+      const res = await fetch('/api/restaurant/kot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id, estimatedTime: order.estimatedTime ?? 25 }),
+      });
+      if (!res.ok) throw new Error('Failed to mark KOT generated');
 
-    setGeneratedKOT(newKOT);
-    setShowKOTModal(true);
+      const kotItems: KOTItem[] = order.items.map((item) => ({
+        name: item.product.name,
+        quantity: item.quantity,
+        specialInstructions: item.notes ?? '',
+      }));
+
+      const newKOT: KOT = {
+        id: Date.now(),
+        orderNumber: order.orderNumber,
+        tableNumber: order.table?.tableNumber ?? 'N/A',
+        items: kotItems,
+        customerName: order.customerName ?? '',
+        waiterName: order.takenByStaff?.name ?? '',
+        orderTime: new Date(order.orderTime),
+        priority: order.status === 'PENDING' ? 'high' : 'normal',
+        status: 'active',
+        estimatedTime: order.estimatedTime ?? 25,
+        specialNotes: undefined,
+      };
+
+      setGeneratedKOT(newKOT);
+      setShowKOTModal(true);
+      // Refresh list so it disappears from needing KOT
+      loadData();
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to generate KOT');
+    }
   };
 
   const printKOT = () => {
@@ -177,7 +251,7 @@ export default function KOTGenerationPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-red-700">Pending KOTs</p>
-                  <p className="text-2xl font-bold text-red-900">{ordersNeedingKOT.filter(o => o.status === 'pending').length}</p>
+                  <p className="text-2xl font-bold text-red-900">{ordersNeedingKOT.filter(o => o.status === 'PENDING').length}</p>
                   <p className="text-xs text-red-600">Need generation</p>
                 </div>
                 <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
@@ -192,7 +266,7 @@ export default function KOTGenerationPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-orange-700">Active KOTs</p>
-                  <p className="text-2xl font-bold text-orange-900">{kotList.length}</p>
+                  <p className="text-2xl font-bold text-orange-900">{activeCount}</p>
                   <p className="text-xs text-orange-600">In kitchen</p>
                 </div>
                 <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
@@ -222,7 +296,7 @@ export default function KOTGenerationPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-green-700">Avg Prep Time</p>
-                  <p className="text-2xl font-bold text-green-900">19</p>
+                  <p className="text-2xl font-bold text-green-900">{avgPrepMinutes}</p>
                   <p className="text-xs text-green-600">Minutes</p>
                 </div>
                 <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
@@ -254,7 +328,7 @@ export default function KOTGenerationPage() {
                   <div key={order.id} className="group p-4 bg-gradient-to-r from-gray-50 to-transparent rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2">
-                        {getStatusBadge(order.status)}
+                        {getStatusBadge(order.status.toLowerCase())}
                       </div>
                       <Button
                         size="sm"
@@ -269,22 +343,20 @@ export default function KOTGenerationPage() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="font-mono text-sm font-bold text-gray-900">{order.orderNumber}</span>
-                        <span className="text-lg font-bold text-emerald-600">${order.totalAmount.toFixed(2)}</span>
+                        <span className="text-lg font-bold text-emerald-600">${order.total.toFixed(2)}</span>
                       </div>
                       
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Table: <span className="font-medium text-gray-900">{order.table.number}</span></span>
-                        <span className={`${getPriorityColor(order.status === 'pending' ? 'high' : 'normal')}`}>
-                          {order.estimatedTime ? `${order.estimatedTime} min` : 'Estimating...'}
-                        </span>
+                        <span className="text-gray-600">Table: <span className="font-medium text-gray-900">{order.table?.tableNumber ?? 'N/A'}</span></span>
+                        <span className={`${getPriorityColor(order.status === 'PENDING' ? 'high' : 'normal')}`}>{order.estimatedTime ? `${order.estimatedTime} min` : 'Estimating...'}</span>
                       </div>
                       
                       <div className="text-sm text-gray-600">
-                        Customer: <span className="font-medium text-gray-900">{order.customerName}</span>
+                        Customer: <span className="font-medium text-gray-900">{order.customerName ?? '-'}</span>
                       </div>
                       
                       <div className="text-sm text-gray-600">
-                        Waiter: <span className="font-medium text-gray-900">{order.waiterName}</span>
+                        Waiter: <span className="font-medium text-gray-900">{order.takenByStaff?.name ?? '-'}</span>
                       </div>
                     </div>
                   </div>

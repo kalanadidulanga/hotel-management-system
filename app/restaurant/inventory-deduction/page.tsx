@@ -9,8 +9,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbS
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Package, Home, AlertTriangle, TrendingDown, CheckCircle, Search, RefreshCw, Eye, History } from "lucide-react";
-import { useState, useMemo } from "react";
-import { restaurantOrders, type RestaurantOrder } from "@/data/restaurant-data";
+import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 
 interface InventoryItem {
@@ -36,102 +35,14 @@ interface DeductionRecord {
   deductedBy: string;
   reason: string;
 }
-
-const mockInventoryItems: InventoryItem[] = [
-  {
-    id: 1,
-    name: "Chicken Breast",
-    category: "Meat",
-    currentStock: 25,
-    unit: "kg",
-    reorderLevel: 10,
-    costPerUnit: 8.50,
-    supplier: "Fresh Meat Co.",
-    lastUpdated: "2025-01-06T10:30:00Z",
-    status: 'in-stock'
-  },
-  {
-    id: 2,
-    name: "Mozzarella Cheese",
-    category: "Dairy",
-    currentStock: 5,
-    unit: "kg",
-    reorderLevel: 8,
-    costPerUnit: 12.00,
-    supplier: "Dairy Fresh Ltd.",
-    lastUpdated: "2025-01-06T09:15:00Z",
-    status: 'low-stock'
-  },
-  {
-    id: 3,
-    name: "Tomatoes",
-    category: "Vegetables",
-    currentStock: 0,
-    unit: "kg",
-    reorderLevel: 15,
-    costPerUnit: 3.20,
-    supplier: "Green Valley Farms",
-    lastUpdated: "2025-01-05T18:45:00Z",
-    status: 'out-of-stock'
-  },
-  {
-    id: 4,
-    name: "Pizza Dough",
-    category: "Bakery",
-    currentStock: 20,
-    unit: "pieces",
-    reorderLevel: 12,
-    costPerUnit: 2.50,
-    supplier: "Artisan Bakery",
-    lastUpdated: "2025-01-06T08:00:00Z",
-    status: 'in-stock'
-  },
-  {
-    id: 5,
-    name: "Romaine Lettuce",
-    category: "Vegetables",
-    currentStock: 8,
-    unit: "heads",
-    reorderLevel: 10,
-    costPerUnit: 1.80,
-    supplier: "Green Valley Farms",
-    lastUpdated: "2025-01-06T07:30:00Z",
-    status: 'low-stock'
-  }
-];
-
-const mockDeductionRecords: DeductionRecord[] = [
-  {
-    id: 1,
-    orderNumber: "ORD-160",
-    itemName: "Chicken Breast",
-    quantityDeducted: 0.5,
-    unit: "kg",
-    deductedAt: "2025-01-06T14:35:00Z",
-    deductedBy: "System Auto",
-    reason: "Order preparation"
-  },
-  {
-    id: 2,
-    orderNumber: "ORD-161",
-    itemName: "Mozzarella Cheese",
-    quantityDeducted: 0.3,
-    unit: "kg",
-    deductedAt: "2025-01-06T15:15:00Z",
-    deductedBy: "System Auto",
-    reason: "Order preparation"
-  },
-  {
-    id: 3,
-    orderNumber: "ORD-162",
-    itemName: "Romaine Lettuce",
-    quantityDeducted: 2,
-    unit: "heads",
-    deductedAt: "2025-01-06T15:30:00Z",
-    deductedBy: "John Smith",
-    reason: "Manual adjustment"
-  }
-];
+ 
+type DBOrder = {
+  id: number;
+  orderNumber: string;
+  status: string;
+  items: { id: number }[];
+  table?: { tableNumber: string } | null;
+};
 
 export default function InventoryDeductionPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -141,37 +52,52 @@ export default function InventoryDeductionPage() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [manualDeductionQty, setManualDeductionQty] = useState("");
   const [deductionReason, setDeductionReason] = useState("");
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [stats, setStats] = useState({ totalItems: 0, lowStock: 0, outOfStock: 0, totalValue: 0 });
+  const [history, setHistory] = useState<DeductionRecord[]>([]);
+  const [orders, setOrders] = useState<DBOrder[]>([]);
+  const [showViewModal, setShowViewModal] = useState(false);
+
+  async function loadData() {
+    try {
+      const [stockRes, historyRes, ordersRes] = await Promise.all([
+        fetch('/api/restaurant/inventory/stock'),
+        fetch('/api/restaurant/inventory/deductions'),
+        fetch('/api/restaurant/orders'),
+      ]);
+      const stockJson = await stockRes.json();
+      setItems(stockJson.items);
+      setStats(stockJson.stats);
+      const histJson: DeductionRecord[] = await historyRes.json();
+      setHistory(histJson);
+      const ordersJson: DBOrder[] = await ordersRes.json();
+      setOrders(ordersJson);
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to load inventory data');
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   // Filter inventory items
   const filteredItems = useMemo(() => {
-    return mockInventoryItems.filter(item => {
+    return items.filter(item => {
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            item.category.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === "all" || item.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, items]);
 
   // Calculate stats
-  const stats = useMemo(() => {
-    const totalItems = mockInventoryItems.length;
-    const lowStock = mockInventoryItems.filter(item => item.status === 'low-stock').length;
-    const outOfStock = mockInventoryItems.filter(item => item.status === 'out-of-stock').length;
-    const totalValue = mockInventoryItems.reduce((sum, item) => sum + (item.currentStock * item.costPerUnit), 0);
-    
-    return { totalItems, lowStock, outOfStock, totalValue };
-  }, []);
+  // stats come from API
 
-  const processOrderDeduction = (order: RestaurantOrder) => {
+  const processOrderDeduction = (order: DBOrder) => {
     // Simulate automatic inventory deduction for an order
-    const deductions = order.items.map(item => ({
-      itemName: item.foodItem.name,
-      quantity: item.quantity,
-      ingredients: item.foodItem.ingredients
-    }));
-
-    toast.success(`Inventory automatically deducted for ${order.orderNumber}`);
-    console.log("Processing deductions:", deductions);
+    toast.success(`Inventory deducted for ${order.orderNumber}`);
   };
 
   const handleManualDeduction = () => {
@@ -250,7 +176,7 @@ export default function InventoryDeductionPage() {
               <History className="w-4 h-4 mr-2" />
               View History
             </Button>
-            <Button className="h-9 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200">
+            <Button className="h-9 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-200" onClick={loadData}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Stock
             </Button>
@@ -404,6 +330,7 @@ export default function InventoryDeductionPage() {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => { setSelectedItem(item); setShowViewModal(true); }}
                             className="h-8 w-8 p-0 rounded-sm border-gray-200 text-gray-600 hover:bg-gray-50"
                           >
                             <Eye className="w-3 h-3" />
@@ -428,7 +355,7 @@ export default function InventoryDeductionPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {restaurantOrders.slice(0, 6).map((order) => (
+              {orders.filter(o => ['PENDING','PREPARING'].includes(o.status)).slice(0, 6).map((order) => (
                 <div key={order.id} className="group p-4 bg-gradient-to-r from-gray-50 to-transparent rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all">
                   <div className="flex items-start justify-between mb-3">
                     <div className="font-mono text-sm font-bold text-gray-900">{order.orderNumber}</div>
@@ -443,7 +370,7 @@ export default function InventoryDeductionPage() {
                   </div>
                   
                   <div className="space-y-2 text-sm">
-                    <div>Table: <span className="font-medium">{order.table.number}</span></div>
+                    <div>Table: <span className="font-medium">{order.table?.tableNumber ?? 'N/A'}</span></div>
                     <div>Items: <span className="font-medium">{order.items.length}</span></div>
                     <div>Status: <Badge variant="outline" className="text-xs">{order.status}</Badge></div>
                   </div>
@@ -509,6 +436,29 @@ export default function InventoryDeductionPage() {
           </DialogContent>
         </Dialog>
 
+        {/* View Item Modal */}
+        <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Item Details</DialogTitle>
+            </DialogHeader>
+            {selectedItem && (
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-gray-600">Name</span><span className="font-medium">{selectedItem.name}</span></div>
+                <div className="flex justify-between"><span className="text-gray-600">Category</span><span className="font-medium">{selectedItem.category}</span></div>
+                <div className="flex justify-between"><span className="text-gray-600">Stock</span><span className="font-medium">{selectedItem.currentStock} {selectedItem.unit}</span></div>
+                <div className="flex justify-between"><span className="text-gray-600">Reorder Level</span><span className="font-medium">{selectedItem.reorderLevel} {selectedItem.unit}</span></div>
+                <div className="flex justify-between"><span className="text-gray-600">Cost/Unit</span><span className="font-medium">${selectedItem.costPerUnit.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span className="text-gray-600">Last Updated</span><span className="font-medium">{formatDate(selectedItem.lastUpdated)}</span></div>
+                <div className="flex items-center gap-2"><span className="text-gray-600">Status</span>{getStatusBadge(selectedItem.status)}</div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowViewModal(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* History Modal */}
         <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
           <DialogContent className="max-w-4xl">
@@ -532,7 +482,7 @@ export default function InventoryDeductionPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockDeductionRecords.map((record) => (
+                    {history.map((record) => (
                       <TableRow key={record.id}>
                         <TableCell className="font-mono text-sm">{record.orderNumber}</TableCell>
                         <TableCell>{record.itemName}</TableCell>
