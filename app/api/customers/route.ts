@@ -630,7 +630,7 @@ export async function GET(request: NextRequest) {
       foreigner: 0,
     };
 
-    nationalStats.forEach((stat) => {
+    nationalStats.forEach((stat: { nationality: string; _count: { id: number } }) => {
       if (stat.nationality === "native") {
         nationalityStats.native = stat._count.id;
       } else if (stat.nationality === "foreigner") {
@@ -639,7 +639,12 @@ export async function GET(request: NextRequest) {
     });
 
     const response = {
-      customers: customers.map((customer) => ({
+      customers: customers.map((customer: {
+        dateOfBirth: Date | null;
+        createdAt: Date;
+        updatedAt: Date;
+        [key: string]: any;
+      }) => ({
         ...customer,
         dateOfBirth: customer.dateOfBirth ? customer.dateOfBirth.toISOString() : null,
         createdAt: customer.createdAt.toISOString(),

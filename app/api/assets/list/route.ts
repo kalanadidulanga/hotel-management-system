@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Add maintenance status to each asset
-    const assetsWithMaintenanceStatus = assets.map((asset) => {
+    const assetsWithMaintenanceStatus = assets.map((asset: { maintenanceDate: Date } & Record<string, any>) => {
       const daysDiff = Math.ceil(
         (new Date(asset.maintenanceDate).getTime() - currentDate.getTime()) /
           (1000 * 3600 * 24)

@@ -99,16 +99,38 @@ export default function BillPrintingPage() {
     if (!selectedOrder) return;
 
     const billContent = generateBillHTML(selectedOrder, billFormat);
-    
-    // Open print window
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(billContent);
-      printWindow.document.close();
-      printWindow.onload = function() {
-        printWindow.print();
-        printWindow.close();
+    // Robust print via hidden iframe (avoids popup blockers)
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(billContent);
+      doc.close();
+      iframe.onload = () => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 100);
       };
+    } else {
+      // Fallback
+      const w = window.open('', '_blank');
+      if (w) {
+        w.document.write(billContent);
+        w.document.close();
+        w.onload = function () {
+          w.print();
+          w.close();
+        };
+      }
     }
 
     toast.success(`Bill printed for ${selectedOrder.orderNumber}`);
@@ -119,7 +141,7 @@ export default function BillPrintingPage() {
     if (!selectedOrder) return;
 
     const billContent = generateBillHTML(selectedOrder, 'a4');
-    const blob = new Blob([billContent], { type: 'text/html' });
+    const blob = new Blob([billContent], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -127,7 +149,7 @@ export default function BillPrintingPage() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 0);
 
     toast.success(`Bill downloaded for ${selectedOrder.orderNumber}`);
   };

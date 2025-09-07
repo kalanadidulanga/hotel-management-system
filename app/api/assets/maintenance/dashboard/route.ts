@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Get staff details for maintenance by staff
-    const staffIds = maintenancesByStaff.map((m) => m.staffId);
+    const staffIds = maintenancesByStaff.map((m: { staffId: number }) => m.staffId);
     const staffDetails = await prisma.user.findMany({
       where: {
         id: { in: staffIds },
@@ -218,8 +218,8 @@ export async function GET(request: NextRequest) {
     });
 
     // Combine staff data with maintenance counts
-    const staffMaintenanceData = maintenancesByStaff.map((maintenance) => {
-      const staff = staffDetails.find((s) => s.id === maintenance.staffId);
+    const staffMaintenanceData = maintenancesByStaff.map((maintenance: { staffId: number } & Record<string, any>) => {
+      const staff = staffDetails.find((s: { id: number }) => s.id === maintenance.staffId);
       return {
         ...maintenance,
         staff,
@@ -242,7 +242,7 @@ export async function GET(request: NextRequest) {
       { priority: "LOW", count: 0, color: "#65a30d" },
     ];
 
-    maintenanceByPriority.forEach((item) => {
+    maintenanceByPriority.forEach((item: { priority: string; _count: { priority: number } }) => {
       const priorityItem = priorityDistribution.find(
         (p) => p.priority === item.priority
       );
@@ -271,7 +271,7 @@ export async function GET(request: NextRequest) {
       charts: {
         statusDistribution,
         priorityDistribution,
-        maintenanceByPriority: maintenanceByPriority.map((item) => ({
+        maintenanceByPriority: maintenanceByPriority.map((item: { priority: string; _count: { priority: number }; _sum: { cost?: number } }) => ({
           priority: item.priority,
           count: item._count.priority,
           totalCost: item._sum.cost || 0,

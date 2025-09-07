@@ -17,7 +17,7 @@ export async function GET() {
     });
 
     // Transform for JSON response
-    const transformedFloors = floors.map((floor) => ({
+    const transformedFloors = floors.map((floor: { createdAt: Date } & Record<string, any>) => ({
       ...floor,
       createdAt: floor.createdAt.toISOString(),
     }));

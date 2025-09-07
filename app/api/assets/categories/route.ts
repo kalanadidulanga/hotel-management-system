@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     });
 
     const duplicateExists = existingCategories.some(
-      (cat) => cat.name.toLowerCase() === name.trim().toLowerCase()
+      (cat: { name: string }) => cat.name.toLowerCase() === name.trim().toLowerCase()
     );
 
     if (duplicateExists) {
@@ -152,7 +152,7 @@ export async function PUT(request: NextRequest) {
     });
 
     const duplicateExists = existingCategories.some(
-      (cat) => cat.name.toLowerCase() === name.trim().toLowerCase()
+      (cat: { name: string }) => cat.name.toLowerCase() === name.trim().toLowerCase()
     );
 
     if (duplicateExists) {

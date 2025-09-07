@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
       asset_damaged: 0,
     };
 
-    typeStats.forEach((stat) => {
+    typeStats.forEach((stat: { type: string; _count: { id: number } }) => {
       const type = stat.type.toLowerCase() as keyof typeof byType;
       if (byType.hasOwnProperty(type)) {
         byType[type] = stat._count.id;

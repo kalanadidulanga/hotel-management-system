@@ -3,7 +3,6 @@ import { ZodError } from "zod";
 import Credentials from "next-auth/providers/credentials";
 import { signInSchema } from "./lib/zod";
 import { hashPassword, verifyPassword } from "./lib/password";
-import prisma from "./lib/db";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -14,6 +13,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       authorize: async (credentials) => {
         try {
+          // Lazy import prisma to avoid initializing it in Edge middleware
+          const prisma = (await import("./lib/db")).default;
           const { email, password } = await signInSchema.parseAsync(
             credentials
           );

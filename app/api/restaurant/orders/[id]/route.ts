@@ -4,10 +4,11 @@ import prisma from '@/lib/db';
 // PUT /api/restaurant/orders/[id] - Update order
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const orderId = parseInt(params.id);
+    const { id } = await params;
+    const orderId = parseInt(id);
     const body = await request.json();
     
     const {
@@ -59,10 +60,11 @@ export async function PUT(
 // DELETE /api/restaurant/orders/[id] - Delete order
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const orderId = parseInt(params.id);
+    const { id } = await params;
+    const orderId = parseInt(id);
 
     // Delete order items first (cascade should handle this, but being explicit)
     await prisma.restaurantOrderItem.deleteMany({
@@ -87,10 +89,11 @@ export async function DELETE(
 // GET /api/restaurant/orders/[id] - Get single order
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const orderId = parseInt(params.id);
+    const { id } = await params;
+    const orderId = parseInt(id);
 
     const order = await prisma.restaurantOrder.findUnique({
       where: { id: orderId },

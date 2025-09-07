@@ -133,7 +133,23 @@ export async function POST(request: NextRequest) {
     });
 
     // Transform results to include current stay info
-    const transformedCustomers = customers.map((customer) => ({
+    const transformedCustomers = customers.map((customer: {
+      dateOfBirth: Date | null;
+      createdAt: Date;
+      updatedAt: Date;
+      anniversary: Date | null;
+      reservations: Array<{
+        checkInDate: Date;
+        checkOutDate: Date;
+        createdAt: Date;
+        updatedAt: Date;
+        actualCheckIn: Date | null;
+        actualCheckOut: Date | null;
+        cancellationDate: Date | null;
+        [key: string]: any;
+      }>;
+      [key: string]: any;
+    }) => ({
       ...customer,
       // Convert dates to strings for JSON serialization
       dateOfBirth: customer.dateOfBirth ? customer.dateOfBirth.toISOString() : null,

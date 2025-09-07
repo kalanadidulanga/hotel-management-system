@@ -193,7 +193,28 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform assets to search results with relevance scoring
-    const assetResults: AssetSearchResult[] = assets.map((asset) => {
+    const assetResults: AssetSearchResult[] = assets.map((asset: {
+      id: number;
+      assetId: string;
+      name: string;
+      code: string;
+      type: string;
+      status: string;
+      condition?: string | null;
+      location?: string | null;
+      purchasePrice: number;
+      currentValue?: number | null;
+      category: { id: number; name: string } | null;
+      assignedTo: { id: number; name: string; fullName?: string | null } | null;
+      brand?: string | null;
+      model?: string | null;
+      serialNumber?: string | null;
+      description?: string | null;
+      purchaseDate: Date;
+      warrantyExpiry?: Date | null;
+      maintenanceDate: Date;
+      lastMaintenanceDate?: Date | null;
+    }) => {
       const relevance = calculateAssetRelevance(searchTerm, asset);
 
       return {
