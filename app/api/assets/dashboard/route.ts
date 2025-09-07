@@ -1,9 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/lib/generated/prisma";
+import {  NextResponse } from "next/server";
+import prisma from "@/lib/db";
 
-const prisma = new PrismaClient();
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get current date for maintenance comparisons
     const currentDate = new Date();

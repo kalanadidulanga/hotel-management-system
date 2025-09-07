@@ -172,9 +172,7 @@
 //     }
 // }
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/lib/generated/prisma";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/db";
 
 // GET specific room class with detailed information
 export async function GET(

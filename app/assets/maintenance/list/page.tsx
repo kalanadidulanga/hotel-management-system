@@ -1,10 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
     Select,
     SelectContent,
@@ -21,47 +35,31 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-    Wrench,
-    Search,
-    Filter,
-    Download,
-    Eye,
-    Edit,
-    MoreHorizontal,
-    ArrowLeft,
-    ArrowUpDown,
-    ArrowUp,
-    ArrowDown,
-    Calendar,
-    DollarSign,
-    Package,
-    Utensils,
-    User,
     AlertTriangle,
-    Clock,
+    ArrowDown,
+    ArrowLeft,
+    ArrowUp,
+    ArrowUpDown,
     CheckCircle,
-    XCircle,
-    Settings,
+    Clock,
+    DollarSign,
+    Download,
+    Edit,
+    Eye,
+    Filter,
+    MoreHorizontal,
+    Package,
     Plus,
-    RefreshCw
+    RefreshCw,
+    Settings,
+    User,
+    Utensils,
+    Wrench,
+    XCircle
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface MaintenanceLog {
@@ -683,11 +681,15 @@ export default function MaintenanceListPage() {
                                         <TableCell>
                                             <div className="flex items-center space-x-3">
                                                 {log.asset.imageUrl ? (
-                                                    <img
-                                                        src={log.asset.imageUrl}
-                                                        alt={log.asset.name}
-                                                        className="w-8 h-8 rounded object-cover"
-                                                    />
+                                                    <div className="w-8 h-8 rounded overflow-hidden">
+                                                        <Image
+                                                            src={log.asset.imageUrl}
+                                                            alt={log.asset.name}
+                                                            width={32}
+                                                            height={32}
+                                                            className="object-cover w-full h-full"
+                                                        />
+                                                    </div>
                                                 ) : (
                                                     <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
                                                         {getAssetTypeIcon(log.asset.type)}

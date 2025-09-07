@@ -1,16 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -21,48 +10,58 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    ArrowLeft,
-    Edit,
-    Loader2,
-    Home,
-    Building,
-    MapPin,
-    AlertTriangle,
-    Calendar,
-    Users,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
     Activity,
-    Clock,
-    Sparkles,
-    Trash2,
-    History,
-    MoreVertical,
-    CheckCircle,
-    Wrench,
+    AlertTriangle,
+    ArrowLeft,
     Ban,
-    Phone,
-    Mail,
-    DollarSign,
-    Star,
-    Shield,
-    Wifi,
-    Car,
-    Coffee,
-    Tv,
-    Wind,
     Bath,
     Bed,
-    Eye,
-    Settings,
-    TrendingUp,
+    Building,
+    Calendar,
     Calendar as CalendarIcon,
-    FileText
+    Car,
+    CheckCircle,
+    Clock,
+    Coffee,
+    DollarSign,
+    Edit,
+    Eye,
+    FileText,
+    History,
+    Home,
+    Loader2,
+    Mail,
+    MoreVertical,
+    Phone,
+    Settings,
+    Shield,
+    Sparkles,
+    Star,
+    Trash2,
+    TrendingUp,
+    Tv,
+    Users,
+    Wifi,
+    Wind,
+    Wrench
 } from "lucide-react";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useRouter, useParams } from "next/navigation";
-import { Label } from "@/components/ui/label";
 
 interface Room {
     id: number;

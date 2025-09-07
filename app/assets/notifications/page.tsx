@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     Table,
     TableBody,
     TableCell,
@@ -13,18 +20,12 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import {
     AlertTriangle,
     Bell,
     BellRing,
     Calendar,
     Check,
+    CheckCircle2,
     Clock,
     Eye,
     Filter,
@@ -34,9 +35,8 @@ import {
     RefreshCw,
     Settings,
     Shield,
-    User,
-    CheckCircle2,
-    Trash2
+    Trash2,
+    User
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";

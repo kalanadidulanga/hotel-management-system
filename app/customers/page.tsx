@@ -12,17 +12,16 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
-    Users,
     Crown,
-    Search,
     Filter,
+    Globe,
     Plus,
     RefreshCw,
-    UserCheck,
-    Globe,
-    TrendingUp,
+    Search,
     SortAsc,
-    SortDesc
+    SortDesc,
+    TrendingUp,
+    Users
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";

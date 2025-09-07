@@ -4,37 +4,33 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import {
-    Users,
+    AlertTriangle,
     ArrowLeft,
-    Edit,
-    Trash2,
+    BedDouble,
+    Bell,
+    CheckCircle,
+    Clock,
+    CreditCard,
     Crown,
-    Phone,
+    DollarSign,
+    Edit,
+    Eye,
+    Loader2,
     Mail,
     MapPin,
-    Calendar,
-    CreditCard,
-    User,
-    Building,
-    Star,
-    BedDouble,
+    Phone,
     ShoppingCart,
-    Bell,
-    TrendingUp,
-    DollarSign,
-    Clock,
-    Eye,
-    AlertTriangle,
-    CheckCircle,
-    Loader2
+    Star,
+    Trash2,
+    User,
+    Users
 } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState, use } from "react";
-import { toast } from "sonner";
-import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { use, useEffect, useState } from "react";
+import { toast } from "sonner";
 import CustomerForm from "../components/CustomerForm";
 
 interface Customer {

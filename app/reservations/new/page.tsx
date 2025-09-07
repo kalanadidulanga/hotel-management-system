@@ -1,24 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Dialog,
     DialogContent,
@@ -28,33 +14,45 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-    CalendarIcon,
-    Users,
-    CreditCard,
-    MapPin,
-    Phone,
-    Mail,
-    User,
-    Home,
-    Clock,
-    DollarSign,
-    Percent,
-    Plus,
-    Minus,
-    Search,
-    ArrowLeft,
-    Loader2,
-    Save,
-    CheckCircle,
-    AlertCircle,
-    Star,
-    X,
-    UserPlus,
-    IdCard,
-} from "lucide-react";
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
+import {
+    AlertCircle,
+    ArrowLeft,
+    CalendarIcon,
+    CheckCircle,
+    CreditCard,
+    DollarSign,
+    Home,
+    IdCard,
+    Loader2,
+    Mail,
+    MapPin,
+    Minus,
+    Phone,
+    Plus,
+    Save,
+    Search,
+    Star,
+    User,
+    UserPlus,
+    Users,
+    X
+} from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface Customer {
     id: number;

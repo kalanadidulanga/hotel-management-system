@@ -4,37 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import {
-    Building,
-    ArrowLeft,
-    Save,
-    Plus,
-    DollarSign,
-    Users,
-    Bed,
-    Clock,
-    Star,
-    Wifi,
-    Car,
-    Coffee,
-    Tv,
-    Wind,
-    Bath,
-    Shield,
-    X,
-    AlertCircle,
-    CheckCircle,
-    Edit,
-    Loader2,
-    Home
-} from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { useRouter, useParams } from "next/navigation";
 import {
     Select,
     SelectContent,
@@ -42,6 +12,34 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+    AlertCircle,
+    ArrowLeft,
+    Bath,
+    Building,
+    Car,
+    CheckCircle,
+    Coffee,
+    DollarSign,
+    Edit,
+    Home,
+    Loader2,
+    Plus,
+    Save,
+    Shield,
+    Star,
+    Tv,
+    Users,
+    Wifi,
+    Wind,
+    X
+} from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface EditRoomClassData {
     id: number;

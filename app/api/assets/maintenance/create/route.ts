@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/lib/generated/prisma";
+import prisma from "@/lib/db";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import fs from "fs";
 
-const prisma = new PrismaClient();
 
 // Ensure the uploads directory exists
 async function ensureUploadDirExists() {

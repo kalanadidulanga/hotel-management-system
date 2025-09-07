@@ -1,25 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { format } from "date-fns";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -31,39 +11,53 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-    UserCheck,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { format } from "date-fns";
+import {
+    AlertCircle,
+    AlertTriangle,
     ArrowLeft,
     Calculator,
-    CreditCard,
-    DollarSign,
-    Receipt,
-    Clock,
-    AlertTriangle,
-    CheckCircle,
-    User,
-    Home,
-    Phone,
-    Mail,
     Calendar,
-    Star,
-    Key,
-    Shield,
-    Eye,
-    Loader2,
-    FileText,
-    AlertCircle,
-    RefreshCw,
-    MapPin,
-    CreditCard as CreditCardIcon,
-    Wifi,
-    Tv,
-    Coffee,
     Car,
-    Gift,
+    CheckCircle,
     ClockIcon,
+    Coffee,
+    Eye,
+    Gift,
+    Home,
+    Key,
+    Loader2,
+    Mail,
+    Phone,
+    Receipt,
+    RefreshCw,
+    Shield,
+    Star,
+    Tv,
+    User,
+    UserCheck,
+    Wifi
 } from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface Customer {
     id: number;

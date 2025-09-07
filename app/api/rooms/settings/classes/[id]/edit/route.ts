@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/lib/generated/prisma";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/db";
 
 export async function PUT(
   request: NextRequest,
@@ -190,8 +188,7 @@ export async function PUT(
 }
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  
 ) {
   return NextResponse.json(
     { error: "Method not allowed. Use PUT to update the room class." },

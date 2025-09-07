@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
     Select,
     SelectContent,
@@ -14,27 +12,27 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
-    Wrench,
-    Plus,
     ArrowLeft,
-    Save,
-    Upload,
-    X,
     Calendar,
+    CheckCircle,
     DollarSign,
-    User,
-    Package,
-    Utensils,
-    AlertTriangle,
-    Settings,
     FileText,
+    Package,
+    Save,
+    Settings,
     Star,
-    CheckCircle
+    Upload,
+    User,
+    Utensils,
+    Wrench,
+    X
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface Asset {
@@ -692,10 +690,13 @@ export default function CreateMaintenancePage() {
                                 <div className="mt-2">
                                     {beforeImagePreview ? (
                                         <div className="relative">
-                                            <img
-                                                src={beforeImagePreview}
+                                            <Image
+                                                src={beforeImagePreview || ""}
                                                 alt="Before maintenance"
+                                                width={600}
+                                                height={192}
                                                 className="w-full h-48 object-cover rounded-lg border"
+                                                style={{ objectFit: "cover" }}
                                             />
                                             <Button
                                                 type="button"
@@ -734,10 +735,13 @@ export default function CreateMaintenancePage() {
                                 <div className="mt-2">
                                     {afterImagePreview ? (
                                         <div className="relative">
-                                            <img
-                                                src={afterImagePreview}
+                                            <Image
+                                                src={afterImagePreview || ""}
                                                 alt="After maintenance"
+                                                width={600}
+                                                height={192}
                                                 className="w-full h-48 object-cover rounded-lg border"
+                                                style={{ objectFit: "cover" }}
                                             />
                                             <Button
                                                 type="button"

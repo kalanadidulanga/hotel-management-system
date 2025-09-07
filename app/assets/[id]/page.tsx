@@ -1,38 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import {
-    Package,
-    Utensils,
-    Edit,
-    ArrowLeft,
-    Calendar,
-    DollarSign,
-    MapPin,
-    User,
-    Wrench,
-    Camera,
-    FileText,
-    QrCode,
-    AlertTriangle,
-    Clock,
-    CheckCircle,
-    XCircle,
-    Settings,
-    History,
-    Download,
-    Eye,
-    Trash2,
-    ImageIcon,
-    FileIcon
-} from "lucide-react";
-import Link from "next/link";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Dialog,
     DialogContent,
@@ -41,6 +11,34 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import {
+    AlertTriangle,
+    ArrowLeft,
+    Calendar,
+    Camera,
+    Clock,
+    DollarSign,
+    Download,
+    Edit,
+    Eye,
+    FileText,
+    History,
+    MapPin,
+    Package,
+    QrCode,
+    Settings,
+    Trash2,
+    User,
+    Utensils,
+    Wrench,
+    XCircle
+} from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import Image from "next/image";
 
 interface Asset {
     id: number;
@@ -525,10 +523,13 @@ export default function AssetDetailsPage() {
                                         <div>
                                             <h4 className="font-medium text-gray-900 mb-2">Asset Image</h4>
                                             <div className="relative group">
-                                                <img
-                                                    src={asset.imageUrl}
+                                                <Image
+                                                    src={asset.imageUrl!}
                                                     alt={asset.name}
+                                                    width={600}
+                                                    height={300}
                                                     className="w-full h-48 object-cover rounded-lg border"
+                                                    style={{ objectFit: "cover" }}
                                                 />
                                                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
                                                     <Button
