@@ -532,10 +532,10 @@ export default function ReservationsDashboard() {
                         <RefreshCw className={`w-4 h-4 mr-2 ${(loading || searchLoading) ? 'animate-spin' : ''}`} />
                         Refresh
                     </Button>
-                    <Button variant="outline" size="sm">
+                    {/* <Button variant="outline" size="sm">
                         <Download className="w-4 h-4 mr-2" />
                         Export
-                    </Button>
+                    </Button> */}
                     <Link href="/reservations/new">
                         <Button>
                             <Plus className="w-4 h-4 mr-2" />

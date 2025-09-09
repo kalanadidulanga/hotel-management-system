@@ -37,7 +37,6 @@ import {
     Calendar,
     CheckCircle,
     Clock,
-    DollarSign,
     Download,
     Edit,
     Eye,
@@ -58,7 +57,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface Room {
@@ -737,7 +736,7 @@ function RoomsManagementPageContent() {
                                                 {/* Pricing & Stats */}
                                                 <div className="text-right">
                                                     <div className="font-semibold text-gray-900 flex items-center">
-                                                        <DollarSign className="w-4 h-4 mr-1" />
+                                                        
                                                         {formatCurrency(room.roomClass.ratePerNight)}/night
                                                     </div>
                                                     <div className="text-xs text-gray-500">

@@ -264,7 +264,7 @@ export default function MaintenanceListPage() {
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD'
+            currency: 'LKR'
         }).format(amount);
     };
 
@@ -395,10 +395,10 @@ export default function MaintenanceListPage() {
                         <RefreshCw className="w-4 h-4 mr-2" />
                         Refresh
                     </Button>
-                    <Button onClick={exportData} variant="outline" size="sm">
+                    {/* <Button onClick={exportData} variant="outline" size="sm">
                         <Download className="w-4 h-4 mr-2" />
                         Export
-                    </Button>
+                    </Button> */}
                     <Link href="/assets/maintenance/create">
                         <Button>
                             <Plus className="w-4 h-4 mr-2" />
@@ -434,7 +434,7 @@ export default function MaintenanceListPage() {
                                 </p>
                             </div>
                             <div className="p-3 bg-green-100 rounded-full">
-                                <DollarSign className="w-6 h-6 text-green-600" />
+                              LKR
                             </div>
                         </div>
                     </CardContent>
@@ -450,7 +450,7 @@ export default function MaintenanceListPage() {
                                 </p>
                             </div>
                             <div className="p-3 bg-blue-100 rounded-full">
-                                <DollarSign className="w-6 h-6 text-blue-600" />
+                                LKR
                             </div>
                         </div>
                     </CardContent>

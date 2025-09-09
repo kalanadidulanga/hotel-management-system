@@ -31,6 +31,7 @@ import {
   ChefHat,
   Package,
   Receipt,
+  Bell,
 } from "lucide-react";
 
 export type Role = "superadmin" | "manager" | "cashier";
@@ -144,6 +145,71 @@ export const sidebarConfig: SidebarItem[] = [
       //   route: "/rooms/settings/cleaning",
       //   roles: ["superadmin"],
       // },
+    ],
+  },
+  {
+    label: "Assets",
+    icon: Package,
+    roles: ["superadmin", "manager"],
+    children: [
+      {
+        label: "Dashboard",
+        icon: Monitor,
+        route: "/assets",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Assets List",
+        icon: List,
+        route: "/assets/list",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Add New Asset",
+        icon: Plus,
+        route: "/assets/create",
+        roles: ["superadmin"],
+      },
+      {
+        label: "Asset Categories",
+        icon: Layers3,
+        route: "/assets/categories",
+        roles: ["superadmin", "manager"],
+      },
+      {
+        label: "Maintenance",
+        icon: Wrench,
+        roles: ["superadmin", "manager"],
+        children: [
+          {
+            label: "Dashboard",
+            icon: Monitor,
+            route: "/assets/maintenance",
+            roles: ["superadmin", "manager"],
+          },
+          {
+            label: "Add Record",
+            icon: Plus,
+            route: "/assets/maintenance/create",
+            roles: ["superadmin", "manager"],
+          },
+          
+          {
+            label: "Alerts",
+            icon: Bell,
+            route: "/assets/notifications",
+            roles: ["superadmin", "manager"],
+          },
+        ],
+      },
+      {
+        label: "Advanced Search",
+        icon: Search,
+        route: "/assets/search",
+        roles: ["superadmin", "manager"],
+      },
+    
+     
     ],
   },
 

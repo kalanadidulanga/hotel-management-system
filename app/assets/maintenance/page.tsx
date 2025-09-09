@@ -160,7 +160,7 @@ export default function MaintenanceDashboard() {
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD'
+            currency: 'LKR'
         }).format(amount);
     };
 
@@ -361,12 +361,10 @@ export default function MaintenanceDashboard() {
                                     {formatCurrency(data.summary.totalMaintenanceCost)}
                                 </p>
                             </div>
-                            <div className="p-3 bg-green-100 rounded-full">
-                                <DollarSign className="w-6 h-6 text-green-600" />
-                            </div>
+                            
                         </div>
                         <div className="mt-4 flex items-center text-sm text-gray-600">
-                            <DollarSign className="w-4 h-4 mr-1" />
+                            LKR
                             Avg: {formatCurrency(data.summary.averageCostPerMaintenance)}
                         </div>
                     </CardContent>

@@ -15,7 +15,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
     AlertCircle,
     Calendar,
-    DollarSign,
     FileIcon,
     FileText,
     ImageIcon,
@@ -389,7 +388,7 @@ export default function CreateAssetPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center">
-                            <DollarSign className="w-5 h-5 mr-2" />
+                            
                             Purchase Information
                         </CardTitle>
                     </CardHeader>
@@ -397,7 +396,7 @@ export default function CreateAssetPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <Label htmlFor="purchasePrice">
-                                    Purchase Price ($) <span className="text-red-500">*</span>
+                                    Purchase Price LKR <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="purchasePrice"

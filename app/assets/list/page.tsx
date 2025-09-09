@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import useSWR from "swr";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
     Select,
     SelectContent,
@@ -22,23 +20,24 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import {
-    Package,
-    Utensils,
-    Search,
-    Filter,
-    Eye,
-    Edit,
-    Wrench,
-    Plus,
-    Download,
-    Calendar,
-    MapPin,
-    DollarSign,
     AlertTriangle,
-    Clock
+    Calendar,
+    Clock,
+    Download,
+    Edit,
+    Eye,
+    Filter,
+    MapPin,
+    Package,
+    Plus,
+    Search,
+    Utensils,
+    Wrench
 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { toast } from "sonner";
+import useSWR from "swr";
 
 interface Asset {
     id: number;
@@ -138,7 +137,7 @@ export default function AssetsListPage() {
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD'
+            currency: 'LKR'
         }).format(amount);
     };
 
@@ -469,7 +468,7 @@ export default function AssetsListPage() {
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center">
-                                                <DollarSign className="w-4 h-4 text-gray-400 mr-1" />
+                                                
                                                 <span className="font-medium">{formatCurrency(asset.purchasePrice)}</span>
                                             </div>
                                             <p className="text-xs text-gray-500">{formatDate(asset.purchaseDate)}</p>
