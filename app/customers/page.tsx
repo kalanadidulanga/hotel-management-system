@@ -161,9 +161,7 @@ export default function CustomersPage() {
                     <h1 className="text-3xl font-bold tracking-tight flex items-center">
                         <Users className="w-8 h-8 text-blue-600 mr-3" />
                         Customer Management
-                        <Badge variant="outline" className="ml-3 text-xs">
-                            Module 03
-                        </Badge>
+                        
                     </h1>
                     <p className="text-gray-600 mt-1">
                         Manage customer records with VIP highlighting and quick NIC search

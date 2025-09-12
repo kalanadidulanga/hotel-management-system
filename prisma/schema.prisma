@@ -63,6 +63,40 @@ enum StaffClass {
   RECEPTIONIST
 }
 
+// HR Module Enums
+enum SalaryType {
+  HOURLY
+  DAILY
+  MONTHLY
+}
+
+enum LeaveType {
+  SICK
+  CASUAL
+  ANNUAL
+  MATERNITY
+  PATERNITY
+  EMERGENCY
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  LEAVE
+}
+
+enum PrivilegeType {
+  ADD_USERS
+  RESTAURANT_ORDERS
+  INVENTORY
+  ROOM_SETTING
+  ACCOUNTS
+  GENERAL_LEDGER
+  UNIT_PRICING
+}
+
 enum WakeUpCallStatus {
   Pending
   Completed
@@ -168,6 +202,256 @@ model User {
   assignedIncidents  IncidentLog[] @relation("AssignedIncidents")
   ordersTaken        RestaurantOrder[] @relation("OrderTakenBy")
   ordersServed       RestaurantOrder[] @relation("OrderServedBy")
+  
+  // HR Relations
+  staff              Staff?
+}
+
+// ========== HR MODULE ==========
+
+// Department (2.1)
+model Department {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  staff       Staff[]
+}
+
+// Staff Classes (2.2)
+model StaffClassHR {
+  id                  Int        @id @default(autoincrement())
+  name                String     @unique
+  salaryType          SalaryType
+  baseSalary          Float
+  maxLeavesPerMonth   Int        @default(2)
+  maxLeavesPerYear    Int        @default(24)
+  nightShiftRate      Float?     // Extra payment for night shifts
+  overtimeRate        Float?
+  isActive            Boolean    @default(true)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  
+  staff               Staff[]
+}
+
+// Staff (Enhanced User model for HR - 2.3)
+model Staff {
+  id            Int           @id @default(autoincrement())
+  userId        Int           @unique
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  departmentId  Int
+  department    Department    @relation(fields: [departmentId], references: [id])
+  classId       Int
+  staffClass    StaffClassHR  @relation(fields: [classId], references: [id])
+  
+  // Personal Details
+  employeeId    String        @unique
+  joinDate      DateTime
+  probationEnd  DateTime?
+  isActive      Boolean       @default(true)
+  
+  // Relations
+  attendance    Attendance[]
+  leaves        Leave[]
+  shifts        ShiftAssignment[]
+  privileges    StaffPrivilege[]
+  documents     StaffDocument[]
+  appraisals    Appraisal[]
+  salaries      Salary[]
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+// Staff Privileges (2.11)
+model StaffPrivilege {
+  id          Int           @id @default(autoincrement())
+  staffId     Int
+  staff       Staff         @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  privilege   PrivilegeType
+  canRead     Boolean       @default(true)
+  canWrite    Boolean       @default(false)
+  canDelete   Boolean       @default(false)
+  grantedBy   Int
+  grantedAt   DateTime      @default(now())
+  
+  @@unique([staffId, privilege])
+}
+
+// Attendance (2.4)
+model Attendance {
+  id          Int              @id @default(autoincrement())
+  staffId     Int
+  staff       Staff            @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  date        DateTime
+  status      AttendanceStatus
+  clockIn     DateTime?
+  clockOut    DateTime?
+  totalHours  Float?
+  overtimeHours Float?
+  leaveType   LeaveType?       // If status is LEAVE
+  remarks     String?
+  markedBy    Int?
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  @@unique([staffId, date])
+  @@index([date])
+}
+
+// Leave Management (2.4, 2.5)
+model Leave {
+  id            Int       @id @default(autoincrement())
+  staffId       Int
+  staff         Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  leaveType     LeaveType
+  startDate     DateTime
+  endDate       DateTime
+  totalDays     Int
+  reason        String
+  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  
+  appliedAt     DateTime  @default(now())
+  approvedBy    Int?
+  approvedAt    DateTime?
+  rejectionReason String?
+  
+  // Leave balance tracking
+  balanceBefore Int
+  balanceAfter  Int
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([staffId, startDate])
+}
+
+// Shift Management (2.6)
+model Shift {
+  id          Int      @id @default(autoincrement())
+  name        String   // "Night Shift", "Morning Shift"
+  startTime   String
+  endTime     String
+  isNightShift Boolean @default(false)
+  extraRate   Float?   // Additional payment rate
+  
+  assignments ShiftAssignment[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ShiftAssignment {
+  id        Int      @id @default(autoincrement())
+  staffId   Int
+  staff     Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  shiftId   Int
+  shift     Shift    @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  
+  date      DateTime
+  isActive  Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([staffId, date])
+  @@index([date])
+}
+
+// Payroll (2.7, 2.8)
+model Salary {
+  id              Int      @id @default(autoincrement())
+  staffId         Int
+  staff           Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  month           Int
+  year            Int
+  
+  // Calculations
+  baseSalary      Float
+  overtimePay     Float    @default(0)
+  nightShiftPay   Float    @default(0)
+  allowances      Float    @default(0)
+  deductions      Float    @default(0)
+  advance         Float    @default(0)
+  totalSalary     Float
+  netSalary       Float
+  
+  // Working details
+  workingDays     Int
+  presentDays     Int
+  leaveDays       Int
+  overtimeHours   Float    @default(0)
+  nightShiftHours Float    @default(0)
+  
+  status          String   @default("PENDING") // PENDING, PROCESSED, PAID
+  processedAt     DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([staffId, month, year])
+  @@index([month, year])
+}
+
+// Staff Documents (2.9)
+model StaffDocument {
+  id          Int      @id @default(autoincrement())
+  staffId     Int
+  staff       Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  documentType String  // "CV", "Certificates", "ID Copy", "Contract"
+  fileName    String
+  filePath    String
+  fileSize    Int?
+  uploadedBy  Int
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([staffId, documentType])
+}
+
+// Appraisals (2.10)
+model Appraisal {
+  id              Int       @id @default(autoincrement())
+  staffId         Int
+  staff           Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  scheduledDate   DateTime
+  completedDate   DateTime?
+  
+  // Ratings
+  performance     Int?      // 1-5 scale
+  punctuality     Int?
+  teamwork        Int?
+  communication   Int?
+  overall         Int?
+  
+  // Feedback
+  strengths       String?
+  improvements    String?
+  goals           String?
+  managerNotes    String?
+  
+  // Status & Notifications
+  status          String    @default("SCHEDULED") // SCHEDULED, COMPLETED, OVERDUE
+  notificationSent Boolean  @default(false)
+  reminderCount   Int       @default(0)
+  
+  conductedBy     Int?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([scheduledDate])
+  @@index([status])
 }
 
 // ========== MODULE 03: CUSTOMER MANAGEMENT ==========
