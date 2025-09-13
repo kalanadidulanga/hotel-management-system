@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
@@ -20,19 +20,7 @@ export async function GET(
     const employee = await prisma.staff.findUnique({
       where: { id: employeeId },
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-            nic: true,
-            contact: true,
-            address: true,
-            dateOfBirth: true,
-            createdAt: true,
-          },
-        },
+        user: true,
         department: {
           select: {
             id: true,
@@ -100,12 +88,20 @@ export async function PUT(
     }
 
     const {
-      name,
+      firstName,
+      lastName,
       email,
       role,
       nic,
       contact,
       address,
+      gender,
+      maritalStatus,
+      nationality,
+      religion,
+      emergencyName,
+      emergencyRelation,
+      emergencyPhone,
       dateOfBirth,
       departmentId,
       classId,
@@ -114,7 +110,7 @@ export async function PUT(
     } = body;
 
     // Validation
-    if (!name || !email || !nic || !contact || !departmentId || !classId) {
+    if (!firstName || !lastName || !email || !nic || !contact || !departmentId || !classId) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -198,10 +194,18 @@ export async function PUT(
       const updatedUser = await tx.user.update({
         where: { id: existingEmployee.userId },
         data: {
-          name,
+          firstName,
+          lastName,
           email,
           role: role as any,
           nic,
+          gender,
+          maritalStatus,
+          nationality,
+          religion,
+          emergencyName,
+          emergencyRelation,
+          emergencyPhone,
           contact,
           address: address || null,
           dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,

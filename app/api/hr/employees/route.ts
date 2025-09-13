@@ -1,421 +1,8 @@
-// import { NextRequest, NextResponse } from "next/server";
-// import { PrismaClient } from "@prisma/client";
-// import bcrypt from "bcryptjs";
 
-// const prisma = new PrismaClient();
-
-
-// // GET - Fetch all employees
-// export async function GET(request: NextRequest) {
-//   try {
-//     const { searchParams } = new URL(request.url);
-//     const search = searchParams.get("search") || "";
-//     const departmentId = searchParams.get("departmentId");
-//     const classId = searchParams.get("classId");
-//     const status = searchParams.get("status");
-//     const sortBy = searchParams.get("sortBy") || "createdAt";
-//     const sortOrder = searchParams.get("sortOrder") || "desc";
-//     const page = parseInt(searchParams.get("page") || "1");
-//     const limit = parseInt(searchParams.get("limit") || "10");
-//     const skip = (page - 1) * limit;
-
-//     // Build where clause
-//     const where: any = {};
-
-//     // Fix search query for SQLite (remove mode: "insensitive")
-//     if (search && search.trim()) {
-//       const searchTerm = search.trim().toLowerCase(); // Convert to lowercase for manual case-insensitive search
-//       where.OR = [
-//         // Search in user name (using contains without mode for SQLite)
-//         { 
-//           user: { 
-//             name: { 
-//               contains: searchTerm
-//             } 
-//           } 
-//         },
-//         // Search in user email
-//         { 
-//           user: { 
-//             email: { 
-//               contains: searchTerm
-//             } 
-//           } 
-//         },
-//         // Search in employee ID
-//         { 
-//           employeeId: { 
-//             contains: searchTerm
-//           } 
-//         },
-//         // Search in user NIC
-//         { 
-//           user: { 
-//             nic: { 
-//               contains: searchTerm
-//             } 
-//           } 
-//         },
-//         // Search in user contact
-//         { 
-//           user: { 
-//             contact: { 
-//               contains: searchTerm
-//             } 
-//           } 
-//         },
-//       ];
-//     }
-
-//     // Apply other filters
-//     if (departmentId && departmentId !== "all") {
-//       if (where.OR) {
-//         // If search is active, combine with AND
-//         where.AND = [
-//           { OR: where.OR },
-//           { departmentId: parseInt(departmentId) }
-//         ];
-//         delete where.OR;
-//       } else {
-//         where.departmentId = parseInt(departmentId);
-//       }
-//     }
-
-//     if (classId && classId !== "all") {
-//       const classFilter = { classId: parseInt(classId) };
-//       if (where.AND) {
-//         where.AND.push(classFilter);
-//       } else if (where.OR) {
-//         where.AND = [
-//           { OR: where.OR },
-//           classFilter
-//         ];
-//         delete where.OR;
-//       } else {
-//         where.classId = parseInt(classId);
-//       }
-//     }
-
-//     if (status === "active") {
-//       const statusFilter = { isActive: true };
-//       if (where.AND) {
-//         where.AND.push(statusFilter);
-//       } else if (where.OR) {
-//         where.AND = [
-//           { OR: where.OR },
-//           statusFilter
-//         ];
-//         delete where.OR;
-//       } else {
-//         where.isActive = true;
-//       }
-//     } else if (status === "inactive") {
-//       const statusFilter = { isActive: false };
-//       if (where.AND) {
-//         where.AND.push(statusFilter);
-//       } else if (where.OR) {
-//         where.AND = [
-//           { OR: where.OR },
-//           statusFilter
-//         ];
-//         delete where.OR;
-//       } else {
-//         where.isActive = false;
-//       }
-//     }
-
-//     // Build orderBy
-//     let orderBy: any = {};
-//     if (sortBy === "name") {
-//       orderBy = { user: { name: sortOrder } };
-//     } else if (sortBy === "department") {
-//       orderBy = { department: { name: sortOrder } };
-//     } else if (sortBy === "staffClass") {
-//       orderBy = { staffClass: { name: sortOrder } };
-//     } else {
-//       orderBy = { [sortBy]: sortOrder };
-//     }
-
-//     console.log("Search query:", JSON.stringify(where, null, 2)); // Debug log
-
-//     // Fetch employees with related data
-//     const [employees, total] = await Promise.all([
-//       prisma.staff.findMany({
-//         where,
-//         skip,
-//         take: limit,
-//         orderBy,
-//         include: {
-//           user: {
-//             select: {
-//               id: true,
-//               name: true,
-//               email: true,
-//               role: true,
-//               nic: true,
-//               contact: true,
-//               address: true,
-//               dateOfBirth: true,
-//               createdAt: true,
-//             },
-//           },
-//           department: {
-//             select: {
-//               id: true,
-//               name: true,
-//             },
-//           },
-//           staffClass: {
-//             select: {
-//               id: true,
-//               name: true,
-//               salaryType: true,
-//               baseSalary: true,
-//             },
-//           },
-//           _count: {
-//             select: {
-//               attendance: true,
-//               leaves: true,
-//             },
-//           },
-//         },
-//       }),
-//       prisma.staff.count({ where }),
-//     ]);
-
-//     // Get statistics
-//     const [
-//       totalEmployees,
-//       activeEmployees,
-//       inactiveEmployees,
-//       recentHires,
-//       departments,
-//       staffClasses,
-//     ] = await Promise.all([
-//       prisma.staff.count(),
-//       prisma.staff.count({ where: { isActive: true } }),
-//       prisma.staff.count({ where: { isActive: false } }),
-//       prisma.staff.count({
-//         where: {
-//           joinDate: {
-//             gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-//           },
-//         },
-//       }),
-//       prisma.department.findMany({
-//         include: {
-//           _count: {
-//             select: { staff: true },
-//           },
-//         },
-//       }),
-//       prisma.staffClassHR.findMany({
-//         include: {
-//           _count: {
-//             select: { staff: true },
-//           },
-//         },
-//       }),
-//     ]);
-
-//     return NextResponse.json({
-//       employees,
-//       pagination: {
-//         page,
-//         limit,
-//         total,
-//         pages: Math.ceil(total / limit),
-//       },
-//       stats: {
-//         total: totalEmployees,
-//         active: activeEmployees,
-//         inactive: inactiveEmployees,
-//         recentHires,
-//         departments,
-//         staffClasses,
-//       },
-//     });
-//   } catch (error) {
-//     console.error("Error fetching employees:", error);
-//     return NextResponse.json(
-//       { error: "Failed to fetch employees" },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-// // ...rest of your POST method remains the same
-
-// // POST - Create new employee with login credentials (SRS 2.3)
-// export async function POST(request: NextRequest) {
-//   try {
-//     const body = await request.json();
-//     const {
-//       // User details
-//       name,
-//       email,
-//       password,
-//       role = "CASHIER",
-//       nic,
-//       contact,
-//       address,
-//       dateOfBirth,
-//       department: userDepartment,
-//       staffClass: userStaffClass,
-
-//       // Employee details
-//       employeeId,
-//       joinDate,
-//       departmentId,
-//       classId,
-//       probationEnd,
-//     } = body;
-
-//     // Validation
-//     if (!name || !email || !password) {
-//       return NextResponse.json(
-//         { error: "Name, email, and password are required" },
-//         { status: 400 }
-//       );
-//     }
-
-//     if (!employeeId || !nic || !contact || !departmentId || !classId) {
-//       return NextResponse.json(
-//         {
-//           error:
-//             "Employee ID, NIC, contact, department, and staff class are required",
-//         },
-//         { status: 400 }
-//       );
-//     }
-
-//     // Check if user already exists
-//     const existingUser = await prisma.user.findFirst({
-//       where: {
-//         OR: [{ email: email.trim().toLowerCase() }, { nic: nic.trim() }],
-//       },
-//     });
-
-//     if (existingUser) {
-//       return NextResponse.json(
-//         { error: "User with this email or NIC already exists" },
-//         { status: 409 }
-//       );
-//     }
-
-//     // Check if employee ID already exists
-//     const existingEmployee = await prisma.staff.findFirst({
-//       where: {
-//         employeeId: employeeId.trim(),
-//       },
-//     });
-
-//     if (existingEmployee) {
-//       return NextResponse.json(
-//         { error: "Employee with this ID already exists" },
-//         { status: 409 }
-//       );
-//     }
-
-//     // Verify department and staff class exist
-//     const [department, staffClass] = await Promise.all([
-//       prisma.department.findUnique({ where: { id: parseInt(departmentId) } }),
-//       prisma.staffClassHR.findUnique({ where: { id: parseInt(classId) } }),
-//     ]);
-
-//     if (!department) {
-//       return NextResponse.json(
-//         { error: "Department not found" },
-//         { status: 400 }
-//       );
-//     }
-
-//     if (!staffClass) {
-//       return NextResponse.json(
-//         { error: "Staff class not found" },
-//         { status: 400 }
-//       );
-//     }
-
-//     // Hash password
-//     const hashedPassword = await bcrypt.hash(password, 12);
-
-//     // Create user and employee in transaction
-//     const result = await prisma.$transaction(async (tx) => {
-//       // Create user
-//       const user = await tx.user.create({
-//         data: {
-//           name: name.trim(),
-//           email: email.trim().toLowerCase(),
-//           password: hashedPassword,
-//           role,
-//           nic: nic?.trim(),
-//           contact: contact?.trim(),
-//           address: address?.trim(),
-//           dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-//           department: userDepartment,
-//           staffClass: userStaffClass,
-//         },
-//       });
-
-//       // Create employee
-//       const employee = await tx.staff.create({
-//         data: {
-//           userId: user.id,
-//           employeeId: employeeId.trim(),
-//           joinDate: new Date(joinDate),
-//           probationEnd: probationEnd ? new Date(probationEnd) : null,
-//           departmentId: parseInt(departmentId),
-//           classId: parseInt(classId),
-//           isActive: true,
-//         },
-//         include: {
-//           user: {
-//             select: {
-//               id: true,
-//               name: true,
-//               email: true,
-//               role: true,
-//               nic: true,
-//               contact: true,
-//               address: true,
-//               dateOfBirth: true,
-//               createdAt: true,
-//             },
-//           },
-//           department: {
-//             select: {
-//               id: true,
-//               name: true,
-//             },
-//           },
-//           staffClass: {
-//             select: {
-//               id: true,
-//               name: true,
-//               salaryType: true,
-//               baseSalary: true,
-//             },
-//           },
-//         },
-//       });
-
-//       return employee;
-//     });
-
-//     return NextResponse.json(result, { status: 201 });
-//   } catch (error) {
-//     console.error("Error creating employee:", error);
-//     return NextResponse.json(
-//       { error: "Failed to create employee" },
-//       { status: 500 }
-//     );
-//   }
-// }
-import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient, PrivilegeType } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { first } from "lodash";
+import { NextRequest, NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
@@ -438,12 +25,14 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.OR = [
-        { user: { name: { contains: search, mode: "insensitive" } } },
-        { user: { email: { contains: search, mode: "insensitive" } } },
-        { employeeId: { contains: search, mode: "insensitive" } },
-        { user: { nic: { contains: search, mode: "insensitive" } } },
-        { user: { contact: { contains: search, mode: "insensitive" } } },
-      ];
+  { user: { firstName: { contains: search.toLowerCase() } } },
+  { user: { lastName: { contains: search.toLowerCase() } } },
+  { user: { email: { contains: search.toLowerCase() } } },
+  { employeeId: { contains: search.toLowerCase() } },
+  { user: { nic: { contains: search.toLowerCase() } } },
+  { user: { contact: { contains: search.toLowerCase() } } },
+];
+
     }
 
     if (departmentId && departmentId !== "all") {
@@ -465,7 +54,8 @@ export async function GET(request: NextRequest) {
         user: {
           select: {
             id: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             email: true,
             role: true,
             nic: true,
@@ -542,7 +132,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       // User details
-      name,
+      firstName,
+      lastName,
       email,
       password,
       role,
@@ -551,6 +142,13 @@ export async function POST(request: NextRequest) {
       address,
       dateOfBirth,
       // Staff details
+      gender,
+      maritalStatus,
+      nationality,
+      religion,
+      emergencyName,
+      emergencyRelation,
+      emergencyPhone,
       employeeId,
       joinDate,
       departmentId,
@@ -562,7 +160,8 @@ export async function POST(request: NextRequest) {
 
     // Validation
     if (
-      !name ||
+      !firstName ||
+      !lastName ||
       !email ||
       !password ||
       !employeeId ||
@@ -645,11 +244,19 @@ export async function POST(request: NextRequest) {
       // Create user
       const user = await tx.user.create({
         data: {
-          name,
+          firstName,
+          lastName,
           email,
           password: hashedPassword,
           role: role as any,
           nic,
+          gender: gender || null,
+          maritalStatus: maritalStatus || null,
+          nationality: nationality || null,
+          religion: religion || null,
+          emergencyName: emergencyName || null,
+          emergencyRelation: emergencyRelation || null,
+          emergencyPhone: emergencyPhone || null,
           contact,
           address: address || null,
           dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
@@ -713,7 +320,8 @@ export async function POST(request: NextRequest) {
         employeeId: result.staff.employeeId,
         user: {
           id: result.user.id,
-          name: result.user.name,
+          firstName: result.user.firstName,
+          lastName: result.user.lastName,
           email: result.user.email,
           role: result.user.role,
         },

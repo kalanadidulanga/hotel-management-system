@@ -175,21 +175,29 @@ model User {
   id                 Int      @id @default(autoincrement())
   email              String   @unique
   password           String
-  name               String
+  firstName          String
+  lastName           String
   role               Role     @default(CASHIER)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
-  
-  // Enhanced user fields
-  department         StaffDepartment?
-  staffClass         StaffClass?
-  fullName           String?
-  nic                String?  @unique
+
+  // Enhanced user fields (Basic Biography)
+ 
+  nic                String?   @unique
   dateOfBirth        DateTime?
+  gender             String?
+  maritalStatus      String?
+  nationality        String?
+  religion           String?
   contact            String?
   address            String?
-  isDedicated        Boolean  @default(false)
-  
+  isDedicated        Boolean   @default(false)
+
+  // Emergency Contact
+  emergencyName      String?
+  emergencyRelation  String?
+  emergencyPhone     String?
+
   // Relations
   assetNotifications AssetNotification[]
   maintenanceLogs    MaintenanceLog[]
@@ -202,7 +210,7 @@ model User {
   assignedIncidents  IncidentLog[] @relation("AssignedIncidents")
   ordersTaken        RestaurantOrder[] @relation("OrderTakenBy")
   ordersServed       RestaurantOrder[] @relation("OrderServedBy")
-  
+
   // HR Relations
   staff              Staff?
 }
@@ -248,13 +256,13 @@ model Staff {
   department    Department    @relation(fields: [departmentId], references: [id])
   classId       Int
   staffClass    StaffClassHR  @relation(fields: [classId], references: [id])
-  
-  // Personal Details
+
+  // Employment Biography
   employeeId    String        @unique
   joinDate      DateTime
   probationEnd  DateTime?
   isActive      Boolean       @default(true)
-  
+
   // Relations
   attendance    Attendance[]
   leaves        Leave[]
@@ -263,7 +271,7 @@ model Staff {
   documents     StaffDocument[]
   appraisals    Appraisal[]
   salaries      Salary[]
-  
+
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }

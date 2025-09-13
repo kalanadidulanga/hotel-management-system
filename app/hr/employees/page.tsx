@@ -75,7 +75,8 @@ interface Employee {
     createdAt: string;
     user: {
         id: number;
-        name: string;
+        firstName: string;
+        lastName: string;
         email: string;
         role: string;
         nic: string | null;
@@ -107,11 +108,19 @@ interface Employee {
 }
 
 interface EmployeeFormData {
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
     password: string;
     role: string;
     nic: string;
+    gender?: string;
+    maritalStatus?: string;
+    nationality?: string;
+    religion?: string;
+    emergencyName?: string;
+    emergencyRelation?: string;
+    emergencyPhone?: string;
     contact: string;
     address: string;
     dateOfBirth: string;
@@ -244,12 +253,20 @@ export default function EmployeesPage() {
 
     // Form data
     const [formData, setFormData] = useState<EmployeeFormData>({
-        name: "",
+        firstName: "",
+        lastName: "",
         email: "",
         password: "",
         role: "CASHIER",
         nic: "",
         contact: "",
+        gender: "",
+        maritalStatus: "",
+        nationality: "",
+        religion: "",
+        emergencyName: "",
+        emergencyRelation: "",
+        emergencyPhone: "",
         address: "",
         dateOfBirth: "",
         employeeId: "",
@@ -325,7 +342,7 @@ export default function EmployeesPage() {
     const handleCreateEmployee = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const requiredFields = ['name', 'email', 'password', 'employeeId', 'nic', 'contact', 'departmentId', 'classId'];
+        const requiredFields = ['firstName','lastName', 'email', 'gender', 'maritalStatus', 'password', 'employeeId', 'nic', 'contact', 'departmentId', 'classId'];
         const missingFields = requiredFields.filter(field => !formData[field as keyof EmployeeFormData]);
 
         if (missingFields.length > 0) {
@@ -388,7 +405,8 @@ export default function EmployeesPage() {
 
     const resetForm = () => {
         setFormData({
-            name: "",
+            firstName: "",
+            lastName: "",
             email: "",
             password: "",
             role: "CASHIER",
@@ -720,7 +738,7 @@ export default function EmployeesPage() {
                                                         <User className="w-5 h-5 text-gray-500" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-medium">{employee.user.name}</p>
+                                                        <p className="font-medium">{employee.user.firstName} {employee.user.lastName}</p>
                                                         <p className="text-sm text-gray-500">
                                                             <IdCard className="w-3 h-3 inline mr-1" />
                                                             {employee.employeeId}
@@ -915,12 +933,22 @@ export default function EmployeesPage() {
 
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label htmlFor="name">Full Name *</Label>
+                                            <Label htmlFor="firstName">First Name *</Label>
                                             <Input
-                                                id="name"
-                                                value={formData.name}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                                                placeholder="John Doe"
+                                                id="firstName"
+                                                value={formData.firstName}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                                                placeholder="John"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="lastName">Last Name *</Label>
+                                            <Input
+                                                id="lastName"
+                                                value={formData.lastName}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                                                placeholder="Doe"
                                                 required
                                             />
                                         </div>
@@ -1029,6 +1057,121 @@ export default function EmployeesPage() {
                                             placeholder="Complete address"
                                             rows={2}
                                         />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="gender">Gender</Label>
+                                        <Select
+                                            value={formData.gender ?? "none"}
+                                            onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value === "none" ? "" : value }))}
+                                        >
+                                            <SelectTrigger id="gender">
+                                                <SelectValue placeholder="Select gender" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Not specified</SelectItem>
+                                                <SelectItem value="Male">Male</SelectItem>
+                                                <SelectItem value="Female">Female</SelectItem>
+                                                <SelectItem value="Other">Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="maritalStatus">Marital Status</Label>
+                                        <Select
+                                            value={formData.maritalStatus ?? "none"}
+                                            onValueChange={(value) => setFormData(prev => ({ ...prev, maritalStatus: value === "none" ? "" : value }))}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Not specified" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Not specified</SelectItem>
+                                                <SelectItem value="Single">Single</SelectItem>
+                                                <SelectItem value="Married">Married</SelectItem>
+                                                <SelectItem value="Divorced">Divorced</SelectItem>
+                                                <SelectItem value="Widowed">Widowed</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="nationality">Nationality</Label>
+                                        <Input
+                                            id="nationality"
+                                            value={formData.nationality || ""}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, nationality: e.target.value }))}
+                                            placeholder="Sri Lankan"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="religion">Religion</Label>
+                                        <Select
+                                            value={formData.religion ?? "none"}
+                                            onValueChange={(value) =>
+                                                setFormData(prev => ({ ...prev, religion: value === "none" ? "" : value }))
+                                            }
+                                        >
+                                            <SelectTrigger id="religion">
+                                                <SelectValue placeholder="Select religion" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Not specified</SelectItem>
+                                                <SelectItem value="Buddhist">Buddhist</SelectItem>
+                                                <SelectItem value="Christian">Christian</SelectItem>
+                                                <SelectItem value="Muslim">Muslim</SelectItem>
+                                                <SelectItem value="Hindu">Hindu</SelectItem>
+                                                <SelectItem value="Other">Other</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <Separator />
+
+                                <div className="space-y-4">
+                                    <div className="flex items-center space-x-2 mb-3">
+                                        <User className="w-4 h-4 text-red-600" />
+                                        <h4 className="font-semibold text-sm text-red-600">Emergency Contact</h4>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="emergencyName">Name</Label>
+                                            <Input
+                                                id="emergencyName"
+                                                value={formData.emergencyName || ""}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, emergencyName: e.target.value }))}
+                                                placeholder="Contact Name"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="emergencyRelation">Relation</Label>
+                                            <Select
+                                                value={formData.emergencyRelation ?? "none"}
+                                                onValueChange={(value) => setFormData(prev => ({ ...prev, emergencyRelation: value === "none" ? "" : value }))}
+                                            >
+                                                <SelectTrigger id="emergencyRelation">
+                                                    <SelectValue placeholder="Select relation" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">Select relation</SelectItem>
+                                                    <SelectItem value="Father">Father</SelectItem>
+                                                    <SelectItem value="Mother">Mother</SelectItem>
+                                                    <SelectItem value="Spouse">Spouse</SelectItem>
+                                                    <SelectItem value="Friend">Friend</SelectItem>
+                                                    <SelectItem value="Other">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2 col-span-2">
+                                            <Label htmlFor="emergencyPhone">Phone</Label>
+                                            <Input
+                                                id="emergencyPhone"
+                                                value={formData.emergencyPhone || ""}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, emergencyPhone: e.target.value }))}
+                                                placeholder="+94"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </TabsContent>
@@ -1256,7 +1399,7 @@ export default function EmployeesPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <Label className="text-sm text-gray-600">Full Name</Label>
-                                    <p className="font-medium">{selectedEmployee.user.name}</p>
+                                    <p className="font-medium">{selectedEmployee.user.firstName} {selectedEmployee.user.lastName}</p>
                                 </div>
                                 <div>
                                     <Label className="text-sm text-gray-600">Employee ID</Label>
@@ -1368,7 +1511,7 @@ export default function EmployeesPage() {
                             Delete Employee
                         </DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to deactivate "{selectedEmployee?.user.name}"? This will disable their access and remove all privileges.
+                            Are you sure you want to deactivate "{selectedEmployee?.user.firstName}"? This will disable their access and remove all privileges.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
